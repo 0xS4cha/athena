@@ -1,6 +1,6 @@
 local env = {}
 
-function env.load(path)
+function env:Load(path)
     local Logger = require("src.core.logger")
     path = path or ".env"
     local content = love.filesystem.read(path)
@@ -22,7 +22,7 @@ function env.load(path)
     return env
 end
 
-function env.get(variable, default_value) 
+function env:Get(variable, default_value) 
     if not env[variable] then
         env[variable] = default_value
     end 

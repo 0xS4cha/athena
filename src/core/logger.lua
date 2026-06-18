@@ -1,9 +1,9 @@
 local env = require("src.core.env")
 
 Logger = {}
-Logger.Enabled = env.get("DEV", 1) == 1 and true or false
+Logger.Enabled = env:Get("DEV", 1) == 1 and true or false
 
-Logger.LogLevel = env.get("LOG_LEVELS", Logger.Enabled and 3 or 0)
+Logger.LogLevel = env:Get("LOG_LEVELS", Logger.Enabled and 3 or 0)
 
 local LOG_LEVELS = {
     ERROR = 0,

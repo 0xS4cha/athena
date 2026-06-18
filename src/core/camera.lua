@@ -9,12 +9,11 @@ function Camera:init()
     self.isDragging = false
     self.lastMouseX = 0
     self.lastMouseY = 0
-
     self.minScale = 0.05
     self.maxScale = 10.0
 end
 
-function Camera:update(dt)
+function Camera:update()
     local mouseX, mouseY = love.mouse.getPosition()
     
     if love.mouse.isDown(2) then
@@ -35,9 +34,16 @@ function Camera:update(dt)
     else
         self.isDragging = false
     end
+    
+    self:clamp()
 end
 
 function Camera:zoom(factor, mouseX, mouseY)
+    if self.mapW and self.mapH then
+        local W, H = love.graphics.getDimensions()
+        self.minScale = math.max(W / self.mapW, H / self.mapH)
+    end
+
     local oldScale = self.scale
     self.scale = math.max(self.minScale, math.min(self.maxScale, self.scale * factor))
     
@@ -48,6 +54,26 @@ function Camera:zoom(factor, mouseX, mouseY)
         self.x = (mouseX - worldX * (self.scale / oldScale)) / self.scale
         self.y = (mouseY - worldY * (self.scale / oldScale)) / self.scale
     end
+    
+    self:clamp()
+end
+
+function Camera:clamp()
+    if not self.mapW or not self.mapH then return end
+    
+    local W, H = love.graphics.getDimensions()
+    
+    local minScale = math.max(W / self.mapW, H / self.mapH)
+    self.minScale = minScale
+    if self.scale < minScale then
+        self.scale = minScale
+    end
+    
+    local minX = W / self.scale - self.mapW
+    local minY = H / self.scale - self.mapH
+    
+    self.x = math.max(minX, math.min(0, self.x))
+    self.y = math.max(minY, math.min(0, self.y))
 end
 
 function Camera:apply()

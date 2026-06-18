@@ -46,9 +46,12 @@ function love.load(args)
     local initialScale = math.max(W / imgW, H / imgH)
     
     camera = Camera()
+    camera.mapW = imgW
+    camera.mapH = imgH
     camera.scale = initialScale
     camera.x = (W - imgW * initialScale) / (2 * initialScale)
     camera.y = (H - imgH * initialScale) / (2 * initialScale)
+    camera:clamp()
 
     if flags.heightmap then
         Logger:trace("Heightmap", string.format("\nTraitement : %.2f ms\n", elapsed))

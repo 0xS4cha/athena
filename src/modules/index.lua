@@ -2,7 +2,7 @@ local GM = require("src.core.index")
 GM.Modules = {}
 GM.Map = {}
 GM.Modules.List = {}
-GM.Modules.HasFunction = { Think = {} }
+GM.Modules.HasFunction = { Think = {}, Draw = {} }
 
 local lastTick = os.clock()
 
@@ -69,13 +69,12 @@ function GM:InitializeModules()
             end
 
             local timeTaken = os.clock() - startTime
-            local timeStr = tostring(timeTaken)
-            if timeTaken > 1 then
-                timeStr = "^1" .. timeStr
-            end
-            Logger:info("Module", "Initialized " .. name .. " in " .. timeStr .. "ms")
+            Logger:info("Module", string.format("Initialized %s in %.2f ms", name, timeTaken))
             if self[name].Think then
                 table.insert(GM.Modules.HasFunction.Think, name)
+            end
+            if self[name].Draw then
+                table.insert(GM.Modules.HasFunction.Draw, name)
             end
         else
             Logger:warn("Module", "Module " .. name .. " registered but does not have a function")
@@ -98,6 +97,12 @@ function GM:Think()
 
     if self.TickSecond then
         self.TickSecond = nil
+    end
+end
+
+function GM:Draw()
+    for _, moduleName in pairs(GM.Modules.HasFunction.Draw) do
+        self[moduleName]:Draw()
     end
 end
 

@@ -6,6 +6,8 @@ local Heightmap = {}
 
 local zoneLUT = {}
 
+--- @param luminosity number
+--- @return table
 local function getZone(luminosity)
     for _, zone in ipairs(ZONES.Heightmap) do
         if luminosity >= zone.min and luminosity <= zone.max then
@@ -19,6 +21,9 @@ for i = 0, 255 do
     zoneLUT[i] = getZone(i)
 end
 
+--- @param imageData love.ImageData
+--- @return love.ImageData
+--- @return table
 function Heightmap.Process(imageData)
     local w = imageData:getWidth()
     local h = imageData:getHeight()

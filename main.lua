@@ -14,6 +14,7 @@ local sourceMap
 local colorMap
 local camera
 
+--- @param args string[]
 function love.load(args)
     env:Load(".env")
     modules:Load("src/modules")
@@ -64,6 +65,7 @@ function love.load(args)
     end
 end
 
+--- @param dt number
 function love.update(dt)
     GM:Think()
 
@@ -72,6 +74,8 @@ function love.update(dt)
     end
 end
 
+--- @param x number
+--- @param y number
 function love.wheelmoved(x, y)
     if not flags or flags.heightmap then return end
     local mouseX, mouseY = love.mouse.getPosition()
@@ -86,6 +90,12 @@ function love.draw()
     local W, H   = love.graphics.getDimensions()
     local PAD    = 16
 
+    --- @param img love.Image
+    --- @param x number
+    --- @param y number
+    --- @param maxW number
+    --- @param maxH number
+    --- @param label string?
     local function drawImage(img, x, y, maxW, maxH, label)
         local scale = math.min(maxW / img:getWidth(), maxH / img:getHeight())
         local dw, dh = img:getWidth() * scale, img:getHeight() * scale

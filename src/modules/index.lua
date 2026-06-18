@@ -6,6 +6,9 @@ GM.Modules.HasFunction = { Think = {}, Draw = {} }
 
 local lastTick = os.clock()
 
+--- @param name string
+--- @param priority number?
+--- @param submodules string[]?
 function GM.Modules:Register(name, priority, submodules)
     table.insert(self.List, {
         name = name,
@@ -14,6 +17,10 @@ function GM.Modules:Register(name, priority, submodules)
     })
 end
 
+--- @param dir string
+--- @param results string[]?
+--- @param is_recursion boolean?
+--- @return string[]
 function GM.Modules:Load(dir, results, is_recursion)
     results = results or {}
     local items = love.filesystem.getDirectoryItems(dir)

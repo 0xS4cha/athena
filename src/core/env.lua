@@ -1,5 +1,8 @@
 local env = {}
 
+
+--- @param path string? 
+--- @return table env
 function env:Load(path)
     local Logger = require("src.core.logger")
     path = path or ".env"
@@ -22,6 +25,9 @@ function env:Load(path)
     return env
 end
 
+--- @param variable string
+--- @param default_value any
+--- @return any
 function env:Get(variable, default_value) 
     if not env[variable] then
         env[variable] = default_value

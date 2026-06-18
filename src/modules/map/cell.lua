@@ -1,6 +1,17 @@
 local Class = require("src.core.class")
+--- @class Cell
+--- @field gridX number
+--- @field gridY number
+--- @field size number
+--- @field screenX number
+--- @field screenY number
+--- @field owner table?
+--- @field troops number
 local Cell = Class()
 
+--- @param x number
+--- @param y number
+--- @param size number
 function Cell:init(x, y, size)
     self.gridX = x
     self.gridY = y

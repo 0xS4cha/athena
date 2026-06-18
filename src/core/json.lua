@@ -131,6 +131,9 @@ encode = function(val, stack)
 end
 
 
+--- Encodes a Lua table/value into a JSON string.
+--- @param val any The value to encode.
+--- @return string JSON representation of the value.
 function json.encode(val)
   return ( encode(val) )
 end
@@ -372,6 +375,9 @@ parse = function(str, idx)
 end
 
 
+--- Decodes a JSON string into a Lua table/value.
+--- @param str string The JSON string to decode.
+--- @return any Decoded Lua representation.
 function json.decode(str)
   if type(str) ~= "string" then
     error("expected argument of type string, got " .. type(str))

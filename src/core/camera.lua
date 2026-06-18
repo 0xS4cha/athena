@@ -1,6 +1,18 @@
 local Class = require("src.core.class")
 
+--- @class Camera
+--- @field x number
+--- @field y number
+--- @field scale number
+--- @field isDragging boolean
+--- @field lastMouseX number
+--- @field lastMouseY number
+--- @field minScale number
+--- @field maxScale number
+--- @field mapW number?
+--- @field mapH number?
 local Camera = Class()
+
 
 function Camera:init()
     self.x = 0
@@ -13,7 +25,9 @@ function Camera:init()
     self.maxScale = 10.0
 end
 
-function Camera:update()
+
+--- @param dt number?
+function Camera:update(dt)
     local mouseX, mouseY = love.mouse.getPosition()
     
     if love.mouse.isDown(2) then
@@ -38,6 +52,10 @@ function Camera:update()
     self:clamp()
 end
 
+
+--- @param factor number
+--- @param mouseX number?
+--- @param mouseY number?
 function Camera:zoom(factor, mouseX, mouseY)
     if self.mapW and self.mapH then
         local W, H = love.graphics.getDimensions()
@@ -58,6 +76,7 @@ function Camera:zoom(factor, mouseX, mouseY)
     self:clamp()
 end
 
+
 function Camera:clamp()
     if not self.mapW or not self.mapH then return end
     
@@ -76,11 +95,13 @@ function Camera:clamp()
     self.y = math.max(minY, math.min(0, self.y))
 end
 
+
 function Camera:apply()
     love.graphics.push()
     love.graphics.scale(self.scale, self.scale)
     love.graphics.translate(self.x, self.y)
 end
+
 
 function Camera:clear()
     love.graphics.pop()

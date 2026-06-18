@@ -1,5 +1,8 @@
 local env = require("src.core.env")
 
+--- @class Logger
+--- @field Enabled boolean
+--- @field LogLevel number
 Logger = {}
 Logger.Enabled = env:Get("DEV", 1) == 1 and true or false
 
@@ -22,6 +25,8 @@ local ANSI = {
     RESET = "\27[0m"
 }
 
+--- @param ... any 
+--- @return string[]
 local function parseArguments(...)
     local arguments = {...}
     local parsedArguments = {}
@@ -37,6 +42,8 @@ local function parseArguments(...)
     return parsedArguments
 end
 
+--- @param module string 
+--- @param ... any
 function Logger:error(module, ...)
     if not self.Enabled then return end
     if self.LogLevel < LOG_LEVELS.ERROR then return end
@@ -44,6 +51,8 @@ function Logger:error(module, ...)
     print(ANSI.RED .. "[ERROR] " .. ANSI.CYAN .. "[" .. string.upper(module) .. "] > " .. ANSI.RESET .. table.concat(parseArguments(...), " ") .. ANSI.RESET)
 end
 
+--- @param module string
+--- @param ... any
 function Logger:warn(module, ...)
     if not self.Enabled then return end
     if self.LogLevel < LOG_LEVELS.WARN then return end
@@ -51,6 +60,8 @@ function Logger:warn(module, ...)
     print(ANSI.YELLOW .. "[WARN] " .. ANSI.CYAN .. "[" .. string.upper(module) .. "] > " .. ANSI.RESET .. table.concat(parseArguments(...), " ") .. ANSI.RESET)
 end
 
+--- @param module string
+--- @param ... any
 function Logger:info(module, ...)
     if not self.Enabled then return end
     if self.LogLevel < LOG_LEVELS.INFO then return end
@@ -58,6 +69,8 @@ function Logger:info(module, ...)
     print(ANSI.GREEN .. "[INFO] " .. ANSI.CYAN .. "[" .. string.upper(module) .. "] > " .. ANSI.RESET .. table.concat(parseArguments(...), " ") .. ANSI.RESET)
 end
 
+--- @param module string
+--- @param ... any
 function Logger:trace(module, ...)
     if not self.Enabled then return end
     if self.LogLevel < LOG_LEVELS.TRACE then return end

@@ -1,6 +1,10 @@
+--- @class ArgParser
+--- @field definitions table<string, table>
+--- @field parsed table<string, any>
 local ArgParser = {}
 ArgParser.__index = ArgParser
 
+--- @return ArgParser
 function ArgParser.new()
     local self = setmetatable({}, ArgParser)
     self.definitions = {}
@@ -9,6 +13,8 @@ function ArgParser.new()
 end
 
 
+--- @param name string
+--- @param options table?
 function ArgParser:add_argument(name, options)
     options = options or {}
     options.type = options.type or "boolean"
@@ -17,6 +23,8 @@ function ArgParser:add_argument(name, options)
     self.parsed[name] = options.default
 end
 
+--- @param args string[]
+--- @return table<string, any>
 function ArgParser:parse(args)
     local i = 1
     while i <= #args do
@@ -49,6 +57,8 @@ function ArgParser:parse(args)
     return self.parsed
 end
 
+--- @param name string
+--- @return any
 function ArgParser:get(name)
     return self.parsed[name]
 end

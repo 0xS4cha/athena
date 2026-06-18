@@ -1,5 +1,6 @@
 local CONFIG = require("src.config.window")
 
+--- @param t table
 function love.conf(t)
     t.window.title      = CONFIG.title
     t.window.width      = CONFIG.width

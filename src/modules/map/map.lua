@@ -2,8 +2,17 @@ local GM = require("src.core.index")
 local Class = require("src.core.class")
 local Cell = require("src.modules.map.cell")
 
+--- @class Map
+--- @field cols number
+--- @field rows number 
+--- @field cellSize number
+--- @field grid Cell[][]
 local Map = Class()
 
+
+--- @param cols number
+--- @param rows number
+--- @param cellSize number
 function Map:init(cols, rows, cellSize)
     self.cols = cols
     self.rows = rows
@@ -18,6 +27,9 @@ function Map:init(cols, rows, cellSize)
     end
 end
 
+--- @param px number
+--- @param py number
+--- @return Cell?
 function Map:getCellAtPixel(px, py)
     local gx = math.floor(px / self.cellSize) + 1
     local gy = math.floor(py / self.cellSize) + 1
@@ -28,6 +40,8 @@ function Map:getCellAtPixel(px, py)
     return nil
 end
 
+--- @param cell Cell
+--- @return Cell[]
 function Map:getNeighbors(cell)
     local neighbors = {}
     local directions = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}}
@@ -42,6 +56,8 @@ function Map:getNeighbors(cell)
     return neighbors
 end
 
+--- @param attackerCell Cell
+--- @param targetCell Cell
 function Map:interact(attackerCell, targetCell)
     if not attackerCell or not targetCell or attackerCell == targetCell then return end
     if attackerCell.owner == nil or attackerCell.troops <= 1 then return end

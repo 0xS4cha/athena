@@ -3,7 +3,7 @@ local Class = require("src.core.class")
 local Cell = require("src.modules.map.cell")
 local Map
 
-GM.Map.Initialize = function(self)
+GM.Map.Initialize = function()
     Map = Class()
     function Map:init(cols, rows, cellSize)
         self.cols = cols

@@ -1,4 +1,4 @@
-local CONFIG = require("config.window")
+local CONFIG = require("src.config.window")
 
 function love.conf(t)
     t.window.title      = CONFIG.title

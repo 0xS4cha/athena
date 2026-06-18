@@ -1,6 +1,5 @@
 local env = require("src.core.env")
 local modules = require("src.modules.index")
-local json = require("src.core.json")
 local GM = require("src.core.index")
 
 function love.load()
@@ -10,11 +9,9 @@ function love.load()
 end
 
 function love.update(dt)
-
+    GM:Think()
 end
 
 
-
 function love.draw()
-    
 end

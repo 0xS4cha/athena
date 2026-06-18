@@ -2,6 +2,9 @@ local GM = require("src.core.index")
 GM.Modules = {}
 GM.Map = {}
 GM.Modules.List = {}
+GM.Modules.HasFunction = { Think = {} }
+
+local lastTick = os.clock()
 
 function GM.Modules:Register(name, priority, submodules)
     table.insert(self.List, {
@@ -71,11 +74,31 @@ function GM:InitializeModules()
                 timeStr = "^1" .. timeStr
             end
             Logger:info("Module", "Initialized " .. name .. " in " .. timeStr .. "ms")
+            if self[name].Think then
+                table.insert(GM.Modules.HasFunction.Think, name)
+            end
         else
             Logger:warn("Module", "Module " .. name .. " registered but does not have a function")
         end
     end
 end
 
+
+
+
+function GM:Think()
+    if os.clock() - lastTick > 1000 then
+        lastTick = os.clock()
+        self.TickSecond = true
+    end
+
+    for _, moduleName in pairs(GM.Modules.HasFunction.Think) do
+        self[moduleName]:Think()
+    end
+
+    if self.TickSecond then
+        self.TickSecond = nil
+    end
+end
 
 return GM.Modules

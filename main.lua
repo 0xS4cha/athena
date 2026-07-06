@@ -21,14 +21,13 @@ function love.load(args)
     
     local parser = ArgParser.new()
     parser:add_argument("heightmap", { short = "h", default = false, type = "boolean" })
-    parser:add_argument("map", { default = "assets/maps/world/image.png", type = "value" })
+    parser:add_argument("map", { default = "assets/maps/world/", type = "value" })
     flags = parser:parse(args)
     
     GM:InitializeModules()
     love.graphics.setBackgroundColor(0.08, 0.08, 0.10)
 
-    local mapPath = flags.map or "assets/maps/world/image.png"
-    local imgData = love.image.newImageData(mapPath)
+    local imgData = love.image.newImageData(flags.map)
     totalPixels = imgData:getWidth() * imgData:getHeight()
 
     local t0 = love.timer.getTime()

@@ -6,10 +6,11 @@ local Country = Class()
 
 
 
-function Country:init(player)
+function Country:init(player, isAI)
     self.player = player
     self.color = {math.random(0, 255), math.random(0, 255), math.random(0, 255)}
     self.id = uuid.getUUID()
+    self.isAI = isAI
 end
 
 function Country:claimCell(x, y)

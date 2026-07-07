@@ -19,10 +19,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SO
 --]]
 
 local M = {}
------
-math.randomseed( os.time() )
-math.random()
------
+
 local function num2bs(num)
 	local _mod = math.fmod or math.mod
 	local _floor = math.floor

@@ -2,7 +2,7 @@ local GM = require("src.core.index")
 local Class = require("src.core.class")
 local LoadFile = require("src.core.loadFile")
 local bit = require("bit")
-local json = require("src.core.json")
+local Country = require("src.modules.country.country")
 local Cell = require("src.modules.map.cell")
 
 --- @class Map
@@ -28,16 +28,59 @@ function Map:init(map_path, cellSize)
         map16xBin   = LoadFile:Bin(map_path .. "map16x.bin"),
         manifest    = LoadFile:Json(map_path .. "manifest.json")
     }
-    self.width = self.mapData.manifest["map4x"]["width"]
-    self.height = self.mapData.manifest["map4x"]["height"]
-    self.terrain = self.mapData.map4xBin
+    self.width = self.mapData.manifest["map"]["width"]
+    self.height = self.mapData.manifest["map"]["height"]
+    self.terrain = self.mapData.mapBin
     self.countries = {}
+
+    self.chunkSize = 100
+    self.chunks = {}
+    self.numChunksX = math.ceil(self.width / self.chunkSize)
+    self.numChunksY = math.ceil(self.height / self.chunkSize)
+
     for x = 1, self.width do
         self.grid[x] = {}
         for y = 1, self.height do
             self.grid[x][y] = Cell(x, y, self.cellSize, self:getTerrainAt(x, y), {self:getCellColor(x, y)})
         end
     end
+    for cx = 1, self.numChunksX do
+        self.chunks[cx] = {}
+        for cy = 1, self.numChunksY do
+            local c = love.graphics.newCanvas(self.chunkSize * self.cellSize, self.chunkSize * self.cellSize)
+            c:setFilter("nearest", "nearest")
+            self.chunks[cx][cy] = {
+                canvas = c,
+                isDirty = true,
+                startX = (cx - 1) * self.chunkSize + 1,
+                startY = (cy - 1) * self.chunkSize + 1,
+                screenX = (cx - 1) * self.chunkSize * self.cellSize,
+                screenY = (cy - 1) * self.chunkSize * self.cellSize
+            }
+        end
+    end
+end
+
+function Map:updateChunk(cx, cy)
+    local chunk = self.chunks[cx][cy]
+    
+    love.graphics.setCanvas(chunk.canvas)
+    love.graphics.clear()
+
+    love.graphics.push()
+    love.graphics.translate(-(chunk.startX - 1) * self.cellSize, -(chunk.startY - 1) * self.cellSize)
+
+    local endX = math.min(chunk.startX + self.chunkSize - 1, self.width)
+    local endY = math.min(chunk.startY + self.chunkSize - 1, self.height)
+    for x = chunk.startX, endX do
+        for y = chunk.startY, endY do
+            self.grid[x][y]:draw() 
+        end
+    end
+
+    love.graphics.pop()
+    love.graphics.setCanvas()
+    chunk.isDirty = false
 end
 
 --- @return number
@@ -57,7 +100,7 @@ function Map:decodeTerrainByte(byte)
     local isOcean       = bit.band(byte, bit.lshift(1, self.OCEAN_BIT)) ~= 0
     local magnitude     = bit.band(byte, self.MAGNITUDE_MASK)
 
-    local isImpassable = isLand and magnitude == 31
+    local isImpassable  = isLand and magnitude == 31
 
     return {
         isLand          = isLand,
@@ -185,12 +228,17 @@ end
 
 function Map:setOwner(owner, x, y)
     self.grid[x][y].owner = owner
-    self.grid[x][y].isOutline = nil
+    -- self.grid[x][y].isOutline = nil
 
-    if x > 1 then self.grid[x-1][y].isOutline = nil end
-    if x < self.width then self.grid[x+1][y].isOutline = nil end
-    if y > 1 then self.grid[x][y-1].isOutline = nil end
-    if y < self.height then self.grid[x][y+1].isOutline = nil end
+    -- if x > 1 then 
+    --     self.grid[x-1][y].isOutline = nil
+    -- end
+    -- if x < self.width then self.grid[x+1][y].isOutline = nil end
+    -- if y > 1 then self.grid[x][y-1].isOutline = nil end
+    -- if y < self.height then self.grid[x][y+1].isOutline = nil end
+    local cx = math.floor((x - 1) / self.chunkSize) + 1
+    local cy = math.floor((y - 1) / self.chunkSize) + 1
+    self.chunks[cx][cy].isDirty = true
 end
 
 function Map:RegisterCountry(Country, params)
@@ -214,26 +262,41 @@ function Map:RegisterCountry(Country, params)
     end
 end
 
-function Map:draw(camera)
-    local W, H = love.graphics.getDimensions()
-
-    local left   = 0 / camera.scale - camera.x
-    local right  = W / camera.scale - camera.x
-    local top    = 0 / camera.scale - camera.y
-    local bottom = H / camera.scale - camera.y
-
-    local startX = math.max(1, math.floor(left / self.cellSize) + 1)
-    local endX   = math.min(self.width, math.ceil(right / self.cellSize))
-    local startY = math.max(1, math.floor(top / self.cellSize) + 1)
-    local endY   = math.min(self.height, math.ceil(bottom / self.cellSize))
-
-    for x = startX, endX do
-        for y = startY, endY do
-            self.grid[x][y]:draw()
-        end
+function Map:FillCountries()
+    for i = 1, #self.mapData.manifest["nations"] do
+        local nation = self.mapData.manifest["nations"][i]
+        self:RegisterCountry(Country(nil, true), {x = nation["coordinates"][1], y = nation["coordinates"][2], radius = 4})
     end
 end
 
+function Map:draw(camera)
+    local W, H = love.graphics.getDimensions()
+    
+    local left      = (0 / camera.scale - camera.x)
+    local right     = (W / camera.scale - camera.x)
+    local top       = (0 / camera.scale - camera.y)
+    local bottom    = (H / camera.scale - camera.y)
+    
+    local pixelChunkSize = self.chunkSize * self.cellSize
+    
+    local startCx = math.max(1, math.floor(left / pixelChunkSize) + 1)
+    local endCx   = math.min(self.numChunksX, math.ceil(right / pixelChunkSize))
+    local startCy = math.max(1, math.floor(top / pixelChunkSize) + 1)
+    local endCy   = math.min(self.numChunksY, math.ceil(bottom / pixelChunkSize))
+    
+    for cx = startCx, endCx do
+        for cy = startCy, endCy do
+            local chunk = self.chunks[cx][cy]
+            if chunk.isDirty then
+                self:updateChunk(cx, cy)
+            end
+            love.graphics.setColor(1, 1, 1, 0.5)
+            love.graphics.rectangle("fill", chunk.screenX, chunk.screenY, self.cellSize * 100 - 2, self.cellSize * 100 - 2)
+            love.graphics.setColor(1, 1, 1, 1)
+            love.graphics.draw(chunk.canvas, chunk.screenX, chunk.screenY)
+        end
+    end
+end
 
 function GM.Map:Initialize()
     self.Class = Map

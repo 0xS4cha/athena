@@ -1,6 +1,9 @@
 local GM = require("src.core.index")
 local Class = require("src.core.class")
-local LoadFile = require("src.core.LoadFile")
+local LoadFile = require("src.core.loadFile")
+local bit = require("bit")
+
+local Cell = require("src.modules.map.cell")
 
 --- @class Map
 --- @field cols number
@@ -11,12 +14,12 @@ local Map = Class()
 
 
 --- @param map_path string
-function Map:init(map_path)
+function Map:init(map_path, cellSize)
     self.IS_LAND_BIT = 7
     self.SHORELINE_BIT = 6
     self.OCEAN_BIT = 5
     self.MAGNITUDE_MASK = 31
-
+    self.cellSize = cellSize
     self.grid = {}
 
     self.mapData = {
@@ -25,30 +28,162 @@ function Map:init(map_path)
         map16xBin   = LoadFile:Bin(map_path .. "map16x.bin"),
         manifest    = LoadFile:Json(map_path .. "manifest.json")
     }
-    self.width = self.mapData.manifest["map"]["width"]
-    self.height = self.mapData.manifest["map"]["height"]
+    self.width = self.mapData.manifest["map4x"]["width"]
+    self.height = self.mapData.manifest["map4x"]["height"]
+    self.terrain = self.mapData.map4xBin
+
+    for x = 1, self.width do
+        self.grid[x] = {}
+        for y = 1, self.height do
+            self.grid[x][y] = Cell(x, y, self.cellSize, self:getTerrainAt(x, y), {self:getCellColor(x, y)})
+        end
+    end
 end
+
+--- @return number
+function Map:getWidth()
+    return self.width
+end
+
+--- @return number
+function Map:getHeight()
+    return self.height
+end
+
+--- @param byte number
+function Map:decodeTerrainByte(byte)
+    local isLand        = bit.band(byte, bit.lshift(1, self.IS_LAND_BIT)) ~= 0
+    local isShoreline   = bit.band(byte, bit.lshift(1, self.SHORELINE_BIT)) ~= 0
+    local isOcean       = bit.band(byte, bit.lshift(1, self.OCEAN_BIT)) ~= 0
+    local magnitude     = bit.band(byte, self.MAGNITUDE_MASK)
+
+    local isImpassable = isLand and magnitude == 31
+
+    return {
+        isLand          = isLand,
+        isShoreline     = isShoreline,
+        isOcean         = isOcean,
+        isImpassable    = isImpassable,
+        magnitude       = magnitude
+    }
+end
+
+--- @param px number
+--- @param py number
+--- @return boolean
+function Map:isValidCell(px, py)
+    local gx = math.floor(px / self.cellSize) + 1
+    local gy = math.floor(py / self.cellSize) + 1
+    if gx >= 1 and gx <= self.width and gy >= 1 and gy <= self.height then
+        return true
+    end
+    return false
+end
+
+--- @param px number
+--- @param py number
+--- @return any
+function Map:getTerrainAt(px, py)
+    if self:isValidCell(px, py) then
+        local gx = math.floor(px / self.cellSize)
+        local gy = math.floor(py / self.cellSize) 
+        local index = gy * self.width + gx + 1
+
+        local byte = string.byte(self.terrain, index)
+        return self:decodeTerrainByte(byte)
+    end
+    return nil
+end
+
 
 --- @param px number
 --- @param py number
 --- @return Cell?
 function Map:getCellAtPixel(px, py)
-    local gx = math.floor(px / self.cellSize) + 1
-    local gy = math.floor(py / self.cellSize) + 1
-
-    if gx >= 1 and gx <= self.cols and gy >= 1 and gy <= self.rows then
+    if self:isValidCell(px, py) then
+        local gx = math.floor(px / self.cellSize) + 1
+        local gy = math.floor(py / self.cellSize) + 1
         return self.grid[gx][gy]
     end
     return nil
 end
 
-function Map:draw()
-    for x = 1, self.cols do
-        for y = 1, self.rows do
+
+--- @param px number
+--- @param py number
+--- @return boolean
+function Map:isLand(px, py)
+    if not self:isValidCell(px, py) then
+        return false
+    end
+    local gx = math.floor(px / self.cellSize) + 1
+    local gy = math.floor(py / self.cellSize) + 1
+    local info = self:getTerrainAt(gx, gy)
+    return info ~= nil and info.isLand
+end
+
+--- @param info table
+--- @return number r, number g, number b, number a
+function Map:getTerrainColor(info)
+    if info.isImpassable then
+        return 0, 0, 0, 0
+    end
+
+    if not info.isLand then
+        if info.isShoreline then
+            return 100, 143, 255, 0
+        end
+
+        local waterAdj = 1 - math.min(info.magnitude, 10)
+        local r = math.max(70 + waterAdj, 0)
+        local g = math.max(132 + waterAdj, 0)
+        local b = math.max(180 + waterAdj, 0)
+        return r, g, b, 0
+    end
+
+    if info.isShoreline then
+        return 204, 203, 158, 255
+    end
+
+    local mag = info.magnitude
+    if mag < 10 then
+        local adj = 220 - 2 * mag
+        return 190, adj, 138, 255
+    elseif mag < 20 then
+        local adj = 2 * mag
+        return 200 + adj, 183 + adj, 138 + adj, 255
+    else
+        local adj = math.floor(230 + mag / 2)
+        return adj, adj, adj, 255
+    end
+end
+
+function Map:getCellColor(gx, gy)
+    local info = self:getTerrainAt(gx, gy)
+    if not info then return 0, 0, 0, 0 end
+    return self:getTerrainColor(info)
+end
+
+function Map:draw(camera)
+    local W, H = love.graphics.getDimensions()
+
+    local left   = 0 / camera.scale - camera.x
+    local right  = W / camera.scale - camera.x
+    local top    = 0 / camera.scale - camera.y
+    local bottom = H / camera.scale - camera.y
+
+    local startX = math.max(1, math.floor(left / self.cellSize) + 1)
+    local endX   = math.min(self.width, math.ceil(right / self.cellSize))
+    local startY = math.max(1, math.floor(top / self.cellSize) + 1)
+    local endY   = math.min(self.height, math.ceil(bottom / self.cellSize))
+
+    for x = startX, endX do
+        for y = startY, endY do
             self.grid[x][y]:draw()
         end
     end
 end
+
 
 function GM.Map:Initialize()
     self.Class = Map

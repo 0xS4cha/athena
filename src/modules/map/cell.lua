@@ -12,11 +12,13 @@ local Cell = Class()
 --- @param x number
 --- @param y number
 --- @param size number
-function Cell:init(x, y, size)
+function Cell:init(x, y, size, data, color)
     self.gridX = x
     self.gridY = y
     self.size = size
-    
+    self.data = data
+    self.color = color
+
     self.screenX = (x - 1) * size
     self.screenY = (y - 1) * size
 
@@ -28,15 +30,9 @@ function Cell:draw()
     if self.owner then
         love.graphics.setColor(self.owner.color[1], self.owner.color[2], self.owner.color[3], 0.8)
     else
-        love.graphics.setColor(0.2, 0.2, 0.2, 1)
+        love.graphics.setColor(self.color[1] / 255, self.color[2] / 255, self.color[3] / 255, 1)
     end
-
-    love.graphics.rectangle("fill", self.screenX, self.screenY, self.size - 1, self.size - 1)
-
-    if self.owner or self.troops > 0 then
-        love.graphics.setColor(1, 1, 1, 1)
-        love.graphics.print(tostring(self.troops), self.screenX + 4, self.screenY + 4)
-    end
+    love.graphics.rectangle("fill", self.screenX, self.screenY, self.size, self.size)
 end
 
 return Cell

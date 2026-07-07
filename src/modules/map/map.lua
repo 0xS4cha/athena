@@ -67,7 +67,10 @@ function Map:updateChunk(cx, cy)
     love.graphics.setCanvas(chunk.canvas)
     love.graphics.clear()
 
-    love.graphics.push()
+    -- Ensure chunk baking is done in canvas-local space only.
+    -- Without this reset, world camera transforms can leak into the canvas.
+    love.graphics.push("all")
+    love.graphics.origin()
     love.graphics.translate(-(chunk.startX - 1) * self.cellSize, -(chunk.startY - 1) * self.cellSize)
 
     local endX = math.min(chunk.startX + self.chunkSize - 1, self.width)
@@ -111,12 +114,10 @@ function Map:decodeTerrainByte(byte)
     }
 end
 
---- @param px number
---- @param py number
+--- @param gx number
+--- @param gy number
 --- @return boolean
-function Map:isValidCell(px, py)
-    local gx = math.floor(px / self.cellSize) + 1
-    local gy = math.floor(py / self.cellSize) + 1
+function Map:isValidCell(gx, gy)
     if gx >= 1 and gx <= self.width and gy >= 1 and gy <= self.height then
         return true
     end
@@ -125,12 +126,19 @@ end
 
 --- @param px number
 --- @param py number
+--- @return boolean
+function Map:isValidPixel(px, py)
+    local gx = math.floor(px / self.cellSize) + 1
+    local gy = math.floor(py / self.cellSize) + 1
+    return self:isValidCell(gx, gy)
+end
+
+--- @param gx number
+--- @param gy number
 --- @return any
-function Map:getTerrainAt(px, py)
-    if self:isValidCell(px, py) then
-        local gx = math.floor(px / self.cellSize)
-        local gy = math.floor(py / self.cellSize) 
-        local index = gy * self.width + gx + 1
+function Map:getTerrainAt(gx, gy)
+    if self:isValidCell(gx, gy) then
+        local index = (gy - 1) * self.width + gx
 
         local byte = string.byte(self.terrain, index)
         return self:decodeTerrainByte(byte)
@@ -138,12 +146,24 @@ function Map:getTerrainAt(px, py)
     return nil
 end
 
+--- @param px number
+--- @param py number
+--- @return any
+function Map:getTerrainAtPixel(px, py)
+    if not self:isValidPixel(px, py) then
+        return nil
+    end
+    local gx = math.floor(px / self.cellSize) + 1
+    local gy = math.floor(py / self.cellSize) + 1
+    return self:getTerrainAt(gx, gy)
+end
+
 
 --- @param px number
 --- @param py number
 --- @return Cell?
 function Map:getCellAtPixel(px, py)
-    if self:isValidCell(px, py) then
+    if self:isValidPixel(px, py) then
         local gx = math.floor(px / self.cellSize) + 1
         local gy = math.floor(py / self.cellSize) + 1
         return self.grid[gx][gy]
@@ -156,7 +176,7 @@ end
 --- @param py number
 --- @return boolean
 function Map:isLand(px, py)
-    if not self:isValidCell(px, py) then
+    if not self:isValidPixel(px, py) then
         return false
     end
     local gx = math.floor(px / self.cellSize) + 1
@@ -290,10 +310,10 @@ function Map:draw(camera)
             if chunk.isDirty then
                 self:updateChunk(cx, cy)
             end
-            love.graphics.setColor(1, 1, 1, 0.5)
-            love.graphics.rectangle("fill", chunk.screenX, chunk.screenY, self.cellSize * 100 - 2, self.cellSize * 100 - 2)
             love.graphics.setColor(1, 1, 1, 1)
             love.graphics.draw(chunk.canvas, chunk.screenX, chunk.screenY)
+            -- love.graphics.setColor(1, 1, 1, 0.5)
+            -- love.graphics.rectangle("line", chunk.screenX, chunk.screenY, self.cellSize * self.chunkSize, self.cellSize * self.chunkSize)
         end
     end
 end

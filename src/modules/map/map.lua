@@ -285,7 +285,9 @@ end
 function Map:FillCountries()
     for i = 1, #self.mapData.manifest["nations"] do
         local nation = self.mapData.manifest["nations"][i]
-        self:RegisterCountry(Country(nil, true), {x = nation["coordinates"][1], y = nation["coordinates"][2], radius = 4})
+        if nation["coordinates"] then
+            self:RegisterCountry(Country(nil, true), {x = nation["coordinates"][1], y = nation["coordinates"][2], radius = 4})
+        end
     end
 end
 

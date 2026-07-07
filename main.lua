@@ -2,14 +2,12 @@ local env = require("src.core.env")
 local modules = require("src.modules.index")
 local GM = require("src.core.index")
 local ArgParser = require("src.core.args")
-local ZONES = require("src.config.zone")
 local Camera = require("src.core.camera")
-local Heightmap = require("src.modules.map.heightmap")
-local MapClass = require("src.modules.map.map")
-
+local Map = require("src.modules.map.map")
+local Country = require("src.modules.country.country")
 
 local flags
-local Map
+local camera
 
 --- @param args string[]
 function love.load(args)
@@ -23,10 +21,10 @@ function love.load(args)
     
     GM:InitializeModules()
     love.graphics.setBackgroundColor(0.08, 0.08, 0.10)
-    Map = MapClass(flags.map, 1)
-
+    GM.Game = {Map = Map(flags.map, 1)}
+    GM.Game.Map:RegisterCountry(Country(nil), {x = 10, y = 10, radius = 10})
     local W, H = love.graphics.getDimensions()
-    local imgW, imgH = Map:getWidth(), Map:getHeight()
+    local imgW, imgH = GM.Game.Map:getWidth(), GM.Game.Map:getHeight()
     local initialScale = math.max(W / imgW, H / imgH)
     
     camera = Camera()
@@ -42,7 +40,6 @@ end
 --- @param dt number
 function love.update(dt)
     GM:Think()
-
     camera:update(dt)
 end
 
@@ -61,7 +58,7 @@ end
 function love.draw()
     camera:apply()
     love.graphics.setColor(1, 1, 1)
-    Map:draw(camera)
+    GM.Game.Map:draw(camera)
     GM:Draw()
     camera:clear()
 end

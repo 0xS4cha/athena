@@ -2,7 +2,7 @@ local GM = require("src.core.index")
 local Class = require("src.core.class")
 local LoadFile = require("src.core.loadFile")
 local bit = require("bit")
-
+local json = require("src.core.json")
 local Cell = require("src.modules.map.cell")
 
 --- @class Map
@@ -31,7 +31,7 @@ function Map:init(map_path, cellSize)
     self.width = self.mapData.manifest["map4x"]["width"]
     self.height = self.mapData.manifest["map4x"]["height"]
     self.terrain = self.mapData.map4xBin
-
+    self.countries = {}
     for x = 1, self.width do
         self.grid[x] = {}
         for y = 1, self.height do
@@ -162,6 +162,56 @@ function Map:getCellColor(gx, gy)
     local info = self:getTerrainAt(gx, gy)
     if not info then return 0, 0, 0, 0 end
     return self:getTerrainColor(info)
+end
+
+--- @param y number
+--- @param x number
+--- @return boolean?
+function Map:outlineAt(x, y)
+    if not self.grid[x][y].owner then
+        return nil
+    end
+    local owner     = self.grid[x][y].owner.id
+    local top       = y > 1 and self.grid[x][y - 1].owner and self.grid[x][y - 1].owner.id == owner
+    local bottom    = y < self.height and self.grid[x][y + 1].owner and self.grid[x][y + 1].owner.id == owner
+    local left      = x > 1 and self.grid[x - 1][y].owner and self.grid[x - 1][y].owner.id == owner
+    local right     = x < self.width and self.grid[x + 1][y].owner and self.grid[x + 1][y].owner.id == owner
+    if top and bottom and left and right then
+        return false
+    else
+        return true
+    end
+end
+
+function Map:setOwner(owner, x, y)
+    self.grid[x][y].owner = owner
+    self.grid[x][y].isOutline = nil
+
+    if x > 1 then self.grid[x-1][y].isOutline = nil end
+    if x < self.width then self.grid[x+1][y].isOutline = nil end
+    if y > 1 then self.grid[x][y-1].isOutline = nil end
+    if y < self.height then self.grid[x][y+1].isOutline = nil end
+end
+
+function Map:RegisterCountry(Country, params)
+    table.insert(self.countries, Country)
+    local offset_radius = params.radius - 1
+
+    for i = 1, params.radius * 2 do
+        for j = 1, params.radius * 2 do
+            local dx = i - offset_radius - 1
+            local dy = j - offset_radius - 1
+
+            if dx * dx + dy * dy <= offset_radius * offset_radius + 1 then
+                local x = params.x + dx
+                local y = params.y + dy
+
+                if x >= 1 and x <= self.width and y >= 1 and y <= self.height then
+                    self:setOwner(Country, math.floor(x + 0.5), math.floor(y + 0.5))
+                end
+            end
+        end
+    end
 end
 
 function Map:draw(camera)

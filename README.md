@@ -191,10 +191,6 @@ timeline
 - [LuaJIT BitOp](https://luajit.org/ext_bit.html) - Bitwise operations library
 - [UUID v4 generator](https://github.com/TobyJennings/uuid.lua) - Toby Jennings UUID module
 
-## Disclaimer
-
-IMPORTANT - Educational use only:
-- Use this repository for educational study and simulation reference only.
 
 ## Feedback
 

@@ -33,18 +33,39 @@ function Cell:getOwner()
 end
 
 function Cell:draw()
-    if self.owner and self.isOutline == nil then
-        self.isOutline = GM.Game.Map:outlineAt(self.gridX, self.gridY)
-    end
-    if self.owner and self.isOutline then
-        love.graphics.setColor(self.owner.color[1], self.owner.color[2], self.owner.color[3], 1)
-    else
+    local map = GM.Game.Map
+    local drawTerrain = map.layers.terrain
+    local drawPolitical = map.layers.political and self.owner
+
+    if drawTerrain then
         love.graphics.setColor(self.color[1] / 255, self.color[2] / 255, self.color[3] / 255, 1)
+    else
+        if self.data.isImpassable then
+            love.graphics.setColor(0, 0, 0, 0)
+        elseif self.data.isLand then
+            love.graphics.setColor(0.15, 0.15, 0.17, 1)
+        else
+            love.graphics.setColor(0.06, 0.08, 0.12, 1)
+        end
     end
     love.graphics.rectangle("fill", self.screenX, self.screenY, self.size, self.size)
-    if self.owner and not self.isOutline then
-        love.graphics.setColor(self.owner.color[1], self.owner.color[2], self.owner.color[3], 0.8)
-        love.graphics.rectangle("fill", self.screenX, self.screenY, self.size, self.size)
+
+    if drawPolitical then
+        if self.isOutline == nil then
+            self.isOutline = map:outlineAt(self.gridX, self.gridY)
+        end
+
+        local r = self.owner.color[1] / 255
+        local g = self.owner.color[2] / 255
+        local b = self.owner.color[3] / 255
+
+        if self.isOutline then
+            love.graphics.setColor(r, g, b, 1.0)
+            love.graphics.rectangle("fill", self.screenX, self.screenY, self.size, self.size)
+        else
+            love.graphics.setColor(r, g, b, 0.35)
+            love.graphics.rectangle("fill", self.screenX, self.screenY, self.size, self.size)
+        end
     end
 end
 

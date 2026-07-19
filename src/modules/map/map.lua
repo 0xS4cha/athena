@@ -7,7 +7,7 @@ local Cell = require("src.modules.map.cell")
 
 --- @class Map
 --- @field cols number
---- @field rows number 
+--- @field rows number
 --- @field mapData any
 --- @field grid Cell[][]
 local Map = Class()
@@ -23,15 +23,20 @@ function Map:init(map_path, cellSize)
     self.grid = {}
 
     self.mapData = {
-        mapBin      = LoadFile:Bin(map_path .. "map.bin"),
-        map4xBin    = LoadFile:Bin(map_path .. "map4x.bin"),
-        map16xBin   = LoadFile:Bin(map_path .. "map16x.bin"),
-        manifest    = LoadFile:Json(map_path .. "manifest.json")
+        mapBin    = LoadFile:Bin(map_path .. "map.bin"),
+        map4xBin  = LoadFile:Bin(map_path .. "map4x.bin"),
+        map16xBin = LoadFile:Bin(map_path .. "map16x.bin"),
+        manifest  = LoadFile:Json(map_path .. "manifest.json")
     }
     self.width = self.mapData.manifest["map"]["width"]
     self.height = self.mapData.manifest["map"]["height"]
     self.terrain = self.mapData.mapBin
     self.countries = {}
+    self.layers = {
+        terrain = true,
+        political = true,
+        buildings = true
+    }
 
     self.chunkSize = 100
     self.chunks = {}
@@ -41,7 +46,7 @@ function Map:init(map_path, cellSize)
     for x = 1, self.width do
         self.grid[x] = {}
         for y = 1, self.height do
-            self.grid[x][y] = Cell(x, y, self.cellSize, self:getTerrainAt(x, y), {self:getCellColor(x, y)})
+            self.grid[x][y] = Cell(x, y, self.cellSize, self:getTerrainAt(x, y), { self:getCellColor(x, y) })
         end
     end
     for cx = 1, self.numChunksX do
@@ -63,12 +68,10 @@ end
 
 function Map:updateChunk(cx, cy)
     local chunk = self.chunks[cx][cy]
-    
+
     love.graphics.setCanvas(chunk.canvas)
     love.graphics.clear()
 
-    -- Ensure chunk baking is done in canvas-local space only.
-    -- Without this reset, world camera transforms can leak into the canvas.
     love.graphics.push("all")
     love.graphics.origin()
     love.graphics.translate(-(chunk.startX - 1) * self.cellSize, -(chunk.startY - 1) * self.cellSize)
@@ -77,7 +80,7 @@ function Map:updateChunk(cx, cy)
     local endY = math.min(chunk.startY + self.chunkSize - 1, self.height)
     for x = chunk.startX, endX do
         for y = chunk.startY, endY do
-            self.grid[x][y]:draw() 
+            self.grid[x][y]:draw()
         end
     end
 
@@ -98,19 +101,19 @@ end
 
 --- @param byte number
 function Map:decodeTerrainByte(byte)
-    local isLand        = bit.band(byte, bit.lshift(1, self.IS_LAND_BIT)) ~= 0
-    local isShoreline   = bit.band(byte, bit.lshift(1, self.SHORELINE_BIT)) ~= 0
-    local isOcean       = bit.band(byte, bit.lshift(1, self.OCEAN_BIT)) ~= 0
-    local magnitude     = bit.band(byte, self.MAGNITUDE_MASK)
+    local isLand       = bit.band(byte, bit.lshift(1, self.IS_LAND_BIT)) ~= 0
+    local isShoreline  = bit.band(byte, bit.lshift(1, self.SHORELINE_BIT)) ~= 0
+    local isOcean      = bit.band(byte, bit.lshift(1, self.OCEAN_BIT)) ~= 0
+    local magnitude    = bit.band(byte, self.MAGNITUDE_MASK)
 
-    local isImpassable  = isLand and magnitude == 31
+    local isImpassable = isLand and magnitude == 31
 
     return {
-        isLand          = isLand,
-        isShoreline     = isShoreline,
-        isOcean         = isOcean,
-        isImpassable    = isImpassable,
-        magnitude       = magnitude
+        isLand       = isLand,
+        isShoreline  = isShoreline,
+        isOcean      = isOcean,
+        isImpassable = isImpassable,
+        magnitude    = magnitude
     }
 end
 
@@ -158,7 +161,6 @@ function Map:getTerrainAtPixel(px, py)
     return self:getTerrainAt(gx, gy)
 end
 
-
 --- @param px number
 --- @param py number
 --- @return Cell?
@@ -170,7 +172,6 @@ function Map:getCellAtPixel(px, py)
     end
     return nil
 end
-
 
 --- @param px number
 --- @param py number
@@ -234,11 +235,11 @@ function Map:outlineAt(x, y)
     if not self.grid[x][y].owner then
         return nil
     end
-    local owner     = self.grid[x][y].owner.id
-    local top       = y > 1 and self.grid[x][y - 1].owner and self.grid[x][y - 1].owner.id == owner
-    local bottom    = y < self.height and self.grid[x][y + 1].owner and self.grid[x][y + 1].owner.id == owner
-    local left      = x > 1 and self.grid[x - 1][y].owner and self.grid[x - 1][y].owner.id == owner
-    local right     = x < self.width and self.grid[x + 1][y].owner and self.grid[x + 1][y].owner.id == owner
+    local owner  = self.grid[x][y].owner.id
+    local top    = y > 1 and self.grid[x][y - 1].owner and self.grid[x][y - 1].owner.id == owner
+    local bottom = y < self.height and self.grid[x][y + 1].owner and self.grid[x][y + 1].owner.id == owner
+    local left   = x > 1 and self.grid[x - 1][y].owner and self.grid[x - 1][y].owner.id == owner
+    local right  = x < self.width and self.grid[x + 1][y].owner and self.grid[x + 1][y].owner.id == owner
     if top and bottom and left and right then
         return false
     else
@@ -250,7 +251,7 @@ function Map:setOwner(owner, x, y)
     self.grid[x][y].owner = owner
     -- self.grid[x][y].isOutline = nil
 
-    -- if x > 1 then 
+    -- if x > 1 then
     --     self.grid[x-1][y].isOutline = nil
     -- end
     -- if x < self.width then self.grid[x+1][y].isOutline = nil end
@@ -261,8 +262,25 @@ function Map:setOwner(owner, x, y)
     self.chunks[cx][cy].isDirty = true
 end
 
+function Map:toggleLayer(layerName)
+    if self.layers[layerName] ~= nil then
+        self.layers[layerName] = not self.layers[layerName]
+        self:dirtyAllChunks()
+    end
+end
+
+function Map:dirtyAllChunks()
+    for cx = 1, self.numChunksX do
+        for cy = 1, self.numChunksY do
+            self.chunks[cx][cy].isDirty = true
+        end
+    end
+end
+
 function Map:RegisterCountry(Country, params)
     table.insert(self.countries, Country)
+    Country.capitalX = params.x
+    Country.capitalY = params.y
     local offset_radius = params.radius - 1
 
     for i = 1, params.radius * 2 do
@@ -286,26 +304,28 @@ function Map:FillCountries()
     for i = 1, #self.mapData.manifest["nations"] do
         local nation = self.mapData.manifest["nations"][i]
         if nation["coordinates"] then
-            self:RegisterCountry(Country(nil, true), {x = nation["coordinates"][1], y = nation["coordinates"][2], radius = 4})
+            local name = nation["name"]
+            self:RegisterCountry(Country(nil, true, name),
+                { x = nation["coordinates"][1], y = nation["coordinates"][2], radius = 4 })
         end
     end
 end
 
 function Map:draw(camera)
-    local W, H = love.graphics.getDimensions()
-    
-    local left      = (0 / camera.scale - camera.x)
-    local right     = (W / camera.scale - camera.x)
-    local top       = (0 / camera.scale - camera.y)
-    local bottom    = (H / camera.scale - camera.y)
-    
+    local W, H           = love.graphics.getDimensions()
+
+    local left           = (0 / camera.scale - camera.x)
+    local right          = (W / camera.scale - camera.x)
+    local top            = (0 / camera.scale - camera.y)
+    local bottom         = (H / camera.scale - camera.y)
+
     local pixelChunkSize = self.chunkSize * self.cellSize
-    
-    local startCx = math.max(1, math.floor(left / pixelChunkSize) + 1)
-    local endCx   = math.min(self.numChunksX, math.ceil(right / pixelChunkSize))
-    local startCy = math.max(1, math.floor(top / pixelChunkSize) + 1)
-    local endCy   = math.min(self.numChunksY, math.ceil(bottom / pixelChunkSize))
-    
+
+    local startCx        = math.max(1, math.floor(left / pixelChunkSize) + 1)
+    local endCx          = math.min(self.numChunksX, math.ceil(right / pixelChunkSize))
+    local startCy        = math.max(1, math.floor(top / pixelChunkSize) + 1)
+    local endCy          = math.min(self.numChunksY, math.ceil(bottom / pixelChunkSize))
+
     for cx = startCx, endCx do
         for cy = startCy, endCy do
             local chunk = self.chunks[cx][cy]

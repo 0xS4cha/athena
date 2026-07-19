@@ -2,7 +2,7 @@ local GM = require("src.core.index")
 GM.Modules = {}
 GM.Map = {}
 GM.Modules.List = {}
-GM.Modules.HasFunction = { Think = {}, Draw = {} }
+GM.Modules.HasFunction = { Think = {}, Draw = {}, KeyPressed = {}, MousePressed = {}, MouseReleased = {} }
 
 local lastTick = os.clock()
 
@@ -83,6 +83,15 @@ function GM:InitializeModules()
             if self[name].Draw then
                 table.insert(GM.Modules.HasFunction.Draw, name)
             end
+            if self[name].KeyPressed then
+                table.insert(GM.Modules.HasFunction.KeyPressed, name)
+            end
+            if self[name].MousePressed then
+                table.insert(GM.Modules.HasFunction.MousePressed, name)
+            end
+            if self[name].MouseReleased then
+                table.insert(GM.Modules.HasFunction.MouseReleased, name)
+            end
         else
             Logger:warn("Module", "Module " .. name .. " registered but does not have a function")
         end
@@ -110,6 +119,24 @@ end
 function GM:Draw()
     for _, moduleName in pairs(GM.Modules.HasFunction.Draw) do
         self[moduleName]:Draw()
+    end
+end
+
+function GM:KeyPressed(key, scancode, isrepeat)
+    for _, moduleName in pairs(self.Modules.HasFunction.KeyPressed) do
+        self[moduleName]:KeyPressed(key, scancode, isrepeat)
+    end
+end
+
+function GM:MousePressed(x, y, button, istouch, presses)
+    for _, moduleName in pairs(self.Modules.HasFunction.MousePressed) do
+        self[moduleName]:MousePressed(x, y, button, istouch, presses)
+    end
+end
+
+function GM:MouseReleased(x, y, button, istouch, presses)
+    for _, moduleName in pairs(self.Modules.HasFunction.MouseReleased) do
+        self[moduleName]:MouseReleased(x, y, button, istouch, presses)
     end
 end
 

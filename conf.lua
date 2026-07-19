@@ -8,4 +8,5 @@ function love.conf(t)
     t.window.resizable  = CONFIG.resizable
     t.window.vsync      = CONFIG.vsync
     t.window.icon       = CONFIG.icon
+    t.console           = true
 end

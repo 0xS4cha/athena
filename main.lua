@@ -22,7 +22,7 @@ function love.load(args)
     GM:InitializeModules()
     love.graphics.setBackgroundColor(0.08, 0.08, 0.10)
     GM.Game = {Map = Map(flags.map, 1)}
-    GM.Game.Map:RegisterCountry(Country(nil), {x = 10, y = 10, radius = 4})
+    GM.Game.Map:RegisterCountry(Country(nil, nil, "Player Territory"), {x = 10, y = 10, radius = 4})
     GM.Game.Map:FillCountries()
     local W, H = love.graphics.getDimensions()
     local imgW, imgH = GM.Game.Map:getWidth(), GM.Game.Map:getHeight()
@@ -35,7 +35,9 @@ function love.load(args)
     camera.x = (W - imgW * initialScale) / (2 * initialScale)
     camera.y = (H - imgH * initialScale) / (2 * initialScale)
     camera:clamp()
-
+    
+    GM.Camera = camera
+    GM.Building:GenerateBuildings(GM.Game.Map)
 end
 
 --- @param dt number
@@ -60,6 +62,32 @@ function love.draw()
     camera:apply()
     love.graphics.setColor(1, 1, 1)
     GM.Game.Map:draw(camera)
-    GM:Draw()
+    if GM.Building and GM.Building.Draw then
+        GM.Building:Draw()
+    end
     camera:clear()
+
+    for _, moduleName in pairs(GM.Modules.HasFunction.Draw) do
+        if moduleName ~= "Building" and moduleName ~= "Map" then
+            GM[moduleName]:Draw()
+        end
+    end
 end
+
+function love.keypressed(key, scancode, isrepeat)
+    if GM.KeyPressed then
+        GM:KeyPressed(key, scancode, isrepeat)
+    end
+end
+
+function love.mousepressed(x, y, button, istouch, presses)
+    if GM.MousePressed then
+        GM:MousePressed(x, y, button, istouch, presses)
+    end
+end
+
+function love.mousereleased(x, y, button, istouch, presses)
+    if GM.MouseReleased then
+        GM:MouseReleased(x, y, button, istouch, presses)
+    end
+end

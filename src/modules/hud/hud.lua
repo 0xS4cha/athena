@@ -1,5 +1,6 @@
 local Class = require("src.core.class")
 local GM = require("src.core.index")
+local Flags = require("src.modules.hud.flags")
 
 local Hud = Class()
 
@@ -8,6 +9,27 @@ function Hud:init()
     self.height = 145
     self.margin = 20
     self.hoveredLayerIdx = nil
+end
+
+function Hud:drawFlag(flagKey, x, y, size)
+    if not flagKey or flagKey == "" then
+        return
+    end
+
+    local flag = Flags:Get(flagKey)
+    if not flag then
+        return
+    end
+
+    local flagWidth = flag:getWidth()
+    local flagHeight = flag:getHeight()
+    if flagWidth <= 0 or flagHeight <= 0 then
+        return
+    end
+
+    local scale = math.min(size / flagWidth, size / flagHeight)
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.draw(flag, x, y, 0, scale, scale)
 end
 
 function Hud:getPanelRect()
@@ -89,18 +111,26 @@ function Hud:Draw()
     if map:isValidCell(cellX, cellY) then
         local cell = map.grid[cellX][cellY]
         local infoText = string.format("Grid X:%d Y:%d", cellX, cellY)
-        if cell.owner and map.layers.political then
-            infoText = infoText .. " | Territory: " .. cell.owner.name
+        local territoryOwner = cell.owner
+        local hasTerritoryFlag = territoryOwner and map.layers.political and territoryOwner.flag and territoryOwner.flag ~= ""
+
+        if territoryOwner and map.layers.political then
+            infoText = infoText .. " | Territory: " .. territoryOwner.name
         end
 
         local sh = H - 35
+        local panelWidth = hasTerritoryFlag and 350 or 320
         love.graphics.setColor(0.06, 0.08, 0.12, 0.85)
-        love.graphics.rectangle("fill", 15, sh, 320, 24, 4, 4)
+        love.graphics.rectangle("fill", 15, sh, panelWidth, 24, 4, 4)
         love.graphics.setColor(0.2, 0.4, 0.8, 0.4)
-        love.graphics.rectangle("line", 15, sh, 320, 24, 4, 4)
+        love.graphics.rectangle("line", 15, sh, panelWidth, 24, 4, 4)
 
         love.graphics.setColor(0.9, 0.9, 0.95, 1)
         love.graphics.print(infoText, 25, sh + 5)
+
+        if hasTerritoryFlag then
+            self:drawFlag(territoryOwner.flag, 15 + panelWidth - 22, sh + 4, 16)
+        end
     end
 
     if map.layers.buildings then
@@ -153,6 +183,7 @@ function Hud:Draw()
                 local oColor = hoveredBuilding.owner.color
                 love.graphics.setColor(oColor[1] / 255, oColor[2] / 255, oColor[3] / 255, 1)
                 love.graphics.print(hoveredBuilding.owner.name, tx + 12, ty + 48)
+                self:drawFlag(hoveredBuilding.owner.flag, tx + tWidth - 32, ty + 8, 20)
             else
                 love.graphics.setColor(0.6, 0.6, 0.6, 1)
                 love.graphics.print("No Owner", tx + 12, ty + 48)

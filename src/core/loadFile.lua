@@ -1,4 +1,4 @@
-local json = require("src.core/json")
+local json = require("libs.json.json")
 local LoadFile = {}
 
 local cache = {}

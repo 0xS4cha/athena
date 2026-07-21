@@ -6,6 +6,7 @@ local Camera = require("src.core.camera")
 local Map = require("src.modules.map.map")
 local Country = require("src.modules.country.country")
 
+
 local flags
 local camera
 
@@ -22,8 +23,8 @@ function love.load(args)
     GM:InitializeModules()
     love.graphics.setBackgroundColor(0.08, 0.08, 0.10)
     GM.Game = {Map = Map(flags.map, 1)}
-    GM.Game.Map:RegisterCountry(Country(nil, nil, "Player Territory"), {x = 10, y = 10, radius = 4})
-    GM.Game.Map:FillCountries()
+    GM.Game.Map:RegisterCountry(Country(nil, nil, "France", "fr"), {x = 945, y = 233, radius = 40})
+    GM.Game.Map:FillCountries(40)
     local W, H = love.graphics.getDimensions()
     local imgW, imgH = GM.Game.Map:getWidth(), GM.Game.Map:getHeight()
     local initialScale = math.max(W / imgW, H / imgH)
@@ -90,4 +91,4 @@ function love.mousereleased(x, y, button, istouch, presses)
     if GM.MouseReleased then
         GM:MouseReleased(x, y, button, istouch, presses)
     end
-end
+end

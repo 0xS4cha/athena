@@ -20,7 +20,6 @@ function Map:init(map_path, cellSize)
     self.SHORELINE_BIT = 6
     self.OCEAN_BIT = 5
     self.MAGNITUDE_MASK = 31
-    self.countriesName = LoadFile:Json("assets/countries.json")
     self.cellSize = cellSize
     self.grid = {}
 

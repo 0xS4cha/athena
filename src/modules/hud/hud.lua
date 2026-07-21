@@ -111,7 +111,7 @@ function Hud:Draw()
     if map:isValidCell(cellX, cellY) then
         local cell = map.grid[cellX][cellY]
         local infoText = string.format("Grid X:%d Y:%d", cellX, cellY)
-        local territoryOwner = cell.owner
+        local territoryOwner = cell:getOwner()
         local hasTerritoryFlag = territoryOwner and map.layers.political and territoryOwner.flag and territoryOwner.flag ~= ""
 
         if territoryOwner and map.layers.political then
@@ -179,11 +179,11 @@ function Hud:Draw()
             love.graphics.setColor(0.9, 0.9, 0.9, 1)
             love.graphics.print(badgeText, tx + 17, ty + 28)
 
-            if hoveredBuilding.owner then
-                local oColor = hoveredBuilding.owner.color
+            if hoveredBuilding.cell and hoveredBuilding.cell:getOwner() then
+                local oColor = hoveredBuilding.cell:getOwner().color
                 love.graphics.setColor(oColor[1] / 255, oColor[2] / 255, oColor[3] / 255, 1)
-                love.graphics.print(hoveredBuilding.owner.name, tx + 12, ty + 48)
-                self:drawFlag(hoveredBuilding.owner.flag, tx + tWidth - 32, ty + 8, 20)
+                love.graphics.print(hoveredBuilding.cell:getOwner().name, tx + 12, ty + 48)
+                self:drawFlag(hoveredBuilding.cell:getOwner().flag, tx + tWidth - 32, ty + 8, 20)
             else
                 love.graphics.setColor(0.6, 0.6, 0.6, 1)
                 love.graphics.print("No Owner", tx + 12, ty + 48)

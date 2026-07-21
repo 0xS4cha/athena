@@ -9,21 +9,21 @@ local Class = require("src.core.class")
 --- @field hoverProgress number
 local Building = Class()
 
-function Building:init(gridX, gridY, type, name, owner)
+function Building:init(gridX, gridY, type, name, cell)
     self.gridX = gridX
     self.gridY = gridY
     self.type = type or "capital"
     self.name = name or "Unnamed City"
-    self.owner = owner
+    self.cell = cell
     self.hoverProgress = 0
 end
 
 function Building:draw(cellSize)
     local r, g, b = 0.8, 0.8, 0.8
-    if self.owner then
-        r = self.owner.color[1] / 255
-        g = self.owner.color[2] / 255
-        b = self.owner.color[3] / 255
+    if self.cell and self.cell:getOwner() then
+        r = self.cell:getOwner().color[1] / 255
+        g = self.cell:getOwner().color[2] / 255
+        b = self.cell:getOwner().color[3] / 255
     end
 
     if self.hoverProgress > 0 then

@@ -10,8 +10,8 @@ function GM.Building:Initialize()
     self.List = {}
 end
 
-function GM.Building:SpawnBuilding(gridX, gridY, type, name, owner)
-    local b = Building(gridX, gridY, type, name, owner)
+function GM.Building:SpawnBuilding(gridX, gridY, type, name, cell)
+    local b = Building(gridX, gridY, type, name, cell)
     table.insert(self.List, b)
     return b
 end
@@ -22,7 +22,7 @@ function GM.Building:GenerateBuildings(map)
     for _, country in ipairs(map.countries) do
         if country.capitalX and country.capitalY then
             local capitalName = country.name .. " Capital"
-            self:SpawnBuilding(country.capitalX, country.capitalY, "capital", capitalName, country)
+            self:SpawnBuilding(country.capitalX, country.capitalY, "capital", capitalName, map.grid[country.capitalX][country.capitalY])
         end
     end
 
@@ -67,14 +67,14 @@ function GM.Building:GenerateBuildings(map)
                 table.remove(ownedCells, idx)
 
                 local name = "Fort " .. country.name .. " " .. string.char(64 + f)
-                self:SpawnBuilding(pos.x, pos.y, "fort", name, country)
+                self:SpawnBuilding(pos.x, pos.y, "fort", name, map.grid[pos.x][pos.y])
             end
         end
 
         if #shorelineCells > 0 then
             local pos = shorelineCells[math.random(1, #shorelineCells)]
             local name = "Port of " .. country.name
-            self:SpawnBuilding(pos.x, pos.y, "port", name, country)
+            self:SpawnBuilding(pos.x, pos.y, "port", name, map.grid[pos.x][pos.y])
         end
     end
 end

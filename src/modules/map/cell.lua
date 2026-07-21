@@ -29,6 +29,7 @@ function Cell:init(x, y, size, data, color)
 end
 
 function Cell:getOwner()
+    if not self.owner then return false end
     return self.owner
 end
 

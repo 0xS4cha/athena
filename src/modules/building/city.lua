@@ -1,7 +1,7 @@
 return {
-    id = "capital",
-    label = "Capital",
-    badge = "Capital",
+    id = "city",
+    label = "City",
+    badge = "City",
     scale = 0.95,
     color = { 0.95, 0.85, 0.25 },
     outline = { 0.25, 0.2, 0.05, 0.75 },

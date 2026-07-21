@@ -39,6 +39,12 @@ function Building:think(dt, context)
     end
 end
 
+function Building:transform(newType, newDefinition)
+    self.type = newType
+    self.definition = newDefinition
+    self.state = {}
+end
+
 function Building:draw(cellSize)
     local r, g, b = self:getOwnerColor()
 

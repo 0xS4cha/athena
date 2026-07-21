@@ -94,52 +94,8 @@ function GM.Building:GenerateBuildings(map)
         if country.capitalX and country.capitalY then
             local capitalName = country.name .. " Capital"
             local capitalCell = map.grid[country.capitalX] and map.grid[country.capitalX][country.capitalY]
-            self:SpawnBuilding(country.capitalX, country.capitalY, "capital", capitalName, capitalCell)
+            self:SpawnBuilding(country.capitalX, country.capitalY, "city", capitalName, capitalCell)
             reserveCell(occupied, country.capitalX, country.capitalY)
-        end
-    end
-
-    for _, country in ipairs(map.countries) do
-        local ownedCells, shorelineCells = collectCountryCells(map, country, occupied)
-
-        if #ownedCells > 0 then
-            local numForts = math.min(2, #ownedCells)
-            for f = 1, numForts do
-                local pos = takeRandomCell(ownedCells)
-                if not pos then
-                    break
-                end
-
-                local name = "Fort " .. country.name .. " " .. string.char(64 + f)
-                local cell = map.grid[pos.x] and map.grid[pos.x][pos.y]
-                self:SpawnBuilding(pos.x, pos.y, "fort", name, cell)
-                reserveCell(occupied, pos.x, pos.y)
-            end
-        end
-
-        if #shorelineCells > 0 then
-            local pos = takeRandomCell(shorelineCells)
-            if pos then
-                local name = "Port of " .. country.name
-                local cell = map.grid[pos.x] and map.grid[pos.x][pos.y]
-                self:SpawnBuilding(pos.x, pos.y, "port", name, cell)
-                reserveCell(occupied, pos.x, pos.y)
-            end
-        end
-
-        if #ownedCells > 0 then
-            local villageCount = math.min(2, math.max(1, math.floor(#ownedCells / 25)))
-            for v = 1, villageCount do
-                local pos = takeRandomCell(ownedCells)
-                if not pos then
-                    break
-                end
-
-                local villageName = "Village " .. country.name .. " " .. string.char(64 + v)
-                local cell = map.grid[pos.x] and map.grid[pos.x][pos.y]
-                self:SpawnBuilding(pos.x, pos.y, "village", villageName, cell)
-                reserveCell(occupied, pos.x, pos.y)
-            end
         end
     end
 end
@@ -162,8 +118,15 @@ function GM.Building:Think(dt)
         deltaTime = dt
     }
 
-    for _, b in ipairs(self.List) do
+    local toTransform = {}
+
+    for i, b in ipairs(self.List) do
         b:think(dt, context)
+
+        if b._shouldTransform then
+            table.insert(toTransform, i)
+            b._shouldTransform = nil
+        end
 
         local dx = worldX - b.gridX
         local dy = worldY - b.gridY
@@ -176,6 +139,15 @@ function GM.Building:Think(dt)
             b.hoverProgress = math.min(1.0, b.hoverProgress + 0.12)
         else
             b.hoverProgress = math.max(0.0, b.hoverProgress - 0.12)
+        end
+    end
+
+    for _, idx in ipairs(toTransform) do
+        local building = self.List[idx]
+        if building and building.type == "village" then
+            local cityDef = self:GetTypeDefinition("city")
+            building:transform("city", cityDef)
+            Logger:info("Building", building.name .. " upgraded to City!")
         end
     end
 end

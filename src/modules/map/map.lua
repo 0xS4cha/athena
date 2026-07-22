@@ -236,14 +236,14 @@ end
 --- @param x number
 --- @return boolean?
 function Map:outlineAt(x, y)
-    if not self.grid[x][y].owner then
+    if not self.grid[x][y]:getOwner() then
         return nil
     end
-    local owner  = self.grid[x][y].owner.id
-    local top    = y > 1 and self.grid[x][y - 1].owner and self.grid[x][y - 1].owner.id == owner
-    local bottom = y < self.height and self.grid[x][y + 1].owner and self.grid[x][y + 1].owner.id == owner
-    local left   = x > 1 and self.grid[x - 1][y].owner and self.grid[x - 1][y].owner.id == owner
-    local right  = x < self.width and self.grid[x + 1][y].owner and self.grid[x + 1][y].owner.id == owner
+    local owner  = self.grid[x][y]:getOwner().id
+    local top    = y > 1 and self.grid[x][y - 1]:getOwner() and self.grid[x][y - 1]:getOwner().id == owner
+    local bottom = y < self.height and self.grid[x][y + 1]:getOwner() and self.grid[x][y + 1]:getOwner().id == owner
+    local left   = x > 1 and self.grid[x - 1][y]:getOwner() and self.grid[x - 1][y]:getOwner().id == owner
+    local right  = x < self.width and self.grid[x + 1][y]:getOwner() and self.grid[x + 1][y]:getOwner().id == owner
     if top and bottom and left and right then
         return false
     else
@@ -251,8 +251,10 @@ function Map:outlineAt(x, y)
     end
 end
 
-function Map:setOwner(owner, x, y)
-    self.grid[x][y].owner = owner
+function Map:addInfluence(owner, x, y, influence)
+    if not influence then influence = 1 end
+    self.grid[x][y]:addCountry(owner)
+    self.grid[x][y].countries[owner] = self.grid[x][y].countries[owner] + influence
     -- self.grid[x][y].isOutline = nil
 
     -- if x > 1 then
@@ -298,7 +300,7 @@ function Map:RegisterCountry(Country, params)
                 local y = params.y + dy
 
                 if x >= 1 and x <= self.width and y >= 1 and y <= self.height then
-                    self:setOwner(Country, math.floor(x + 0.5), math.floor(y + 0.5))
+                    self:addInfluence(Country, math.floor(x + 0.5), math.floor(y + 0.5))
                 end
             end
         end
@@ -359,6 +361,13 @@ end
 function GM.Map:Think()
     if self.Instance and GM.TickSecond then
         self.Instance:updateIncomes()
+    end
+    for x=1, #GM.Game.Map.grid do
+        for y=1, #GM.Game.Map.grid[x] do
+            if GM.Game.Map.grid[x][y].isOutline then
+                GM.Game.Map.grid[x][y]:sortOwner()
+            end
+        end
     end
 end
 

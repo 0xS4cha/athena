@@ -50,7 +50,7 @@ local function collectCountryCells(map, country, occupied)
     for x = 1, map.width do
         for y = 1, map.height do
             local cell = map.grid[x] and map.grid[x][y]
-            if cell and cell.owner == country and cell.data and cell.data.isLand and not isReserved(occupied, x, y) then
+            if cell and cell:getOwner() == country and cell.data and cell.data.isLand and not isReserved(occupied, x, y) then
                 table.insert(ownedCells, { x = x, y = y })
 
                 local isAdjacentToWater = false

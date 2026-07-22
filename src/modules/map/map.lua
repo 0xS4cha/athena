@@ -4,6 +4,7 @@ local LoadFile = require("src.core.loadFile")
 local bit = require("bit")
 local Country = require("src.modules.country.country")
 local Cell = require("src.modules.map.cell")
+local Flags = require("src.modules.hud.flags")
 
 --- @class Map
 --- @field cols number
@@ -28,10 +29,13 @@ function Map:init(map_path, cellSize)
         map16xBin = LoadFile:Bin(map_path .. "map16x.bin"),
         manifest  = LoadFile:Json(map_path .. "manifest.json")
     }
+
     self.width = self.mapData.manifest["map"]["width"]
     self.height = self.mapData.manifest["map"]["height"]
     self.terrain = self.mapData.mapBin
+
     self.countries = {}
+
     self.layers = {
         terrain = true,
         political = true,
@@ -281,8 +285,9 @@ function Map:RegisterCountry(Country, params)
     table.insert(self.countries, Country)
     Country.capitalX = params.x
     Country.capitalY = params.y
-    local offset_radius = params.radius - 1
 
+    Flags:Load(Country.flag)
+    local offset_radius = params.radius - 1
     for i = 1, params.radius * 2 do
         for j = 1, params.radius * 2 do
             local dx = i - offset_radius - 1
@@ -300,13 +305,14 @@ function Map:RegisterCountry(Country, params)
     end
 end
 
-function Map:FillCountries()
+function Map:FillCountries(radius)
     for i = 1, #self.mapData.manifest["nations"] do
         local nation = self.mapData.manifest["nations"][i]
         if nation["coordinates"] then
             local name = nation["name"]
-            self:RegisterCountry(Country(nil, true, name),
-                { x = nation["coordinates"][1], y = nation["coordinates"][2], radius = 4 })
+            local flag = nation["flag"]
+            self:RegisterCountry(Country(nil, true, name, flag),
+                { x = nation["coordinates"][1], y = nation["coordinates"][2], radius = radius })
         end
     end
 end

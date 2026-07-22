@@ -6,6 +6,9 @@ local Camera = require("src.core.camera")
 local Map = require("src.modules.map.map")
 local Country = require("src.modules.country.country")
 
+local json = require("libs.json.json")
+local astar = require("src.modules.algorithms.astar")
+
 local flags
 local camera
 
@@ -22,8 +25,8 @@ function love.load(args)
     GM:InitializeModules()
     love.graphics.setBackgroundColor(0.08, 0.08, 0.10)
     GM.Game = {Map = Map(flags.map, 1)}
-    GM.Game.Map:RegisterCountry(Country(nil, nil, "Player Territory"), {x = 10, y = 10, radius = 4})
-    GM.Game.Map:FillCountries()
+    GM.Game.Map:RegisterCountry(Country(nil, nil, "France", "fr"), {x = 945, y = 233, radius = 40})
+    GM.Game.Map:FillCountries(40)
     local W, H = love.graphics.getDimensions()
     local imgW, imgH = GM.Game.Map:getWidth(), GM.Game.Map:getHeight()
     local initialScale = math.max(W / imgW, H / imgH)
@@ -38,6 +41,12 @@ function love.load(args)
     
     GM.Camera = camera
     GM.Building:GenerateBuildings(GM.Game.Map)
+    print(json.encode(astar(
+            GM.Game.Map:getCellAtPixel(10, 201),
+            GM.Game.Map:getCellAtPixel(201, 10),
+            function(cell) return not cell.data.isOcean end,
+            GM.Game.Map
+        )))
 end
 
 --- @param dt number

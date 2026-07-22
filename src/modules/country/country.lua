@@ -4,14 +4,13 @@ local Class = require("src.core.class")
 
 local Country = Class()
 
-
-
-function Country:init(player, isAI, name)
+function Country:init(player, isAI, name, flag)
     self.player = player
     self.color = {math.random(0, 255), math.random(0, 255), math.random(0, 255)}
     self.id = uuid.getUUID()
     self.isAI = isAI
     self.name = name or "Independent Nation"
+    self.flag = flag or "xx"
 end
 
 function Country:claimCell(x, y)

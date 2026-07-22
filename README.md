@@ -5,6 +5,7 @@ Geographical map rendering and geopolitical simulation engine built with Lua and
 ## Authors
 
 - [@0xS4cha](https://github.com/0xS4cha)
+- [@Bananoo](https://github.com/B4nJuice)
 
 ## Description
 

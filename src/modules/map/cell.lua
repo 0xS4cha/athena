@@ -24,18 +24,32 @@ function Cell:init(x, y, size, data, color)
     self.isOutline = nil
     self.screenX = (x - 1) * size
     self.screenY = (y - 1) * size
+    self.countries = {}
+    self.leaders = {}
+end
 
-    self.owner = nil
+function Cell:addCountry(owner)
+    if self.countries[owner] then return self.countries[owner] end
+    self.countries[owner] = 0
+    self.leaders[#self.leaders + 1] = owner
+    return 0
+end
+
+function Cell:sortOwner()
+    table.sort(self.leaders, function(a, b)
+        return self.countries[a] > self.countries[b]
+    end)
 end
 
 function Cell:getOwner()
-    return self.owner
+    if not self.leaders[1] then return false end
+    return self.leaders[1]
 end
 
 function Cell:draw()
     local map = GM.Game.Map
     local drawTerrain = map.layers.terrain
-    local drawPolitical = map.layers.political and self.owner
+    local drawPolitical = map.layers.political and self:getOwner()
 
     if drawTerrain then
         love.graphics.setColor(self.color[1] / 255, self.color[2] / 255, self.color[3] / 255, 1)
@@ -55,9 +69,9 @@ function Cell:draw()
             self.isOutline = map:outlineAt(self.gridX, self.gridY)
         end
 
-        local r = self.owner.color[1] / 255
-        local g = self.owner.color[2] / 255
-        local b = self.owner.color[3] / 255
+        local r = self:getOwner().color[1] / 255
+        local g = self:getOwner().color[2] / 255
+        local b = self:getOwner().color[3] / 255
 
         if self.isOutline then
             love.graphics.setColor(r, g, b, 1.0)

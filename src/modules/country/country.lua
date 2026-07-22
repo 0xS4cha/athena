@@ -15,7 +15,7 @@ function Country:init(player, isAI, name)
 end
 
 function Country:claimCell(x, y)
-    GM.Game.Map:setOwner(self, x, y)
+    GM.Game.Map:addInfluence(self, x, y)
 end
 
 

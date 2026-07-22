@@ -89,8 +89,8 @@ function Hud:Draw()
     if map:isValidCell(cellX, cellY) then
         local cell = map.grid[cellX][cellY]
         local infoText = string.format("Grid X:%d Y:%d", cellX, cellY)
-        if cell.owner and map.layers.political then
-            infoText = infoText .. " | Territory: " .. cell.owner.name
+        if cell:getOwner() and map.layers.political then
+            infoText = infoText .. " | Territory: " .. cell:getOwner().name
         end
 
         local sh = H - 35

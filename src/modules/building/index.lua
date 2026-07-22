@@ -32,7 +32,7 @@ function GM.Building:GenerateBuildings(map)
         for x = 1, map.width, 2 do
             for y = 1, map.height, 2 do
                 local cell = map.grid[x][y]
-                if cell and cell.owner == country then
+                if cell and cell:getOwner() == country then
                     local isCapital = (x == country.capitalX and y == country.capitalY)
                     if not isCapital then
                         if cell.data and cell.data.isLand then

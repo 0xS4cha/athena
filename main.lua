@@ -6,6 +6,8 @@ local Camera = require("src.core.camera")
 local Map = require("src.modules.map.map")
 local Country = require("src.modules.country.country")
 
+local json = require("libs.json.json")
+local astar = require("src.modules.algorithms.astar")
 
 local flags
 local camera
@@ -39,6 +41,12 @@ function love.load(args)
     
     GM.Camera = camera
     GM.Building:GenerateBuildings(GM.Game.Map)
+    print(json.encode(astar(
+            GM.Game.Map:getCellAtPixel(10, 201),
+            GM.Game.Map:getCellAtPixel(201, 10),
+            function(cell) return not cell.data.isOcean end,
+            GM.Game.Map
+        )))
 end
 
 --- @param dt number

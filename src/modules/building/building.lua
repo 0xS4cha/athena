@@ -2,8 +2,8 @@
 local Class = require("src.core.class")
 
 --- @class Building
---- @field gridX number
---- @field gridY number
+--- @field x number
+--- @field y number
 --- @field type string
 --- @field name string
 --- @field owner table
@@ -12,9 +12,9 @@ local Class = require("src.core.class")
 --- @field state table
 local Building = Class()
 
-function Building:init(gridX, gridY, type, name, cell, definition)
-    self.gridX = gridX
-    self.gridY = gridY
+function Building:init(x, y, type, name, cell, definition)
+    self.x = x
+    self.y = y
     self.type = type or "capital"
     self.name = name or "Unnamed Building"
     self.cell = cell
@@ -63,15 +63,15 @@ function Building:draw(cellSize)
     love.graphics.push("all")
 
     local outline = self.definition.outline
-    drawPixel(self.gridX, self.gridY, r, g, b)
-    drawPixel(self.gridX - 1, self.gridY - 1, outline[1], outline[2], outline[3], outline[4] or 1)
-    drawPixel(self.gridX, self.gridY - 1, outline[1], outline[2], outline[3], outline[4] or 1)
-    drawPixel(self.gridX + 1, self.gridY - 1, outline[1], outline[2], outline[3], outline[4] or 1)
-    drawPixel(self.gridX - 1, self.gridY, outline[1], outline[2], outline[3], outline[4] or 1)
-    drawPixel(self.gridX + 1, self.gridY, outline[1], outline[2], outline[3], outline[4] or 1)
-    drawPixel(self.gridX - 1, self.gridY + 1, outline[1], outline[2], outline[3], outline[4] or 1)
-    drawPixel(self.gridX, self.gridY + 1, outline[1], outline[2], outline[3], outline[4] or 1)
-    drawPixel(self.gridX + 1, self.gridY + 1, outline[1], outline[2], outline[3], outline[4] or 1)
+    drawPixel(self.x, self.y, r, g, b)
+    drawPixel(self.x - 1, self.y - 1, outline[1], outline[2], outline[3], outline[4] or 1)
+    drawPixel(self.x, self.y - 1, outline[1], outline[2], outline[3], outline[4] or 1)
+    drawPixel(self.x + 1, self.y - 1, outline[1], outline[2], outline[3], outline[4] or 1)
+    drawPixel(self.x - 1, self.y, outline[1], outline[2], outline[3], outline[4] or 1)
+    drawPixel(self.x + 1, self.y, outline[1], outline[2], outline[3], outline[4] or 1)
+    drawPixel(self.x - 1, self.y + 1, outline[1], outline[2], outline[3], outline[4] or 1)
+    drawPixel(self.x, self.y + 1, outline[1], outline[2], outline[3], outline[4] or 1)
+    drawPixel(self.x + 1, self.y + 1, outline[1], outline[2], outline[3], outline[4] or 1)
 
     love.graphics.pop()
 end

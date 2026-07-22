@@ -26,9 +26,9 @@ function GM.Building:GetTypeDefinition(type)
     return self.Types[type] or self.Types.capital
 end
 
-function GM.Building:SpawnBuilding(gridX, gridY, type, name, cell)
+function GM.Building:SpawnBuilding(x, y, type, name, cell)
     local definition = self:GetTypeDefinition(type)
-    local b = Building(gridX, gridY, type, name, cell, definition)
+    local b = Building(x, y, type, name, cell, definition)
     table.insert(self.List, b)
     return b
 end
@@ -128,8 +128,8 @@ function GM.Building:Think(dt)
             b._shouldTransform = nil
         end
 
-        local dx = worldX - b.gridX
-        local dy = worldY - b.gridY
+        local dx = worldX - b.x
+        local dy = worldY - b.y
         local dist = math.sqrt(dx * dx + dy * dy)
 
         local hoverDist = 12 / (GM.Camera and GM.Camera.scale or 1)

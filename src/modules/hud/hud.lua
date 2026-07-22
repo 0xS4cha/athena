@@ -110,7 +110,7 @@ function Hud:Draw()
 
     if map:isValidCell(cellX, cellY) then
         local cell = map.grid[cellX][cellY]
-        local infoText = string.format("Grid X:%d Y:%d", cellX, cellY)
+        local infoText = string.format("Grid X:%d Y:%d Magnitude:%d", cellX, cellY, cell.data.magnitude)
         local territoryOwner = cell:getOwner()
         local hasTerritoryFlag = territoryOwner and map.layers.political and territoryOwner.flag and territoryOwner.flag ~= ""
 

@@ -3,8 +3,8 @@ local GM = require("src.core.index")
 local Class = require("src.core.class")
 
 --- @class Cell
---- @field gridX number
---- @field gridY number
+--- @field x number
+--- @field y number
 --- @field size number
 --- @field screenX number
 --- @field screenY number
@@ -16,8 +16,8 @@ local Cell = Class()
 --- @param y number
 --- @param size number
 function Cell:init(x, y, size, data, color)
-    self.gridX = x
-    self.gridY = y
+    self.x = x
+    self.y = y
     self.size = size
     self.data = data
     self.color = color
@@ -53,7 +53,7 @@ function Cell:draw()
 
     if drawPolitical then
         if self.isOutline == nil then
-            self.isOutline = map:outlineAt(self.gridX, self.gridY)
+            self.isOutline = map:outlineAt(self.x, self.y)
         end
 
         local r = self.owner.color[1] / 255

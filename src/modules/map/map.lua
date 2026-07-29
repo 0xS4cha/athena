@@ -353,22 +353,16 @@ function GM.Map:Initialize()
 end
 
 function GM.Map:Draw()
-    if self.Instance then
-        self.Instance:draw()
-    end
 end
 
 function GM.Map:Think()
-    if self.Instance and GM.TickSecond then
-        self.Instance:updateIncomes()
-    end
-    for x=1, #GM.Game.Map.grid do
-        for y=1, #GM.Game.Map.grid[x] do
-            if GM.Game.Map.grid[x][y].isOutline then
-                GM.Game.Map.grid[x][y]:sortOwner()
-            end
-        end
-    end
+    -- for x=1, #GM.Game.Map.grid do
+    --     for y=1, #GM.Game.Map.grid[x] do
+    --         if GM.Game.Map.grid[x][y].isOutline then
+    --             GM.Game.Map.grid[x][y]:sortOwner()
+    --         end
+    --     end
+    -- end
 end
 
 return Map

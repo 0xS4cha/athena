@@ -1,7 +1,4 @@
-local Heap = require("src.modules.algorithms.heap")
-
 local function bfs(start, goal, isWalkable, map, walk)
-    local visited, queue = Heap(), Heap()
     local adjacentOffsets = {
         { x = 0,  y = -1 },
         { x = -1, y = 0 },
@@ -12,44 +9,35 @@ local function bfs(start, goal, isWalkable, map, walk)
         { x = -1, y = 1 },
         { x = 1,  y = 1 },
     }
+
     local nodes = {}
+    local visited = {}
     local cameFrom = {}
-    local seq = 0
-    local order = {}
 
     local function getNode(x, y)
-        local k = x .. "," .. y
-        local node = nodes[k]
+        local row = nodes[x]
+        if not row then
+            row = {}
+            nodes[x] = row
+        end
+        local node = row[y]
         if node == nil then
             if not map:isValidCell(x, y) then
-                nodes[k] = false
+                row[y] = false
                 return false
             end
             node = map.grid[x][y]
-            nodes[k] = node
+            row[y] = node
         end
         return node
-    end
-
-    visited.Compare = function(a, b)
-        return order[a] < order[b]
-    end
-
-    queue.Compare = function(a, b)
-        return order[a] < order[b]
-    end
-
-    local function push(node)
-        seq = seq + 1
-        order[node] = seq
-        visited:Push(node)
-        queue:Push(node)
     end
 
     local startNode = getNode(start.x, start.y)
     if not startNode then return nil end
 
-    push(startNode)
+    local queue = { startNode }
+    local head, tail = 1, 1
+    visited[startNode] = true
 
     local function reconstructPath(node)
         local path = {}
@@ -60,8 +48,9 @@ local function bfs(start, goal, isWalkable, map, walk)
         return path
     end
 
-    while not queue:Empty() do
-        local current = queue:Pop()
+    while head <= tail do
+        local current = queue[head]
+        head = head + 1
 
         if walk then walk(current) end
 
@@ -75,10 +64,12 @@ local function bfs(start, goal, isWalkable, map, walk)
             local ay = current.y + offset.y
             local neighbor = getNode(ax, ay)
 
-            if neighbor and not visited:IsIn(neighbor)
+            if neighbor and not visited[neighbor]
                and (not isWalkable or isWalkable(neighbor)) then
+                visited[neighbor] = true
                 cameFrom[neighbor] = current
-                push(neighbor)
+                tail = tail + 1
+                queue[tail] = neighbor
             end
         end
     end

@@ -253,6 +253,7 @@ end
 
 function Map:addInfluence(owner, x, y, influence)
     if not influence then influence = 1 end
+
     self.grid[x][y]:addCountry(owner)
     self.grid[x][y].countries[owner] = self.grid[x][y].countries[owner] + influence
     -- self.grid[x][y].isOutline = nil

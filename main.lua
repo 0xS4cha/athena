@@ -6,6 +6,8 @@ local Camera = require("src.core.camera")
 local Map = require("src.modules.map.map")
 local Country = require("src.modules.country.country")
 
+local bfs = require("src.modules.algorithms.bfs")
+
 local flags
 local camera
 
@@ -22,8 +24,9 @@ function love.load(args)
     GM:InitializeModules()
     love.graphics.setBackgroundColor(0.08, 0.08, 0.10)
     GM.Game = {Map = Map(flags.map, 1)}
-    GM.Game.Map:RegisterCountry(Country(nil, nil, "France", "fr"), {x = 945, y = 233, radius = 40})
-    GM.Game.Map:FillCountries(40)
+    local player = Country(nil, nil, "France Player", "fr")
+    GM.Game.Map:RegisterCountry(player, {x = 945, y = 233, radius = 5})
+    GM.Game.Map:FillCountries(5)
     local W, H = love.graphics.getDimensions()
     local imgW, imgH = GM.Game.Map:getWidth(), GM.Game.Map:getHeight()
     local initialScale = math.max(W / imgW, H / imgH)
@@ -38,6 +41,16 @@ function love.load(args)
     
     GM.Camera = camera
     GM.Building:GenerateBuildings(GM.Game.Map)
+    bfs(
+        GM.Game.Map:getCellAtPixel(945, 233),
+        nil,
+        function(cell) return not cell.data.isOcean end,
+        GM.Game.Map,
+        function(cell)
+            if not GM.Game.Map:isValidCell(cell.x, cell.y) then return end
+            GM.Game.Map:addInfluence(player, cell.x, cell.y, 1)
+        end
+    )
 end
 
 --- @param dt number

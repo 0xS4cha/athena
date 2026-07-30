@@ -111,6 +111,8 @@ function Hud:Draw()
     if map:isValidCell(cellX, cellY) then
         local cell = map.grid[cellX][cellY]
         local infoText = string.format("Grid X:%d Y:%d", cellX, cellY)
+        local territoryOwner = cell:getOwner()
+        local hasTerritoryFlag = territoryOwner and map.layers.political and territoryOwner.flag and territoryOwner.flag ~= ""
         if cell:getOwner() and map.layers.political then
             infoText = infoText .. " | Territory: " .. cell:getOwner().name
         end
@@ -191,7 +193,7 @@ function Hud:Draw()
     love.graphics.pop()
 end
 
-function Hud:MousePressed(x, y, button, istouch, presses)
+function Hud:MousePressed(_, _, button, _, _)
     if button ~= 1 then return end
 
     local map = GM.Game and GM.Game.Map
@@ -211,7 +213,7 @@ function Hud:MousePressed(x, y, button, istouch, presses)
     end
 end
 
-function Hud:KeyPressed(key, scancode, isrepeat)
+function Hud:KeyPressed(key, _, _)
     local map = GM.Game and GM.Game.Map
     if not map then return end
 

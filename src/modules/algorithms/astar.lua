@@ -1,6 +1,6 @@
 local Heap = require("src.modules.algorithms.heap")
 
-local function astar(start, goal, isWalkable, map)
+local function astar(start, goal, isWalkable, map, walk)
     local result = {}
     local function key(pos)
         return pos.x .. "," .. pos.y
@@ -27,6 +27,7 @@ local function astar(start, goal, isWalkable, map)
         local k = x .. "," .. y
         local node = nodes[k]
         if not node then
+            if not map:isValidCell(x, y) then return false end
             node = map.grid[x][y]
             nodes[k] = node
         end
@@ -56,6 +57,7 @@ local function astar(start, goal, isWalkable, map)
             if current == goal then
                 local path = {}
                 while current do
+                    if walk then walk(current) end
                     table.insert(path, 1, map.grid[current.x][current.y])
                     current = current.previous
                 end

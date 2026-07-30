@@ -1,4 +1,6 @@
 local env = require("src.core.env")
+local table = require("src.core.table")
+local json = require("libs.json.json")
 
 --- @class Logger
 --- @field Enabled boolean
@@ -76,6 +78,28 @@ function Logger:trace(module, ...)
     if self.LogLevel < LOG_LEVELS.TRACE then return end
 
     print(ANSI.GREY .. "[TRACE] " .. ANSI.CYAN .. "[" .. string.upper(module) .. "] > " .. ANSI.RESET .. table.concat(parseArguments(...), " ") .. ANSI.RESET)
+end
+
+--- @param data []
+function Logger:debug(data)
+    local function cpy(t)
+        local seen = {}
+        local function _cpy(t)
+            if type(t) ~= "table" then
+                return tostring(t)
+            elseif seen[t] then
+                return seen[t]
+            end
+            local s = {}
+            seen[t] = s
+            for k, v in pairs(t) do
+                s[_cpy(k)] = _cpy(v)
+            end
+            return setmetatable(s, getmetatable(t))
+        end
+        return _cpy(t)
+    end
+    print(json.encode(cpy(data), { indent = true }))
 end
 
 return Logger

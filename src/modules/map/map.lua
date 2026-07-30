@@ -36,6 +36,8 @@ function Map:init(map_path, cellSize)
 
     self.countries = {}
 
+    self.outlineCells = {}
+
     self.layers = {
         terrain = true,
         political = true,
@@ -256,17 +258,57 @@ function Map:addInfluence(owner, x, y, influence)
 
     self.grid[x][y]:addCountry(owner)
     self.grid[x][y].countries[owner] = self.grid[x][y].countries[owner] + influence
-    -- self.grid[x][y].isOutline = nil
 
-    -- if x > 1 then
-    --     self.grid[x-1][y].isOutline = nil
-    -- end
-    -- if x < self.width then self.grid[x+1][y].isOutline = nil end
-    -- if y > 1 then self.grid[x][y-1].isOutline = nil end
-    -- if y < self.height then self.grid[x][y+1].isOutline = nil end
+    self:updateOutlineStatus(x, y)
+    if x > 1 then self:updateOutlineStatus(x - 1, y) end
+    if x < self.width then self:updateOutlineStatus(x + 1, y) end
+    if y > 1 then self:updateOutlineStatus(x, y - 1) end
+    if y < self.height then self:updateOutlineStatus(x, y + 1) end
+
     local cx = math.floor((x - 1) / self.chunkSize) + 1
     local cy = math.floor((y - 1) / self.chunkSize) + 1
     self.chunks[cx][cy].isDirty = true
+end
+
+function Map:updateOutlineStatus(x, y)
+    if not self:isValidCell(x, y) then return end
+    local cell = self.grid[x][y]
+    local ownerObj = cell:getOwner()
+
+    if cell.outlineOwnerId and (not ownerObj or ownerObj.id ~= cell.outlineOwnerId) then
+        local oldList = self.outlineCells[cell.outlineOwnerId]
+        if oldList then oldList[cell] = nil end
+        cell.outlineOwnerId = nil
+    end
+
+    if not ownerObj then
+        cell.isOutline = nil
+        return
+    end
+
+    local isOut = self:outlineAt(x, y)
+    cell.isOutline = isOut
+
+    self.outlineCells[ownerObj.id] = self.outlineCells[ownerObj.id] or {}
+    if isOut then
+        self.outlineCells[ownerObj.id][cell] = true
+        cell.outlineOwnerId = ownerObj.id
+    else
+        self.outlineCells[ownerObj.id][cell] = nil
+        cell.outlineOwnerId = nil
+    end
+end
+
+function Map:GetTerritoryOutline(owner)
+    if not owner then return {} end
+    local set = self.outlineCells[owner.id]
+    if not set then return {} end
+
+    local result = {}
+    for cell in pairs(set) do
+        result[#result + 1] = cell
+    end
+    return result
 end
 
 function Map:toggleLayer(layerName)

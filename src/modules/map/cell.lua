@@ -22,6 +22,7 @@ function Cell:init(x, y, size, data, color)
     self.data = data
     self.color = color
     self.isOutline = nil
+    self.outlineOwnerId = nil
     self.screenX = (x - 1) * size
     self.screenY = (y - 1) * size
     self.countries = {}

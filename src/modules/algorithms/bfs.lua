@@ -57,7 +57,7 @@ local function bfs(start, goal, isWalkable, map, walk)
     else
         local startNode = getNode(start.x, start.y)
         if not startNode then return nil end
-        queue = { startNode }
+        queue = {startNode}
         visited[startNode] = true
     end
 
@@ -98,7 +98,7 @@ local function bfs(start, goal, isWalkable, map, walk)
         end
     end
 
-    return nil
+    return reconstructPath(queue[head])
 end
 
 return bfs

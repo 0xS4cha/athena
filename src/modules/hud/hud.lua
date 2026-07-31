@@ -1,6 +1,7 @@
 local Class = require("src.core.class")
 local GM = require("src.core.index")
 local Flags = require("src.modules.hud.flags")
+local ContextMenu = require("src.modules.hud.contextmenu")
 
 local Hud = Class()
 
@@ -9,6 +10,7 @@ function Hud:init()
     self.height = 145
     self.margin = 20
     self.hoveredLayerIdx = nil
+    self.contextMenu = ContextMenu()
 end
 
 function Hud:drawFlag(flagKey, x, y, size)
@@ -190,10 +192,23 @@ function Hud:Draw()
         end
     end
 
+    if self.contextMenu then
+        self.contextMenu:update()
+        self.contextMenu:draw()
+    end
+
     love.graphics.pop()
 end
 
-function Hud:MousePressed(_, _, button, _, _)
+function Hud:MousePressed(x, y, button, istouch, presses)
+    if self.contextMenu then
+        local wasVisible = self.contextMenu.visible
+        self.contextMenu:MousePressed(x, y, button, istouch, presses)
+        if wasVisible then
+            return
+        end
+    end
+
     if button ~= 1 then return end
 
     local map = GM.Game and GM.Game.Map
@@ -210,6 +225,12 @@ function Hud:MousePressed(_, _, button, _, _)
                 map:toggleLayer(layerKey)
             end
         end
+    end
+end
+
+function Hud:MouseReleased(x, y, button, istouch, presses)
+    if self.contextMenu then
+        self.contextMenu:MouseReleased(x, y, button, istouch, presses)
     end
 end
 

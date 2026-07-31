@@ -35,6 +35,17 @@ function GM.Building:SpawnBuilding(x, y, type, name, cell)
     return b
 end
 
+function GM.Building:DestroyBuildingAt(x, y)
+    for i = #self.List, 1, -1 do
+        local b = self.List[i]
+        if b.x == x and b.y == y then
+            table.remove(self.List, i)
+            return true
+        end
+    end
+    return false
+end
+
 local function reserveCell(occupied, x, y)
     occupied[x] = occupied[x] or {}
     occupied[x][y] = true

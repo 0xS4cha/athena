@@ -270,6 +270,26 @@ function Map:addInfluence(owner, x, y, influence)
     self.chunks[cx][cy].isDirty = true
 end
 
+function Map:clearInfluence(x, y)
+    if not self:isValidCell(x, y) then return end
+    local cell = self.grid[x][y]
+    
+    cell.countries = {}
+    cell.leaders = {}
+    cell.isOutline = nil
+    cell.outlineOwnerId = nil
+    
+    self:updateOutlineStatus(x, y)
+    if x > 1 then self:updateOutlineStatus(x - 1, y) end
+    if x < self.width then self:updateOutlineStatus(x + 1, y) end
+    if y > 1 then self:updateOutlineStatus(x, y - 1) end
+    if y < self.height then self:updateOutlineStatus(x, y + 1) end
+
+    local cx = math.floor((x - 1) / self.chunkSize) + 1
+    local cy = math.floor((y - 1) / self.chunkSize) + 1
+    self.chunks[cx][cy].isDirty = true
+end
+
 function Map:updateOutlineStatus(x, y)
     if not self:isValidCell(x, y) then return end
     local cell = self.grid[x][y]

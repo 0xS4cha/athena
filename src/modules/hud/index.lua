@@ -21,6 +21,12 @@ function GM.Hud:MousePressed(x, y, button, istouch, presses)
     end
 end
 
+function GM.Hud:MouseReleased(x, y, button, istouch, presses)
+    if self.Instance then
+        self.Instance:MouseReleased(x, y, button, istouch, presses)
+    end
+end
+
 function GM.Hud:KeyPressed(key, scancode, isrepeat)
     if self.Instance then
         self.Instance:KeyPressed(key, scancode, isrepeat)

@@ -25,6 +25,7 @@ function love.load(args)
     love.graphics.setBackgroundColor(0.08, 0.08, 0.10)
     GM.Game = {Map = Map(flags.map, 1)}
     player = Country(nil, nil, "France Player", "fr")
+    GM.PlayerCountry = player
     GM.Game.Map:RegisterCountry(player, {x = 1202, y = 153, radius = 10})
     -- GM.Game.Map:FillCountries(10)
     local W, H = love.graphics.getDimensions()

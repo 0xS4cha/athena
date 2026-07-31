@@ -12,6 +12,13 @@ local Class = require("src.core.class")
 --- @field state table
 local Building = Class()
 
+--- @param x number
+--- @param y number
+--- @param type string
+--- @param name string
+--- @param cell table
+--- @param definition table
+--- @return Building
 function Building:init(x, y, type, name, cell, definition)
     self.x = x
     self.y = y
@@ -23,6 +30,7 @@ function Building:init(x, y, type, name, cell, definition)
     self.state = {}
 end
 
+--- @return number, number, number
 function Building:getOwnerColor()
     if self.cell and self.cell:getOwner() then
         local owner = self.cell:getOwner()
@@ -33,18 +41,26 @@ function Building:getOwnerColor()
     return definitionColor[1], definitionColor[2], definitionColor[3]
 end
 
+--- @param dt number
+--- @param context table
+--- @return void
 function Building:think(dt, context)
     if self.definition and self.definition.think then
         self.definition.think(self, dt or 0, context or {})
     end
 end
 
+--- @param newType string
+--- @param newDefinition table
+--- @return void
 function Building:transform(newType, newDefinition)
     self.type = newType
     self.definition = newDefinition
     self.state = {}
 end
 
+--- @param cellSize number
+--- @return void
 function Building:draw(cellSize)
     local r, g, b = self:getOwnerColor()
 

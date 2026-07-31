@@ -15,6 +15,9 @@ local Cell = Class()
 --- @param x number
 --- @param y number
 --- @param size number
+--- @param data table
+--- @param color table
+--- @return Cell
 function Cell:init(x, y, size, data, color)
     self.x = x
     self.y = y
@@ -29,6 +32,8 @@ function Cell:init(x, y, size, data, color)
     self.leaders = {}
 end
 
+--- @param owner table
+--- @return number
 function Cell:addCountry(owner)
     if self.countries[owner] then return self.countries[owner] end
     self.countries[owner] = 0
@@ -36,17 +41,20 @@ function Cell:addCountry(owner)
     return 0
 end
 
+--- @return void
 function Cell:sortOwner()
     table.sort(self.leaders, function(a, b)
         return self.countries[a] > self.countries[b]
     end)
 end
 
+--- @return table|boolean
 function Cell:getOwner()
     if not self.leaders[1] then return false end
     return self.leaders[1]
 end
 
+--- @return void
 function Cell:draw()
     local map = GM.Game.Map
     local drawTerrain = map.layers.terrain

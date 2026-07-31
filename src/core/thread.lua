@@ -1,5 +1,7 @@
 local threads = {}
 
+--- @param ms number
+--- @return void
 local function Wait(ms)
     local resumeAt = love.timer.getTime() + ms / 1000
     local co = coroutine.running()
@@ -7,12 +9,15 @@ local function Wait(ms)
     coroutine.yield(resumeAt)
 end
 
+--- @param fn function
+--- @return thread
 local function CreateThread(fn)
     local co = coroutine.create(fn)
     table.insert(threads, { co = co, resumeAt = 0 })
     return co
 end
 
+--- @return void
 local function updateScheduler()
     local now = love.timer.getTime()
     for i = #threads, 1, -1 do

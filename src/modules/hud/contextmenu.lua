@@ -3,6 +3,7 @@ local GM = require("src.core.index")
 
 local ContextMenu = Class()
 
+--- @return ContextMenu
 function ContextMenu:init()
     self.visible = false
     self.x = 0
@@ -21,6 +22,8 @@ function ContextMenu:init()
     self.isRightPressed = false
 end
 
+--- @param name string
+--- @return Image|boolean
 function ContextMenu:getIcon(name)
     if not self.icons[name] then
         local success, img = pcall(love.graphics.newImage, "assets/Icons/" .. name)
@@ -34,6 +37,11 @@ function ContextMenu:getIcon(name)
     return self.icons[name]
 end
 
+--- @param mx number
+--- @param my number
+--- @param cellX number
+--- @param cellY number
+--- @return void
 function ContextMenu:open(mx, my, cellX, cellY)
     local map = GM.Game and GM.Game.Map
     if not map or not map:isValidCell(cellX, cellY) then return end
@@ -146,6 +154,8 @@ function ContextMenu:open(mx, my, cellX, cellY)
     self.hoveredIdx = nil
 end
 
+--- @param dt number?
+--- @return void
 function ContextMenu:update(dt)
     if not self.visible then return end
     
@@ -165,6 +175,7 @@ function ContextMenu:update(dt)
     end
 end
 
+--- @return void
 function ContextMenu:draw()
     if not self.visible or #self.items == 0 then return end
     
@@ -223,6 +234,12 @@ function ContextMenu:draw()
     love.graphics.pop()
 end
 
+--- @param x number
+--- @param y number
+--- @param button number
+--- @param istouch boolean
+--- @param presses number
+--- @return void
 function ContextMenu:MousePressed(x, y, button, istouch, presses)
     if button == 2 then
         self.isRightPressed = true
@@ -247,6 +264,12 @@ function ContextMenu:MousePressed(x, y, button, istouch, presses)
     end
 end
 
+--- @param x number
+--- @param y number
+--- @param button number
+--- @param istouch boolean
+--- @param presses number
+--- @return void
 function ContextMenu:MouseReleased(x, y, button, istouch, presses)
     if button == 2 then
         self.isRightPressed = false

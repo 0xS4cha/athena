@@ -63,6 +63,7 @@ function love.wheelmoved(x, y)
     end
 end
 
+--- @return void
 function love.draw()
     camera:apply()
     love.graphics.setColor(1, 1, 1)
@@ -79,18 +80,34 @@ function love.draw()
     end
 end
 
+--- @param key string
+--- @param scancode string
+--- @param isrepeat boolean
+--- @return void
 function love.keypressed(key, scancode, isrepeat)
     if GM.KeyPressed then
         GM:KeyPressed(key, scancode, isrepeat)
     end
 end
 
+--- @param x number
+--- @param y number
+--- @param button number
+--- @param istouch boolean
+--- @param presses number
+--- @return void
 function love.mousepressed(x, y, button, istouch, presses)
     if GM.MousePressed then
         GM:MousePressed(x, y, button, istouch, presses)
     end
 end
 
+--- @param x number
+--- @param y number
+--- @param button number
+--- @param istouch boolean
+--- @param presses number
+--- @return void
 function love.mousereleased(x, y, button, istouch, presses)
     if GM.MouseReleased then
         GM:MouseReleased(x, y, button, istouch, presses)

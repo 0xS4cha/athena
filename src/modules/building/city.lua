@@ -7,6 +7,9 @@ return {
     outline = { 0, 0, 0, 0 },
     influenceThreshold = 1,
     expansionCountMax = 3,
+	--- @param building table
+	--- @param dt number
+	--- @return void
 	think = function(building, dt)
         if not building.state.expansionCount then building.state.expansionCount = 0 end
         if building.state.expansionCount >= building.definition.expansionCountMax then return end

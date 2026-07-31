@@ -15,6 +15,8 @@ local Map = Class()
 
 
 --- @param map_path string
+--- @param cellSize number
+--- @return Map
 function Map:init(map_path, cellSize)
     self.IS_LAND_BIT = 7
     self.SHORELINE_BIT = 6
@@ -72,6 +74,9 @@ function Map:init(map_path, cellSize)
     end
 end
 
+--- @param cx number
+--- @param cy number
+--- @return void
 function Map:updateChunk(cx, cy)
     local chunk = self.chunks[cx][cy]
 
@@ -106,6 +111,7 @@ function Map:getHeight()
 end
 
 --- @param byte number
+--- @return table
 function Map:decodeTerrainByte(byte)
     local isLand       = bit.band(byte, bit.lshift(1, self.IS_LAND_BIT)) ~= 0
     local isShoreline  = bit.band(byte, bit.lshift(1, self.SHORELINE_BIT)) ~= 0
@@ -144,7 +150,7 @@ end
 
 --- @param gx number
 --- @param gy number
---- @return any
+--- @return table?
 function Map:getTerrainAt(gx, gy)
     if self:isValidCell(gx, gy) then
         local index = (gy - 1) * self.width + gx
@@ -157,7 +163,7 @@ end
 
 --- @param px number
 --- @param py number
---- @return any
+--- @return table?
 function Map:getTerrainAtPixel(px, py)
     if not self:isValidPixel(px, py) then
         return nil
@@ -193,7 +199,7 @@ function Map:isLand(px, py)
 end
 
 --- @param info table
---- @return number r, number g, number b, number a
+--- @return number, number, number, number
 function Map:getTerrainColor(info)
     if info.isImpassable then
         return 0, 0, 0, 0
@@ -228,14 +234,17 @@ function Map:getTerrainColor(info)
     end
 end
 
+--- @param gx number
+--- @param gy number
+--- @return number, number, number, number
 function Map:getCellColor(gx, gy)
     local info = self:getTerrainAt(gx, gy)
     if not info then return 0, 0, 0, 0 end
     return self:getTerrainColor(info)
 end
 
---- @param y number
 --- @param x number
+--- @param y number
 --- @return boolean?
 function Map:outlineAt(x, y)
     if not self.grid[x][y]:getOwner() then
@@ -253,6 +262,11 @@ function Map:outlineAt(x, y)
     end
 end
 
+--- @param owner table
+--- @param x number
+--- @param y number
+--- @param influence number?
+--- @return void
 function Map:addInfluence(owner, x, y, influence)
     if not influence then influence = 1 end
 
@@ -270,6 +284,9 @@ function Map:addInfluence(owner, x, y, influence)
     self.chunks[cx][cy].isDirty = true
 end
 
+--- @param x number
+--- @param y number
+--- @return void
 function Map:clearInfluence(x, y)
     if not self:isValidCell(x, y) then return end
     local cell = self.grid[x][y]
@@ -290,6 +307,9 @@ function Map:clearInfluence(x, y)
     self.chunks[cx][cy].isDirty = true
 end
 
+--- @param x number
+--- @param y number
+--- @return void
 function Map:updateOutlineStatus(x, y)
     if not self:isValidCell(x, y) then return end
     local cell = self.grid[x][y]
@@ -319,6 +339,8 @@ function Map:updateOutlineStatus(x, y)
     end
 end
 
+--- @param owner table
+--- @return table[]
 function Map:GetTerritoryOutline(owner)
     if not owner then return {} end
     local set = self.outlineCells[owner.id]
@@ -331,6 +353,8 @@ function Map:GetTerritoryOutline(owner)
     return result
 end
 
+--- @param layerName string
+--- @return void
 function Map:toggleLayer(layerName)
     if self.layers[layerName] ~= nil then
         self.layers[layerName] = not self.layers[layerName]
@@ -338,6 +362,7 @@ function Map:toggleLayer(layerName)
     end
 end
 
+--- @return void
 function Map:dirtyAllChunks()
     for cx = 1, self.numChunksX do
         for cy = 1, self.numChunksY do
@@ -346,6 +371,9 @@ function Map:dirtyAllChunks()
     end
 end
 
+--- @param Country table
+--- @param params table
+--- @return void
 function Map:RegisterCountry(Country, params)
     table.insert(self.countries, Country)
     Country.capitalX = params.x
@@ -370,6 +398,8 @@ function Map:RegisterCountry(Country, params)
     end
 end
 
+--- @param radius number
+--- @return void
 function Map:FillCountries(radius)
     for i = 1, #self.mapData.manifest["nations"] do
         local nation = self.mapData.manifest["nations"][i]
@@ -382,6 +412,8 @@ function Map:FillCountries(radius)
     end
 end
 
+--- @param camera table
+--- @return void
 function Map:draw(camera)
     local W, H           = love.graphics.getDimensions()
 
@@ -411,13 +443,16 @@ function Map:draw(camera)
     end
 end
 
+--- @return void
 function GM.Map:Initialize()
     self.Class = Map
 end
 
+--- @return void
 function GM.Map:Draw()
 end
 
+--- @return void
 function GM.Map:Think()
     -- for x=1, #GM.Game.Map.grid do
     --     for y=1, #GM.Game.Map.grid[x] do

@@ -5,6 +5,7 @@ local ContextMenu = require("src.modules.hud.contextmenu")
 
 local Hud = Class()
 
+--- @return Hud
 function Hud:init()
     self.width = 200
     self.height = 145
@@ -14,6 +15,11 @@ function Hud:init()
     self.contextMenu = ContextMenu()
 end
 
+--- @param flagKey string
+--- @param x number
+--- @param y number
+--- @param size number
+--- @return void
 function Hud:drawFlag(flagKey, x, y, size)
     if not flagKey or flagKey == "" then
         return
@@ -35,6 +41,7 @@ function Hud:drawFlag(flagKey, x, y, size)
     love.graphics.draw(flag, x, y, 0, scale, scale)
 end
 
+--- @return number, number, number, number
 function Hud:getPanelRect()
     local W, H = love.graphics.getDimensions()
     local x = W - self.width - self.margin
@@ -42,6 +49,7 @@ function Hud:getPanelRect()
     return x, y, self.width, self.height
 end
 
+--- @return void
 function Hud:Draw()
     local map = GM.Game and GM.Game.Map
     if not map then return end
@@ -149,20 +157,13 @@ function Hud:Draw()
         local sh = H - 35
         local panelWidth = hasTerritoryFlag and 350 or 320
 
-        -- Dropshadow
         love.graphics.setColor(0, 0, 0, 0.45)
         love.graphics.rectangle("fill", 15 + 3, sh + 3, panelWidth, 24)
-
-        -- Background
         love.graphics.setColor(0.06, 0.08, 0.12, 0.95)
         love.graphics.rectangle("fill", 15, sh, panelWidth, 24)
-
-        -- Outer border (2px black)
         love.graphics.setColor(0, 0, 0, 1)
         love.graphics.setLineWidth(2)
         love.graphics.rectangle("line", 15, sh, panelWidth, 24)
-
-        -- Inner border (1px blue)
         love.graphics.setColor(0.2, 0.45, 0.8, 0.6)
         love.graphics.setLineWidth(1)
         love.graphics.rectangle("line", 17, sh + 2, panelWidth - 4, 20)
@@ -175,7 +176,6 @@ function Hud:Draw()
         end
     end
 
-    -- 3. Hovered Building Tooltip (World/Map buildings)
     if map.layers.buildings then
         local hoveredBuilding = nil
         for _, b in ipairs(GM.Building.List) do
@@ -194,20 +194,13 @@ function Hud:Draw()
             if tx + tWidth > W then tx = mx - tWidth - 15 end
             if ty + tHeight > H then ty = my - tHeight - 15 end
 
-            -- Dropshadow
             love.graphics.setColor(0, 0, 0, 0.45)
             love.graphics.rectangle("fill", tx + 3, ty + 3, tWidth, tHeight)
-
-            -- Main background
             love.graphics.setColor(0.06, 0.08, 0.12, 0.95)
             love.graphics.rectangle("fill", tx, ty, tWidth, tHeight)
-
-            -- Outer border (2px black)
             love.graphics.setColor(0, 0, 0, 1)
             love.graphics.setLineWidth(2)
             love.graphics.rectangle("line", tx, ty, tWidth, tHeight)
-
-            -- Inner border (1px blue)
             love.graphics.setColor(0.2, 0.45, 0.8, 0.6)
             love.graphics.setLineWidth(1)
             love.graphics.rectangle("line", tx + 2, ty + 2, tWidth - 4, tHeight - 4)
@@ -225,7 +218,6 @@ function Hud:Draw()
                 br, bg, bb = 0.2, 0.6, 1
             end
 
-            -- Sharp blocky badge background (no rounded corners)
             love.graphics.setColor(br, bg, bb, 0.15)
             love.graphics.rectangle("fill", tx + 12, ty + 28, 55, 14)
             love.graphics.setColor(br, bg, bb, 0.8)
@@ -254,6 +246,12 @@ function Hud:Draw()
     love.graphics.pop()
 end
 
+--- @param x number
+--- @param y number
+--- @param button number
+--- @param istouch boolean
+--- @param presses number
+--- @return void
 function Hud:MousePressed(x, y, button, istouch, presses)
     if self.contextMenu then
         local wasVisible = self.contextMenu.visible
@@ -282,13 +280,23 @@ function Hud:MousePressed(x, y, button, istouch, presses)
     end
 end
 
+--- @param x number
+--- @param y number
+--- @param button number
+--- @param istouch boolean
+--- @param presses number
+--- @return void
 function Hud:MouseReleased(x, y, button, istouch, presses)
     if self.contextMenu then
         self.contextMenu:MouseReleased(x, y, button, istouch, presses)
     end
 end
 
-function Hud:KeyPressed(key, _, _)
+--- @param key string
+--- @param scancode string?
+--- @param isrepeat boolean?
+--- @return void
+function Hud:KeyPressed(key, scancode, isrepeat)
     local map = GM.Game and GM.Game.Map
     if not map then return end
 

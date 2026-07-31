@@ -16,18 +16,30 @@ GM.Building.Types = BuildingTypes
 
 GM.Modules:Register("Building", 60)
 
+--- @return void
 function GM.Building:Initialize()
     self.List = {}
 end
 
+--- @param name string
+--- @param definition table
+--- @return void
 function GM.Building:RegisterType(name, definition)
     self.Types[name] = definition
 end
 
+--- @param type string
+--- @return table
 function GM.Building:GetTypeDefinition(type)
     return self.Types[type] or self.Types.capital
 end
 
+--- @param x number
+--- @param y number
+--- @param type string
+--- @param name string
+--- @param cell table
+--- @return Building
 function GM.Building:SpawnBuilding(x, y, type, name, cell)
     local definition = self:GetTypeDefinition(type)
     local b = Building(x, y, type, name, cell, definition)
@@ -40,6 +52,9 @@ function GM.Building:SpawnBuilding(x, y, type, name, cell)
     return b
 end
 
+--- @param x number
+--- @param y number
+--- @return boolean
 function GM.Building:DestroyBuildingAt(x, y)
     for i = #self.List, 1, -1 do
         local b = self.List[i]
@@ -72,6 +87,8 @@ local function takeRandomCell(pool)
     return pos
 end
 
+--- @param map table
+--- @return void
 function GM.Building:GenerateBuildings(map)
     self.List = {}
     local occupied = {}
@@ -86,6 +103,7 @@ function GM.Building:GenerateBuildings(map)
     end
 end
 
+--- @return number, number
 function GM.Building:GetWorldMouse()
     if not GM.Camera then return 0, 0 end
     local mx, my = love.mouse.getPosition()
@@ -94,6 +112,8 @@ function GM.Building:GetWorldMouse()
     return worldX, worldY
 end
 
+--- @param dt number?
+--- @return void
 function GM.Building:Think(dt)
     dt = dt or love.timer.getDelta()
     local worldX, worldY = self:GetWorldMouse()
@@ -173,6 +193,7 @@ function GM.Building:Think(dt)
     end
 end
 
+--- @return void
 function GM.Building:Draw()
     if GM.Game and GM.Game.Map and GM.Game.Map.layers.buildings then
         local map = GM.Game.Map

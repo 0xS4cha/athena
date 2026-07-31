@@ -4,6 +4,11 @@ local Class = require("src.core.class")
 
 local Country = Class()
 
+--- @param player boolean?
+--- @param isAI boolean?
+--- @param name string?
+--- @param flag string?
+--- @return Country
 function Country:init(player, isAI, name, flag)
     self.player = player
     self.color = {math.random(0, 255), math.random(0, 255), math.random(0, 255)}
@@ -13,9 +18,11 @@ function Country:init(player, isAI, name, flag)
     self.flag = flag or "xx"
 end
 
+--- @param x number
+--- @param y number
+--- @return void
 function Country:claimCell(x, y)
     GM.Game.Map:addInfluence(self, x, y)
 end
-
 
 return Country

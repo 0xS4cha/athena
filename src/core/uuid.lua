@@ -20,6 +20,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SO
 
 local M = {}
 
+--- @param num number
+--- @return string
 local function num2bs(num)
 	local _mod = math.fmod or math.mod
 	local _floor = math.floor
@@ -32,7 +34,9 @@ local function num2bs(num)
 	end              
 	return result
 end
---
+
+--- @param num string
+--- @return number
 local function bs2num(num)
 	local _sub = string.sub
 	local index, result = 0, 0
@@ -46,7 +50,10 @@ local function bs2num(num)
 	end
 	return result
 end
---
+
+--- @param num string
+--- @param bits number
+--- @return string
 local function padbits(num,bits)
 	if #num == bits then return num end
 	if #num > bits then print("too many bits") end
@@ -56,7 +63,8 @@ local function padbits(num,bits)
 	end
 	return num
 end
---
+
+--- @return string
 local function getUUID()
 	local _rnd = math.random
 	local _fmt = string.format
@@ -99,6 +107,6 @@ local function getUUID()
 	--
 	return guid
 end
---
+
 M.getUUID = getUUID
 return M

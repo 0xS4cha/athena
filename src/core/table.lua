@@ -1,3 +1,5 @@
+--- @param deep number
+--- @return string
 local function addSpace(deep)
 	local space = ""
 
@@ -8,6 +10,10 @@ local function addSpace(deep)
 	return space
 end
 
+--- @param tbl table
+--- @param blAddLineJump boolean?
+--- @param deepIndex number?
+--- @return string
 function table.ToString(tbl, blAddLineJump, deepIndex)
 	local result = "{"
 	deepIndex = (deepIndex or 0) + 1
@@ -62,6 +68,9 @@ function table.ToString(tbl, blAddLineJump, deepIndex)
     return result.."}"
 end
 
+--- @param tbl table
+--- @param checkCount number?
+--- @return number|boolean
 function table.Count(tbl, checkCount)
 	if not tbl or type(tbl) ~= "table" then return not checkCount and 0 end
 	local n = 0
@@ -72,12 +81,18 @@ function table.Count(tbl, checkCount)
 	return not checkCount and n
 end
 
+--- @param tbl table
+--- @param key any
+--- @param value any
+--- @return any
 function table.GetFromValue(tbl, key, value)
 	for _,v in pairs(tbl) do
 		if v[key] == value then return v end
 	end
 end
 
+--- @param tbl table
+--- @return table
 function table.GetValues(tbl)
 	local list = {}
 
@@ -88,6 +103,10 @@ function table.GetValues(tbl)
 	return list
 end
 
+--- @param tbl table
+--- @param value any
+--- @param inKey any?
+--- @return any
 function table.GetKeyFromValue(tbl, value, inKey)
 	for k,v in pairs(tbl) do
 		local check = inKey and v[inKey] or v
@@ -95,6 +114,10 @@ function table.GetKeyFromValue(tbl, value, inKey)
 	end
 end
 
+--- @param tbl table
+--- @param value any
+--- @param keyName any?
+--- @return any, any
 function table.find(tbl, value, keyName)
 	for k, v in pairs(tbl) do
 		if (keyName and v[keyName] == value) or (not keyName and v == value) then return k, v end

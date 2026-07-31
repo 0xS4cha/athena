@@ -6,10 +6,13 @@ GM.Roads.List = {}
 
 GM.Modules:Register("Roads", 65)
 
+--- @return void
 function GM.Roads:Initialize()
     self.List = {}
 end
 
+--- @param newBuilding table
+--- @return void
 function GM.Roads:ConnectBuilding(newBuilding)
     local map = GM.Game and GM.Game.Map
     if not map then return end
@@ -68,6 +71,9 @@ function GM.Roads:ConnectBuilding(newBuilding)
     end
 end
 
+--- @param x number
+--- @param y number
+--- @return void
 function GM.Roads:RemoveRoadsForBuilding(x, y)
     for i = #self.List, 1, -1 do
         local r = self.List[i]
@@ -77,6 +83,8 @@ function GM.Roads:RemoveRoadsForBuilding(x, y)
     end
 end
 
+--- @param dt number?
+--- @return void
 function GM.Roads:Think(dt)
     dt = dt or love.timer.getDelta()
     for _, road in ipairs(self.List) do
@@ -86,6 +94,7 @@ function GM.Roads:Think(dt)
     end
 end
 
+--- @return void
 function GM.Roads:Draw()
     local map = GM.Game and GM.Game.Map
     if not map or #self.List == 0 then return end

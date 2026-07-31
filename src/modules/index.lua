@@ -50,6 +50,7 @@ function GM.Modules:Load(dir, results, is_recursion)
     return results
 end
 
+--- @return void
 function GM:InitializeModules()
     table.sort(self.Modules.List, function(a, b)
         return a.priority < b.priority
@@ -101,14 +102,16 @@ end
 
 
 
-function GM:Think()
+--- @param dt number?
+--- @return void
+function GM:Think(dt)
     if os.clock() - lastTick > 1000 then
         lastTick = os.clock()
         self.TickSecond = true
     end
 
     for _, moduleName in pairs(GM.Modules.HasFunction.Think) do
-        self[moduleName]:Think()
+        self[moduleName]:Think(dt)
     end
 
     if self.TickSecond then
@@ -116,24 +119,41 @@ function GM:Think()
     end
 end
 
+--- @return void
 function GM:Draw()
     for _, moduleName in pairs(GM.Modules.HasFunction.Draw) do
         self[moduleName]:Draw()
     end
 end
 
+--- @param key string
+--- @param scancode string
+--- @param isrepeat boolean
+--- @return void
 function GM:KeyPressed(key, scancode, isrepeat)
     for _, moduleName in pairs(self.Modules.HasFunction.KeyPressed) do
         self[moduleName]:KeyPressed(key, scancode, isrepeat)
     end
 end
 
+--- @param x number
+--- @param y number
+--- @param button number
+--- @param istouch boolean
+--- @param presses number
+--- @return void
 function GM:MousePressed(x, y, button, istouch, presses)
     for _, moduleName in pairs(self.Modules.HasFunction.MousePressed) do
         self[moduleName]:MousePressed(x, y, button, istouch, presses)
     end
 end
 
+--- @param x number
+--- @param y number
+--- @param button number
+--- @param istouch boolean
+--- @param presses number
+--- @return void
 function GM:MouseReleased(x, y, button, istouch, presses)
     for _, moduleName in pairs(self.Modules.HasFunction.MouseReleased) do
         self[moduleName]:MouseReleased(x, y, button, istouch, presses)

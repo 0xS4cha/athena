@@ -14,6 +14,7 @@ local Class = require("src.core.class")
 local Camera = Class()
 
 
+--- @return Camera
 function Camera:init()
     self.x = 0
     self.y = 0
@@ -27,6 +28,7 @@ end
 
 
 --- @param dt number?
+--- @return void
 function Camera:update(dt)
     local mouseX, mouseY = love.mouse.getPosition()
     
@@ -56,6 +58,7 @@ end
 --- @param factor number
 --- @param mouseX number?
 --- @param mouseY number?
+--- @return void
 function Camera:zoom(factor, mouseX, mouseY)
     if self.mapW and self.mapH then
         local W, H = love.graphics.getDimensions()
@@ -77,6 +80,7 @@ function Camera:zoom(factor, mouseX, mouseY)
 end
 
 
+--- @return void
 function Camera:clamp()
     if not self.mapW or not self.mapH then return end
     
@@ -96,6 +100,7 @@ function Camera:clamp()
 end
 
 
+--- @return void
 function Camera:apply()
     love.graphics.push()
     love.graphics.scale(self.scale, self.scale)
@@ -103,6 +108,7 @@ function Camera:apply()
 end
 
 
+--- @return void
 function Camera:clear()
     love.graphics.pop()
 end

@@ -3,6 +3,9 @@ local LoadFile = {}
 
 local cache = {}
 
+--- @param path string
+--- @param force boolean?
+--- @return table?
 function LoadFile:Json(path, force)
     if not path then return nil end
 
@@ -21,6 +24,9 @@ function LoadFile:Json(path, force)
     return content
 end
 
+--- @param path string
+--- @param force boolean?
+--- @return string?
 function LoadFile:Bin(path, force)
     if not path then return nil end
 

@@ -1,3 +1,9 @@
+--- @param start table|table[]
+--- @param goal table?
+--- @param isWalkable function?
+--- @param map table
+--- @param walk function?
+--- @return table[]?
 local function bfs(start, goal, isWalkable, map, walk)
     local adjacentOffsets = {
         { x = 0,  y = -1 },

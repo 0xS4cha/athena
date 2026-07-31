@@ -7,8 +7,6 @@ local Map = require("src.modules.map.map")
 local Country = require("src.modules.country.country")
 local Threads = require("src.core.thread")
 
-local bfs = require("src.modules.algorithms.bfs")
-
 local flags
 local camera
 local player
@@ -27,8 +25,8 @@ function love.load(args)
     love.graphics.setBackgroundColor(0.08, 0.08, 0.10)
     GM.Game = {Map = Map(flags.map, 1)}
     player = Country(nil, nil, "France Player", "fr")
-    GM.Game.Map:RegisterCountry(player, {x = 1202, y = 153, radius = 5})
-    -- GM.Game.Map:FillCountries(5)
+    GM.Game.Map:RegisterCountry(player, {x = 1202, y = 153, radius = 10})
+    -- GM.Game.Map:FillCountries(10)
     local W, H = love.graphics.getDimensions()
     local imgW, imgH = GM.Game.Map:getWidth(), GM.Game.Map:getHeight()
     local initialScale = math.max(W / imgW, H / imgH)

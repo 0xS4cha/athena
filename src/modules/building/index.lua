@@ -1,7 +1,7 @@
 ---@diagnostic disable: undefined-global
 local GM = require("src.core.index")
 local bfs = require("src.modules.algorithms.bfs")
-local json = require("libs.json.json")
+local json = require("libs.json")
 local Building = require("src.modules.building.building")
 local BuildingTypes = {
     capital = require("src.modules.building.city"),
@@ -98,6 +98,7 @@ function GM.Building:Think(dt)
 
         if b._shouldExpansion then
             table.insert(toExpansion, i)
+            b.state.expansionCount = b.state.expansionCount + 1
             b._shouldExpansion = nil
         end
         
@@ -128,21 +129,22 @@ function GM.Building:Think(dt)
     for _, idx in ipairs(toExpansion) do
         local building = self.List[idx]
         if building and building.type == "city" then
-            local pool = bfs(
+            local pool = {}
+            bfs(
                 GM.Game.Map:getCellAtPixel(building.x, building.y),
                 nil,
                 function(cell)
-                    if cell.x == building.x + 1 then
-                        print(cell:getOwner())
-                    end
                     if not GM.Game.Map:isValidCell(cell.x, cell.y) or not cell:getOwner() or not cell:getOwner().id or cell:getOwner().id ~= building.cell:getOwner().id then 
                         return false
                     end
                     return true
                 end,
-                GM.Game.Map
+                GM.Game.Map,
+                function(cell)
+                    if not GM.Game.Map:isValidCell(cell.x, cell.y) or not cell:getOwner() or not cell:getOwner().id or cell:getOwner().id ~= building.cell:getOwner().id and (cell.x ~= building.x and cell.y ~= building.y) then return end
+                    pool[#pool+1] = cell
+                end
             )
-            print(pool, json.encode(pool))
             local cell = takeRandomCell(pool)
             if not cell then goto continue end
             self:SpawnBuilding(cell.x, cell.y, "village", "capitalName", cell)

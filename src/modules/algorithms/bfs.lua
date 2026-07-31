@@ -98,7 +98,7 @@ local function bfs(start, goal, isWalkable, map, walk)
         end
     end
 
-    return reconstructPath(queue[head])
+    return nil
 end
 
 return bfs

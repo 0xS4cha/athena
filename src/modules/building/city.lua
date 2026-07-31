@@ -1,5 +1,3 @@
-local Logger = require("src.core.logger")
-
 return {
     id = "city",
     label = "City",
@@ -8,7 +6,11 @@ return {
     color = { 0.95, 0.85, 0.25 },
     outline = { 0, 0, 0, 0 },
     influenceThreshold = 1,
+    expansionCountMax = 3,
 	think = function(building, dt)
+        if not building.state.expansionCount then building.state.expansionCount = 0 end
+        if building.state.expansionCount >= building.definition.expansionCountMax then return end
+
         local threshold = building.definition.influenceThreshold or 1
 		building.state.influence = math.min(threshold, (building.state.influence or 0) + dt * 0.03)
 

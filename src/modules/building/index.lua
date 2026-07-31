@@ -1,5 +1,7 @@
 ---@diagnostic disable: undefined-global
 local GM = require("src.core.index")
+local bfs = require("src.modules.algorithms.bfs")
+local json = require("libs.json")
 local Building = require("src.modules.building.building")
 local BuildingTypes = {
     capital = require("src.modules.building.city"),
@@ -38,42 +40,7 @@ local function reserveCell(occupied, x, y)
     occupied[x][y] = true
 end
 
-local function isReserved(occupied, x, y)
-    return occupied[x] and occupied[x][y]
-end
 
-local function collectCountryCells(map, country, occupied)
-    local ownedCells = {}
-    local shorelineCells = {}
-    local dirs = { { 0, 1 }, { 0, -1 }, { 1, 0 }, { -1, 0 } }
-
-    for x = 1, map.width do
-        for y = 1, map.height do
-            local cell = map.grid[x] and map.grid[x][y]
-            if cell and cell:getOwner() == country and cell.data and cell.data.isLand and not isReserved(occupied, x, y) then
-                table.insert(ownedCells, { x = x, y = y })
-
-                local isAdjacentToWater = false
-                for _, d in ipairs(dirs) do
-                    local nx, ny = x + d[1], y + d[2]
-                    if map:isValidCell(nx, ny) then
-                        local neighbor = map.grid[nx][ny]
-                        if neighbor and neighbor.data and not neighbor.data.isLand and not isReserved(occupied, nx, ny) then
-                            isAdjacentToWater = true
-                            break
-                        end
-                    end
-                end
-
-                if isAdjacentToWater then
-                    table.insert(shorelineCells, { x = x, y = y })
-                end
-            end
-        end
-    end
-
-    return ownedCells, shorelineCells
-end
 
 local function takeRandomCell(pool)
     if #pool == 0 then
@@ -119,6 +86,7 @@ function GM.Building:Think(dt)
     }
 
     local toTransform = {}
+    local toExpansion = {}
 
     for i, b in ipairs(self.List) do
         b:think(dt, context)
@@ -127,6 +95,13 @@ function GM.Building:Think(dt)
             table.insert(toTransform, i)
             b._shouldTransform = nil
         end
+
+        if b._shouldExpansion then
+            table.insert(toExpansion, i)
+            b.state.expansionCount = b.state.expansionCount + 1
+            b._shouldExpansion = nil
+        end
+        
 
         local dx = worldX - b.x
         local dy = worldY - b.y
@@ -148,6 +123,33 @@ function GM.Building:Think(dt)
             local cityDef = self:GetTypeDefinition("city")
             building:transform("city", cityDef)
             Logger:info("Building", building.name .. " upgraded to City!")
+        end
+    end
+
+    for _, idx in ipairs(toExpansion) do
+        local building = self.List[idx]
+        if building and building.type == "city" then
+            local pool = {}
+            bfs(
+                GM.Game.Map:getCellAtPixel(building.x, building.y),
+                nil,
+                function(cell)
+                    if not GM.Game.Map:isValidCell(cell.x, cell.y) or not cell:getOwner() or not cell:getOwner().id or cell:getOwner().id ~= building.cell:getOwner().id then 
+                        return false
+                    end
+                    return true
+                end,
+                GM.Game.Map,
+                function(cell)
+                    if not GM.Game.Map:isValidCell(cell.x, cell.y) or not cell:getOwner() or not cell:getOwner().id or cell:getOwner().id ~= building.cell:getOwner().id and (cell.x ~= building.x and cell.y ~= building.y) then return end
+                    pool[#pool+1] = cell
+                end
+            )
+            local cell = takeRandomCell(pool)
+            if not cell then goto continue end
+            self:SpawnBuilding(cell.x, cell.y, "village", "capitalName", cell)
+            Logger:info("Building", building.name .. " expanded !")
+            ::continue::
         end
     end
 end

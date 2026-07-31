@@ -1,6 +1,6 @@
 local env = require("src.core.env")
 local table = require("src.core.table")
-local json = require("libs.json.json")
+local json = require("libs.json")
 
 --- @class Logger
 --- @field Enabled boolean

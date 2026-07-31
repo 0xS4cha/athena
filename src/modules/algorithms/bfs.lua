@@ -14,6 +14,18 @@ local function bfs(start, goal, isWalkable, map, walk)
     local visited = {}
     local cameFrom = {}
 
+    local function isCell(t)
+        return type(t) == "table"
+        and type(t.x) == "number"
+        and type(t.y) == "number"
+    end
+
+    local function isListOfCells(t)
+        return type(t) == "table"
+        and #t > 0
+        and isCell(t[1])
+    end
+
     local function getNode(x, y)
         local row = nodes[x]
         if not row then
@@ -32,12 +44,24 @@ local function bfs(start, goal, isWalkable, map, walk)
         return node
     end
 
-    local startNode = getNode(start.x, start.y)
-    if not startNode then return nil end
+    local queue
+    if isListOfCells(start) then
+        queue = {}
+        for i = 1, #start do
+            local startNode = getNode(start[i].x, start[i].y)
+            if not startNode then goto continue end
+            queue[#queue+1] = startNode
+            visited[startNode] = true
+            ::continue::
+        end
+    else
+        local startNode = getNode(start.x, start.y)
+        if not startNode then return nil end
+        queue = {startNode}
+        visited[startNode] = true
+    end
 
-    local queue = { startNode }
-    local head, tail = 1, 1
-    visited[startNode] = true
+    local head, tail = 1, #queue
 
     local function reconstructPath(node)
         local path = {}

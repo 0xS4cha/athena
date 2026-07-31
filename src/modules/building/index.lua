@@ -32,6 +32,11 @@ function GM.Building:SpawnBuilding(x, y, type, name, cell)
     local definition = self:GetTypeDefinition(type)
     local b = Building(x, y, type, name, cell, definition)
     table.insert(self.List, b)
+    
+    if GM.Roads and GM.Roads.ConnectBuilding then
+        GM.Roads:ConnectBuilding(b)
+    end
+    
     return b
 end
 
@@ -40,6 +45,9 @@ function GM.Building:DestroyBuildingAt(x, y)
         local b = self.List[i]
         if b.x == x and b.y == y then
             table.remove(self.List, i)
+            if GM.Roads and GM.Roads.RemoveRoadsForBuilding then
+                GM.Roads:RemoveRoadsForBuilding(x, y)
+            end
             return true
         end
     end

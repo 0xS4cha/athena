@@ -10,6 +10,7 @@ function Hud:init()
     self.height = 145
     self.margin = 20
     self.hoveredLayerIdx = nil
+    self.headerHeight = 26
     self.contextMenu = ContextMenu()
 end
 
@@ -50,18 +51,34 @@ function Hud:Draw()
 
     love.graphics.push("all")
 
-    love.graphics.setColor(0.06, 0.08, 0.12, 0.85)
-    love.graphics.rectangle("fill", px, py, pw, ph, 8, 8)
+    -- 1. Layers Panel (Pixel style double-border and dropshadow)
+    -- Dropshadow
+    love.graphics.setColor(0, 0, 0, 0.45)
+    love.graphics.rectangle("fill", px + 3, py + 3, pw, ph)
 
-    love.graphics.setColor(0.2, 0.4, 0.8, 0.4)
-    love.graphics.setLineWidth(1.5)
-    love.graphics.rectangle("line", px, py, pw, ph, 8, 8)
+    -- Main background
+    love.graphics.setColor(0.06, 0.08, 0.12, 0.95)
+    love.graphics.rectangle("fill", px, py, pw, ph)
 
-    love.graphics.setColor(1, 1, 1, 1)
-    love.graphics.print("ATHENA LAYERS", px + 15, py + 15)
+    -- Outer border (2px black)
+    love.graphics.setColor(0, 0, 0, 1)
+    love.graphics.setLineWidth(2)
+    love.graphics.rectangle("line", px, py, pw, ph)
 
-    love.graphics.setColor(0.2, 0.4, 0.8, 0.2)
-    love.graphics.line(px + 15, py + 33, px + pw - 15, py + 33)
+    -- Inner border (1px blue)
+    love.graphics.setColor(0.2, 0.45, 0.8, 0.6)
+    love.graphics.setLineWidth(1)
+    love.graphics.rectangle("line", px + 2, py + 2, pw - 4, ph - 4)
+
+    -- Header block
+    love.graphics.setColor(0.1, 0.15, 0.25, 0.9)
+    love.graphics.rectangle("fill", px + 3, py + 3, pw - 6, self.headerHeight - 2)
+
+    love.graphics.setColor(0.2, 0.45, 0.8, 0.3)
+    love.graphics.line(px + 3, py + self.headerHeight + 1, px + pw - 3, py + self.headerHeight + 1)
+
+    love.graphics.setColor(0.9, 0.9, 0.95, 1)
+    love.graphics.print("ATHENA LAYERS", px + 10, py + 6)
 
     local layersList = {
         { name = "Base Map",  state = map.layers.terrain,   key = "1" },
@@ -72,38 +89,47 @@ function Hud:Draw()
     self.hoveredLayerIdx = nil
 
     for i, item in ipairs(layersList) do
-        local itemY = py + 32 + i * 26
+        local itemY = py + self.headerHeight + 8 + (i - 1) * 26
 
-        local isHovered = (mx >= px + 10 and mx <= px + pw - 10 and my >= itemY - 4 and my <= itemY + 18)
+        local isHovered = (mx >= px + 4 and mx <= px + pw - 4 and my >= itemY - 2 and my <= itemY + 20)
         if isHovered then
             self.hoveredLayerIdx = i
-            love.graphics.setColor(1, 1, 1, 0.05)
-            love.graphics.rectangle("fill", px + 10, itemY - 4, pw - 20, 22, 4, 4)
+            -- Neon teal hover highlight
+            love.graphics.setColor(0.1, 0.65, 0.55, 0.8)
+            love.graphics.rectangle("fill", px + 4, itemY - 2, pw - 8, 22)
+            love.graphics.setColor(1, 1, 1, 0.25)
+            love.graphics.rectangle("line", px + 4, itemY - 2, pw - 8, 22)
         end
 
         local cbSize = 10
-        local cbX = px + 18
-        local cbY = itemY + 2
+        local cbX = px + 14
+        local cbY = itemY + 4
 
         if item.state then
-            love.graphics.setColor(0.1, 0.8, 0.5, 1)
+            love.graphics.setColor(0.1, 0.75, 0.55, 1)
         else
             love.graphics.setColor(0.5, 0.5, 0.5, 1)
         end
-        love.graphics.rectangle("line", cbX, cbY, cbSize, cbSize, 2, 2)
+        love.graphics.setLineWidth(1)
+        love.graphics.rectangle("line", cbX, cbY, cbSize, cbSize)
 
         if item.state then
-            love.graphics.setColor(0.1, 0.8, 0.5, 0.3)
-            love.graphics.rectangle("fill", cbX + 2, cbY + 2, cbSize - 4, cbSize - 4, 1, 1)
+            love.graphics.setColor(0.1, 0.75, 0.55, 0.4)
+            love.graphics.rectangle("fill", cbX + 2, cbY + 2, cbSize - 4, cbSize - 4)
         end
 
-        love.graphics.setColor(0.9, 0.9, 0.95, 1)
-        love.graphics.print(item.name, cbX + 20, cbY - 3)
+        if isHovered then
+            love.graphics.setColor(1, 1, 1, 1)
+        else
+            love.graphics.setColor(0.9, 0.9, 0.95, 1)
+        end
+        love.graphics.print(item.name, cbX + 18, cbY - 3)
 
         love.graphics.setColor(0.5, 0.5, 0.6, 1)
-        love.graphics.print("[" .. item.key .. "]", px + pw - 35, cbY - 3)
+        love.graphics.print("[" .. item.key .. "]", px + pw - 28, cbY - 3)
     end
 
+    -- 2. Cell Info Panel (Bottom-Left)
     local worldX, worldY = GM.Building:GetWorldMouse()
     local cellX = math.floor(worldX + 1)
     local cellY = math.floor(worldY + 1)
@@ -114,17 +140,32 @@ function Hud:Draw()
         local cell = map.grid[cellX][cellY]
         local infoText = string.format("Grid X:%d Y:%d", cellX, cellY)
         local territoryOwner = cell:getOwner()
-        local hasTerritoryFlag = territoryOwner and map.layers.political and territoryOwner.flag and territoryOwner.flag ~= ""
+        local hasTerritoryFlag = territoryOwner and map.layers.political and territoryOwner.flag and
+            territoryOwner.flag ~= ""
         if cell:getOwner() and map.layers.political then
             infoText = infoText .. " | Territory: " .. cell:getOwner().name
         end
 
         local sh = H - 35
         local panelWidth = hasTerritoryFlag and 350 or 320
-        love.graphics.setColor(0.06, 0.08, 0.12, 0.85)
-        love.graphics.rectangle("fill", 15, sh, panelWidth, 24, 4, 4)
-        love.graphics.setColor(0.2, 0.4, 0.8, 0.4)
-        love.graphics.rectangle("line", 15, sh, panelWidth, 24, 4, 4)
+
+        -- Dropshadow
+        love.graphics.setColor(0, 0, 0, 0.45)
+        love.graphics.rectangle("fill", 15 + 3, sh + 3, panelWidth, 24)
+
+        -- Background
+        love.graphics.setColor(0.06, 0.08, 0.12, 0.95)
+        love.graphics.rectangle("fill", 15, sh, panelWidth, 24)
+
+        -- Outer border (2px black)
+        love.graphics.setColor(0, 0, 0, 1)
+        love.graphics.setLineWidth(2)
+        love.graphics.rectangle("line", 15, sh, panelWidth, 24)
+
+        -- Inner border (1px blue)
+        love.graphics.setColor(0.2, 0.45, 0.8, 0.6)
+        love.graphics.setLineWidth(1)
+        love.graphics.rectangle("line", 17, sh + 2, panelWidth - 4, 20)
 
         love.graphics.setColor(0.9, 0.9, 0.95, 1)
         love.graphics.print(infoText, 25, sh + 5)
@@ -134,6 +175,7 @@ function Hud:Draw()
         end
     end
 
+    -- 3. Hovered Building Tooltip (World/Map buildings)
     if map.layers.buildings then
         local hoveredBuilding = nil
         for _, b in ipairs(GM.Building.List) do
@@ -152,19 +194,30 @@ function Hud:Draw()
             if tx + tWidth > W then tx = mx - tWidth - 15 end
             if ty + tHeight > H then ty = my - tHeight - 15 end
 
-            love.graphics.setColor(0.06, 0.08, 0.12, 0.92)
-            love.graphics.rectangle("fill", tx, ty, tWidth, tHeight, 6, 6)
+            -- Dropshadow
+            love.graphics.setColor(0, 0, 0, 0.45)
+            love.graphics.rectangle("fill", tx + 3, ty + 3, tWidth, tHeight)
 
-            love.graphics.setColor(0.25, 0.5, 0.9, 0.5)
+            -- Main background
+            love.graphics.setColor(0.06, 0.08, 0.12, 0.95)
+            love.graphics.rectangle("fill", tx, ty, tWidth, tHeight)
+
+            -- Outer border (2px black)
+            love.graphics.setColor(0, 0, 0, 1)
+            love.graphics.setLineWidth(2)
+            love.graphics.rectangle("line", tx, ty, tWidth, tHeight)
+
+            -- Inner border (1px blue)
+            love.graphics.setColor(0.2, 0.45, 0.8, 0.6)
             love.graphics.setLineWidth(1)
-            love.graphics.rectangle("line", tx, ty, tWidth, tHeight, 6, 6)
+            love.graphics.rectangle("line", tx + 2, ty + 2, tWidth - 4, tHeight - 4)
 
             love.graphics.setColor(1, 1, 1, 1)
             love.graphics.print(hoveredBuilding.name, tx + 12, ty + 10)
 
             local badgeText = hoveredBuilding.type:gsub("^%l", string.upper)
             local br, bg, bb = 0.5, 0.5, 0.5
-            if hoveredBuilding.type == "capital" then
+            if hoveredBuilding.type == "capital" or hoveredBuilding.type == "city" then
                 br, bg, bb = 1, 0.8, 0.1
             elseif hoveredBuilding.type == "fort" then
                 br, bg, bb = 0.8, 0.3, 0.3
@@ -172,10 +225,11 @@ function Hud:Draw()
                 br, bg, bb = 0.2, 0.6, 1
             end
 
+            -- Sharp blocky badge background (no rounded corners)
             love.graphics.setColor(br, bg, bb, 0.15)
-            love.graphics.rectangle("fill", tx + 12, ty + 28, 55, 14, 3, 3)
+            love.graphics.rectangle("fill", tx + 12, ty + 28, 55, 14)
             love.graphics.setColor(br, bg, bb, 0.8)
-            love.graphics.rectangle("line", tx + 12, ty + 28, 55, 14, 3, 3)
+            love.graphics.rectangle("line", tx + 12, ty + 28, 55, 14)
 
             love.graphics.setColor(0.9, 0.9, 0.9, 1)
             love.graphics.print(badgeText, tx + 17, ty + 28)

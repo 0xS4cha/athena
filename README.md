@@ -91,6 +91,24 @@ love . --heightmap
 - **Zoom Map**: Scroll up with the Mouse Wheel to zoom in, and scroll down to zoom out (unless disabled by the heightmap flag). The viewport coordinates are automatically updated to scale from the cursor's focus point.
 - **Boundaries**: Viewport navigation is constrained so you can never drag or zoom the map out of the screen bounds.
 
+### Gameplay Mechanics (Battalions & Slider Effects)
+
+#### 1. Military Operations & Battalion Management
+- **Create Battalion**: Consumes 10 soldiers from your reserves to spawn a new unit at your cities.
+- **Select & Move**: Left-click a battalion to select it. Click any valid land cell to calculate a BFS path (shown as a green line). Click the green play icon at the target or the HUD button to launch the movement.
+- **Split**: Left-click a battalion and select **Split Battalion** to divide its soldiers in half and spawn a new unit adjacent to it.
+- **Merge**: If two battalions land on the same map cell, they automatically merge, summing their soldier counts.
+- **Defensive Borders**: Stationing player battalions blocks AI expansion in cells within a 2-unit radius around the battalion.
+
+#### 2. Power Allocation Slider Multipliers
+- **Expansion**: Passively expands your territory by claiming neighboring land cells over time, scaled by the allocation percentage.
+- **Diplomacy**: Boosts citizen growth speed and village upgraded timers (accelerating village-to-city growth).
+- **Army**: Increases citizen recruitment rate into soldiers and boosts battalion movement speed.
+
+#### 3. HUD Customization
+- **Drag-and-Drop panels**: Click and drag panel headers to reposition them anywhere on screen.
+- **Settings Popup**: Click the gear icon to open settings coordinates. Adjust sliders manually to reposition panels or reset layouts to default. Positions are saved automatically in `hud_config.txt`.
+
 ## Project Structure
 
 ```
@@ -119,20 +137,30 @@ love . --heightmap
    │   ├── loadFile.lua# File systems read wrapper with memory cache
    │   ├── logger.lua  # ANSI colored logging utility supporting levels
    │   └── uuid.lua    # Unique identification generator (UUID v4)
-   └── modules/
-       ├── index.lua   # Global module system loader and lifecycle manager
-       ├── country/
-       │   ├── country.lua  # Object representing nations, colors, and owners
-       │   └── index.lua    # Country module registration hooks
-       ├── hud/
-       │   └── index.lua    # Heads-Up Display registration hooks
-       ├── map/
-       │   ├── cell.lua     # Single pixel grid cell drawing definitions
-       │   ├── index.lua    # Map module registration hooks
-       │   └── map.lua      # Map chunk baking system and binary loader
-       └── player/
-           ├── player.lua   # Player profiles representation
-           └── index.lua    # Player module registration hooks
+    └── modules/
+        ├── index.lua   # Global module system loader and lifecycle manager
+        ├── battalion/
+        │   └── index.lua    # Battalion module manager, BFS movement, and actions
+        ├── country/
+        │   ├── country.lua  # Object representing nations, colors, and owners
+        │   └── index.lua    # Country module registration hooks
+        ├── hud/
+        │   ├── components/  # Modular panel drawing sub-components
+        │   │   ├── layers.lua
+        │   │   ├── military.lua
+        │   │   ├── power.lua
+        │   │   └── settings.lua
+        │   ├── contextmenu.lua
+        │   ├── flags.lua
+        │   ├── hud.lua      # HUD main orchestrator / controller class
+        │   └── index.lua    # Heads-Up Display registration hooks
+        ├── map/
+        │   ├── cell.lua     # Single pixel grid cell drawing definitions
+        │   ├── index.lua    # Map module registration hooks
+        │   └── map.lua      # Map chunk baking system and binary loader
+        └── player/
+            ├── player.lua   # Player profiles representation
+            └── index.lua    # Player module registration hooks
 ```
 
 ## Implementation and Core Algorithms

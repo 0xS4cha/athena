@@ -1,7 +1,7 @@
 local CONFIG = {
     title = "Lua & Love2D",
-    width = 800 * 1.5,
-    height = 600 * 1.5,
+    width = 1920,
+    height = 1080,
     resizable = true,
     vsync = false,
     fullscreen = false,

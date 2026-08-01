@@ -27,6 +27,7 @@ function Hud:init()
     self.settingSliderDragging = nil
     self.draggingPanel = nil
     self.gearRotation = 0
+    self.gearImage = love.graphics.newImage("assets/Icons/Gear.png")
     self:loadConfig()
 end
 
@@ -310,21 +311,15 @@ function Hud:Draw()
         love.graphics.setColor(0.2, 0.45, 0.8, 0.4)
         love.graphics.circle("line", cx, cy, 16)
     end
-    love.graphics.setColor(0.9, 0.9, 0.95, 1)
-    love.graphics.setLineWidth(2)
-    local r = 6
-    local teeth = 8
-    local rot = self.gearRotation or 0
-    for i = 1, teeth do
-        local angle = rot + (i - 1) * (2 * math.pi / teeth)
-        local x1 = cx + math.cos(angle) * r
-        local y1 = cy + math.sin(angle) * r
-        local x2 = cx + math.cos(angle) * (r * 1.4)
-        local y2 = cy + math.sin(angle) * (r * 1.4)
-        love.graphics.line(x1, y1, x2, y2)
+    if self.gearImage then
+        local imgW = self.gearImage:getWidth()
+        local imgH = self.gearImage:getHeight()
+        local scaleX = 24 / imgW
+        local scaleY = 24 / imgH
+        local rot = self.gearRotation or 0
+        love.graphics.setColor(1, 1, 1, 1)
+        love.graphics.draw(self.gearImage, cx, cy, rot, scaleX, scaleY, imgW / 2, imgH / 2)
     end
-    love.graphics.circle("line", cx, cy, r)
-    love.graphics.circle("fill", cx, cy, r * 0.4)
     love.graphics.pop()
 
     if self.settingsOpen then

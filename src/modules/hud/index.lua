@@ -50,3 +50,9 @@ function GM.Hud:KeyPressed(key, scancode, isrepeat)
         self.Instance:KeyPressed(key, scancode, isrepeat)
     end
 end
+
+function GM.Hud:Think(dt)
+    if self.Instance then
+        self.Instance:Think(dt)
+    end
+end

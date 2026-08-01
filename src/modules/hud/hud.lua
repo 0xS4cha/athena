@@ -13,6 +13,12 @@ function Hud:init()
     self.hoveredLayerIdx = nil
     self.headerHeight = 26
     self.contextMenu = ContextMenu()
+    self.powerAllocation = {
+        expansion = 34,
+        diplomacy = 33,
+        army = 33
+    }
+    self.sliderDragging = nil
 end
 
 --- @param flagKey string
@@ -238,6 +244,58 @@ function Hud:Draw()
         end
     end
 
+    local py2 = py + ph + self.margin
+    local ph2 = 170
+    love.graphics.setColor(0, 0, 0, 0.45)
+    love.graphics.rectangle("fill", px + 3, py2 + 3, pw, ph2)
+    love.graphics.setColor(0.06, 0.08, 0.12, 0.95)
+    love.graphics.rectangle("fill", px, py2, pw, ph2)
+    love.graphics.setColor(0, 0, 0, 1)
+    love.graphics.setLineWidth(2)
+    love.graphics.rectangle("line", px, py2, pw, ph2)
+    love.graphics.setColor(0.2, 0.45, 0.8, 0.6)
+    love.graphics.setLineWidth(1)
+    love.graphics.rectangle("line", px + 2, py2 + 2, pw - 4, ph2 - 4)
+    love.graphics.setColor(0.1, 0.15, 0.25, 0.9)
+    love.graphics.rectangle("fill", px + 3, py2 + 3, pw - 6, self.headerHeight - 2)
+    love.graphics.setColor(0.2, 0.45, 0.8, 0.3)
+    love.graphics.line(px + 3, py2 + self.headerHeight + 1, px + pw - 3, py2 + self.headerHeight + 1)
+    love.graphics.setColor(0.9, 0.9, 0.95, 1)
+    love.graphics.print("POWER ALLOCATION", px + 10, py2 + 6)
+    local sliders = {
+        { name = "expansion", label = "Expansion", color = {0.9, 0.5, 0.1}, val = self.powerAllocation.expansion, y = py2 + 52 },
+        { name = "diplomacy", label = "Diplomacy", color = {0.1, 0.6, 0.9}, val = self.powerAllocation.diplomacy, y = py2 + 97 },
+        { name = "army", label = "Army", color = {0.9, 0.25, 0.25}, val = self.powerAllocation.army, y = py2 + 142 }
+    }
+    local mx, my = love.mouse.getPosition()
+    for _, s in ipairs(sliders) do
+        love.graphics.setColor(0.9, 0.9, 0.95, 1)
+        love.graphics.print(s.label, px + 15, s.y - 17)
+        local valStr = s.val .. "%"
+        love.graphics.setColor(s.color[1], s.color[2], s.color[3], 1)
+        love.graphics.print(valStr, px + pw - 15 - love.graphics.getFont():getWidth(valStr), s.y - 17)
+        love.graphics.setColor(0.05, 0.06, 0.09, 1)
+        love.graphics.rectangle("fill", px + 15, s.y - 2, pw - 30, 4)
+        love.graphics.setColor(0.15, 0.2, 0.3, 1)
+        love.graphics.rectangle("line", px + 15, s.y - 2, pw - 30, 4)
+        love.graphics.setColor(s.color[1], s.color[2], s.color[3], 0.8)
+        love.graphics.rectangle("fill", px + 15, s.y - 2, (s.val / 100) * (pw - 30), 4)
+        local hx = px + 15 + (s.val / 100) * (pw - 30)
+        local hw, hh = 8, 12
+        local isHovered = mx >= px + 15 - 6 and mx <= px + pw - 15 + 6 and my >= s.y - 8 and my <= s.y + 8
+        if isHovered or self.sliderDragging == s.name then
+            love.graphics.setColor(1, 1, 1, 1)
+            love.graphics.rectangle("fill", hx - hw / 2, s.y - hh / 2, hw, hh, 2, 2)
+            love.graphics.setColor(s.color[1], s.color[2], s.color[3], 1)
+            love.graphics.rectangle("line", hx - hw / 2, s.y - hh / 2, hw, hh, 2, 2)
+        else
+            love.graphics.setColor(0.8, 0.8, 0.85, 1)
+            love.graphics.rectangle("fill", hx - hw / 2, s.y - hh / 2, hw, hh, 2, 2)
+            love.graphics.setColor(0.4, 0.5, 0.6, 1)
+            love.graphics.rectangle("line", hx - hw / 2, s.y - hh / 2, hw, hh, 2, 2)
+        end
+    end
+
     if self.contextMenu then
         self.contextMenu:update()
         self.contextMenu:draw()
@@ -263,11 +321,27 @@ function Hud:MousePressed(x, y, button, istouch, presses)
 
     if button ~= 1 then return end
 
+    local px, py, pw, ph = self:getPanelRect()
+    local py2 = py + ph + self.margin
+    local mx, my = love.mouse.getPosition()
+    local sliderX = px + 15
+    local sliderWidth = pw - 30
+    local sliders = {
+        { name = "expansion", y = py2 + 52 },
+        { name = "diplomacy", y = py2 + 97 },
+        { name = "army", y = py2 + 142 }
+    }
+    for _, s in ipairs(sliders) do
+        if mx >= sliderX - 6 and mx <= sliderX + sliderWidth + 6 and my >= s.y - 8 and my <= s.y + 8 then
+            self.sliderDragging = s.name
+            local pct = math.max(0, math.min(100, math.floor(((mx - sliderX) / sliderWidth) * 100 + 0.5)))
+            self:adjustSliders(s.name, pct)
+            return
+        end
+    end
+
     local map = GM.Game and GM.Game.Map
     if not map then return end
-
-    local px, py, pw, ph = self:getPanelRect()
-    local mx, my = love.mouse.getPosition()
 
     if mx >= px and mx <= px + pw and my >= py and my <= py + ph then
         if self.hoveredLayerIdx then
@@ -290,6 +364,9 @@ function Hud:MouseReleased(x, y, button, istouch, presses)
     if self.contextMenu then
         self.contextMenu:MouseReleased(x, y, button, istouch, presses)
     end
+    if button == 1 then
+        self.sliderDragging = nil
+    end
 end
 
 --- @param key string
@@ -306,6 +383,49 @@ function Hud:KeyPressed(key, scancode, isrepeat)
         map:toggleLayer("political")
     elseif key == "3" then
         map:toggleLayer("buildings")
+    end
+end
+
+function Hud:adjustSliders(changedKey, newValue)
+    newValue = math.max(0, math.min(100, newValue))
+    local keys = {"expansion", "diplomacy", "army"}
+    local otherKeys = {}
+    for _, k in ipairs(keys) do
+        if k ~= changedKey then
+            table.insert(otherKeys, k)
+        end
+    end
+    local otherSum = 0
+    for _, k in ipairs(otherKeys) do
+        otherSum = otherSum + self.powerAllocation[k]
+    end
+    self.powerAllocation[changedKey] = newValue
+    local remaining = 100 - newValue
+    if otherSum > 0 then
+        local val1 = math.floor((self.powerAllocation[otherKeys[1]] / otherSum) * remaining + 0.5)
+        local val2 = remaining - val1
+        self.powerAllocation[otherKeys[1]] = val1
+        self.powerAllocation[otherKeys[2]] = val2
+    else
+        local val1 = math.floor(remaining / 2)
+        local val2 = remaining - val1
+        self.powerAllocation[otherKeys[1]] = val1
+        self.powerAllocation[otherKeys[2]] = val2
+    end
+end
+
+function Hud:Think(dt)
+    if self.sliderDragging then
+        if not love.mouse.isDown(1) then
+            self.sliderDragging = nil
+            return
+        end
+        local mx, my = love.mouse.getPosition()
+        local px, py, pw, ph = self:getPanelRect()
+        local sliderX = px + 15
+        local sliderWidth = pw - 30
+        local pct = math.max(0, math.min(100, math.floor(((mx - sliderX) / sliderWidth) * 100 + 0.5)))
+        self:adjustSliders(self.sliderDragging, pct)
     end
 end
 

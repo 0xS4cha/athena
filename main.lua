@@ -19,6 +19,7 @@ function love.load(args)
     local parser = ArgParser.new()
     parser:add_argument("heightmap", { short = "h", default = false, type = "boolean" })
     parser:add_argument("map", { default = "assets/maps/world/", type = "value" })
+    parser:add_argument("ci", { default = false, type = "boolean" })
     flags = parser:parse(args)
     
     GM:InitializeModules()
@@ -42,6 +43,9 @@ function love.load(args)
     
     GM.Camera = camera
     GM.Building:GenerateBuildings(GM.Game.Map)
+    if flags.ci then
+        love.event.quit()
+    end
 end
 
 --- @param dt number

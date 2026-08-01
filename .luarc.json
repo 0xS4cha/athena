@@ -4,5 +4,6 @@
     ],
     "diagnostics.globals": [
         "love"
-    ]
+    ],
+    "diagnostics.libraryFiles": "Disable"
 }

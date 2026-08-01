@@ -23,3 +23,9 @@ jobs:
     - name: Verify compilation and initialization
       run: |
         xvfb-run love . --ci
+
+    - name: Lua Diagnostics (LuaLS)
+      uses: LuaLS/lua-language-server-action@master
+      with:
+        config-path: .luarc.json
+

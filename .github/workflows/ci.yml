@@ -25,7 +25,8 @@ jobs:
         xvfb-run love . --ci
 
     - name: Lua Diagnostics (LuaLS)
-      uses: LuaLS/lua-language-server-action@master
+      uses: mrcjkb/lua-typecheck-action@v0
       with:
-        config-path: .luarc.json
+        configpath: ".luarc.json"
+
 

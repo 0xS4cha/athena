@@ -290,12 +290,12 @@ end
 function Map:clearInfluence(x, y)
     if not self:isValidCell(x, y) then return end
     local cell = self.grid[x][y]
-    
+
     cell.countries = {}
     cell.leaders = {}
     cell.isOutline = nil
     cell.outlineOwnerId = nil
-    
+
     self:updateOutlineStatus(x, y)
     if x > 1 then self:updateOutlineStatus(x - 1, y) end
     if x < self.width then self:updateOutlineStatus(x + 1, y) end
@@ -472,10 +472,10 @@ function GM.Map:Think(dt)
                         local cell = map.grid[x][y]
                         if cell:getOwner() == player then
                             local neighbors = {
-                                {x = x - 1, y = y},
-                                {x = x + 1, y = y},
-                                {x = x, y = y - 1},
-                                {x = x, y = y + 1}
+                                { x = x - 1, y = y },
+                                { x = x + 1, y = y },
+                                { x = x,     y = y - 1 },
+                                { x = x,     y = y + 1 }
                             }
                             for _, n in ipairs(neighbors) do
                                 if map:isValidCell(n.x, n.y) then
@@ -509,10 +509,10 @@ function GM.Map:Think(dt)
                         local cell = map.grid[x][y]
                         if cell:getOwner() == country then
                             local neighbors = {
-                                {x = x - 1, y = y},
-                                {x = x + 1, y = y},
-                                {x = x, y = y - 1},
-                                {x = x, y = y + 1}
+                                { x = x - 1, y = y },
+                                { x = x + 1, y = y },
+                                { x = x,     y = y - 1 },
+                                { x = x,     y = y + 1 }
                             }
                             for _, n in ipairs(neighbors) do
                                 if map:isValidCell(n.x, n.y) then
@@ -523,7 +523,7 @@ function GM.Map:Think(dt)
                                             for _, bat in ipairs(GM.Battalions.List) do
                                                 local dx = n.x - bat.x
                                                 local dy = n.y - bat.y
-                                                if dx*dx + dy*dy <= 4 then
+                                                if dx * dx + dy * dy <= 4 then
                                                     protected = true
                                                     break
                                                 end

@@ -56,10 +56,10 @@ function Settings.draw(hud)
         love.graphics.print("Drag panel headers to move them", sx + 15, sy + 35)
 
         local settingsSliders = {
-            { name = "layersX", label = "Layers Panel X", minVal = 0, maxVal = W - lw, currentVal = lx, y = sy + 80 },
-            { name = "layersY", label = "Layers Panel Y", minVal = 0, maxVal = H - lh, currentVal = ly, y = sy + 120 },
-            { name = "powerX", label = "Power Panel X", minVal = 0, maxVal = W - pw2, currentVal = px2, y = sy + 160 },
-            { name = "powerY", label = "Power Panel Y", minVal = 0, maxVal = H - ph2, currentVal = py2, y = sy + 200 },
+            { name = "layersX",   label = "Layers Panel X",   minVal = 0, maxVal = W - lw,  currentVal = lx,  y = sy + 80 },
+            { name = "layersY",   label = "Layers Panel Y",   minVal = 0, maxVal = H - lh,  currentVal = ly,  y = sy + 120 },
+            { name = "powerX",    label = "Power Panel X",    minVal = 0, maxVal = W - pw2, currentVal = px2, y = sy + 160 },
+            { name = "powerY",    label = "Power Panel Y",    minVal = 0, maxVal = H - ph2, currentVal = py2, y = sy + 200 },
             { name = "militaryX", label = "Military Panel X", minVal = 0, maxVal = W - mw3, currentVal = mx3, y = sy + 240 },
             { name = "militaryY", label = "Military Panel Y", minVal = 0, maxVal = H - mh3, currentVal = my3, y = sy + 280 }
         }
@@ -116,7 +116,7 @@ function Settings.draw(hud)
     end
 end
 
-function Settings.mousePressed(hud, mx, my, button)
+function Settings.mousePressed(hud, mx, my, _)
     local W, H = love.graphics.getDimensions()
     local lx, ly, lw, lh = hud:getLayersRect()
     local px2, py2, pw2, ph2 = hud:getPowerRect()
@@ -148,10 +148,10 @@ function Settings.mousePressed(hud, mx, my, button)
         end
 
         local settingsSliders = {
-            { name = "layersX", minVal = 0, maxVal = W - lw,  y = sy + 80 },
-            { name = "layersY", minVal = 0, maxVal = H - lh,  y = sy + 120 },
-            { name = "powerX",  minVal = 0, maxVal = W - pw2, y = sy + 160 },
-            { name = "powerY",  minVal = 0, maxVal = H - ph2, y = sy + 200 },
+            { name = "layersX",   minVal = 0, maxVal = W - lw,  y = sy + 80 },
+            { name = "layersY",   minVal = 0, maxVal = H - lh,  y = sy + 120 },
+            { name = "powerX",    minVal = 0, maxVal = W - pw2, y = sy + 160 },
+            { name = "powerY",    minVal = 0, maxVal = H - ph2, y = sy + 200 },
             { name = "militaryX", minVal = 0, maxVal = W - mw3, y = sy + 240 },
             { name = "militaryY", minVal = 0, maxVal = H - mh3, y = sy + 280 }
         }

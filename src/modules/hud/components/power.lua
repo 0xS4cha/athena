@@ -58,7 +58,7 @@ function Power.draw(hud)
     end
 end
 
-function Power.mousePressed(hud, mx, my, button)
+function Power.mousePressed(hud, mx, my, _)
     local px2, py2, pw2, ph2 = hud:getPowerRect()
     local sliderX = px2 + 15
     local sliderWidth = pw2 - 30

@@ -99,12 +99,13 @@ function Military.draw(hud)
     love.graphics.rectangle("fill", btn3X, btn3Y, btn3W, btn3H)
     love.graphics.setColor(0.2, 0.45, 0.8, (isSelected and hasPotential) and 0.6 or 0.2)
     love.graphics.rectangle("line", btn3X, btn3Y, btn3W, btn3H)
-    love.graphics.setColor((isSelected and hasPotential) and 0.9 or 0.4, (isSelected and hasPotential) and 0.9 or 0.4, (isSelected and hasPotential) and 0.95 or 0.4, 1)
+    love.graphics.setColor((isSelected and hasPotential) and 0.9 or 0.4, (isSelected and hasPotential) and 0.9 or 0.4,
+        (isSelected and hasPotential) and 0.95 or 0.4, 1)
     local btn3Text = "LAUNCH MOVEMENT"
     love.graphics.print(btn3Text, btn3X + (btn3W - love.graphics.getFont():getWidth(btn3Text)) / 2, btn3Y + 5)
 end
 
-function Military.mousePressed(hud, mx, my, button)
+function Military.mousePressed(hud, mx, my, _)
     local mx3, my3, mw3, mh3 = hud:getMilitaryRect()
 
     local btn1X = mx3 + 15

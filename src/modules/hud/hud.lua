@@ -179,15 +179,15 @@ function Hud:adjustSliders(changedKey, newValue)
 end
 
 function Hud:getLayersRect()
-    local W, H = love.graphics.getDimensions()
+    local W, _ = love.graphics.getDimensions()
     local x = self.layersX or (W - self.width - self.margin)
     local y = self.layersY or self.margin
     return x, y, self.width, self.height
 end
 
 function Hud:getPowerRect()
-    local W, H = love.graphics.getDimensions()
-    local lx, ly, lw, lh = self:getLayersRect()
+    local W, _ = love.graphics.getDimensions()
+    local _, ly, _, lh = self:getLayersRect()
     local x = self.powerX or (W - self.width - self.margin)
     local y = self.powerY or (ly + lh + self.margin)
     return x, y, self.width, 170
@@ -297,9 +297,9 @@ function Hud:Think(dt)
         local sliderWidth = sw - 30
         local pct = math.max(0, math.min(1.0, (mx - sliderX) / sliderWidth))
 
-        local lx, ly, lw, lh = self:getLayersRect()
-        local px, py, pw, ph = self:getPowerRect()
-        local mx3, my3, mw3, mh3 = self:getMilitaryRect()
+        local _, _, lw, lh = self:getLayersRect()
+        local _, _, pw, ph = self:getPowerRect()
+        local _, _, mw3, mh3 = self:getMilitaryRect()
 
         if self.settingSliderDragging == "layersX" then
             self.layersX = pct * (W - lw)
@@ -320,7 +320,7 @@ function Hud:Think(dt)
             self.sliderDragging = nil
             return
         end
-        local px2, py2, pw2, ph2 = self:getPowerRect()
+        local px2, _, pw2, _ = self:getPowerRect()
         local sliderX = px2 + 15
         local sliderWidth = pw2 - 30
         local pct = math.max(0, math.min(100, math.floor(((mx - sliderX) / sliderWidth) * 100 + 0.5)))

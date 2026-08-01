@@ -71,10 +71,13 @@ function love.draw()
     if GM.Building and GM.Building.Draw then
         GM.Building:Draw()
     end
+    if GM.Battalions and GM.Battalions.Draw then
+        GM.Battalions:Draw()
+    end
     camera:clear()
 
     for _, moduleName in pairs(GM.Modules.HasFunction.Draw) do
-        if moduleName ~= "Building" and moduleName ~= "Map" then
+        if moduleName ~= "Building" and moduleName ~= "Map" and moduleName ~= "Battalions" then
             GM[moduleName]:Draw()
         end
     end

@@ -1,3 +1,5 @@
+local GM = require("src.core.index")
+
 return {
 	id = "village",
 	label = "Village",
@@ -10,7 +12,9 @@ return {
 	--- @param dt number
 	--- @return void
 	think = function(building, dt)
-		building.state.population = (building.state.population or 0) + (dt * 0.08)
+		local diplomacy = GM.Hud and GM.Hud.Instance and GM.Hud.Instance.powerAllocation.diplomacy or 33
+		local multiplier = 0.5 + 2.5 * (diplomacy / 100)
+		building.state.population = (building.state.population or 0) + (dt * 0.08 * multiplier)
 		if building.state.population >= (building.definition.populationThreshold or 10) then
 			building._shouldTransform = true
 		end

@@ -453,14 +453,98 @@ function GM.Map:Draw()
 end
 
 --- @return void
-function GM.Map:Think()
-    -- for x=1, #GM.Game.Map.grid do
-    --     for y=1, #GM.Game.Map.grid[x] do
-    --         if GM.Game.Map.grid[x][y].isOutline then
-    --             GM.Game.Map.grid[x][y]:sortOwner()
-    --         end
-    --     end
-    -- end
+function GM.Map:Think(dt)
+    dt = dt or love.timer.getDelta()
+    local map = GM.Game and GM.Game.Map
+    if not map then return end
+
+    self.expansionTimer = (self.expansionTimer or 0) + dt
+    if self.expansionTimer >= 3.0 then
+        self.expansionTimer = 0
+        local player = GM.PlayerCountry
+        if player and GM.Hud and GM.Hud.Instance then
+            local allocation = GM.Hud.Instance.powerAllocation.expansion or 0
+            if allocation > 0 then
+                local cellsToExpand = math.floor(allocation / 5) + 1
+                local candidates = {}
+                for x = 1, map.width do
+                    for y = 1, map.height do
+                        local cell = map.grid[x][y]
+                        if cell:getOwner() == player then
+                            local neighbors = {
+                                {x = x - 1, y = y},
+                                {x = x + 1, y = y},
+                                {x = x, y = y - 1},
+                                {x = x, y = y + 1}
+                            }
+                            for _, n in ipairs(neighbors) do
+                                if map:isValidCell(n.x, n.y) then
+                                    local nCell = map.grid[n.x][n.y]
+                                    if nCell.data.isLand and nCell:getOwner() ~= player and not nCell.data.isImpassable then
+                                        table.insert(candidates, nCell)
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+                for i = 1, math.min(cellsToExpand, #candidates) do
+                    local idx = math.random(1, #candidates)
+                    local target = candidates[idx]
+                    table.remove(candidates, idx)
+                    map:addInfluence(player, target.x, target.y, 1.0)
+                end
+            end
+        end
+    end
+
+    self.aiExpansionTimer = (self.aiExpansionTimer or 0) + dt
+    if self.aiExpansionTimer >= 4.0 then
+        self.aiExpansionTimer = 0
+        for _, country in ipairs(map.countries) do
+            if country.isAI then
+                local candidates = {}
+                for x = 1, map.width do
+                    for y = 1, map.height do
+                        local cell = map.grid[x][y]
+                        if cell:getOwner() == country then
+                            local neighbors = {
+                                {x = x - 1, y = y},
+                                {x = x + 1, y = y},
+                                {x = x, y = y - 1},
+                                {x = x, y = y + 1}
+                            }
+                            for _, n in ipairs(neighbors) do
+                                if map:isValidCell(n.x, n.y) then
+                                    local nCell = map.grid[n.x][n.y]
+                                    if nCell.data.isLand and nCell:getOwner() ~= country and not nCell.data.isImpassable then
+                                        local protected = false
+                                        if GM.Battalions and GM.Battalions.List then
+                                            for _, bat in ipairs(GM.Battalions.List) do
+                                                local dx = n.x - bat.x
+                                                local dy = n.y - bat.y
+                                                if dx*dx + dy*dy <= 4 then
+                                                    protected = true
+                                                    break
+                                                end
+                                            end
+                                        end
+                                        if not protected then
+                                            table.insert(candidates, nCell)
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+                if #candidates > 0 then
+                    local target = candidates[math.random(1, #candidates)]
+                    map:addInfluence(country, target.x, target.y, 1.0)
+                end
+            end
+        end
+    end
 end
 
 return Map

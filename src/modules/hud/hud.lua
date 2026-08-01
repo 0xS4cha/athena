@@ -23,6 +23,8 @@ function Hud:init()
     self.layersY = nil
     self.powerX = nil
     self.powerY = nil
+    self.militaryX = nil
+    self.militaryY = nil
     self.settingsOpen = false
     self.settingSliderDragging = nil
     self.draggingPanel = nil
@@ -322,8 +324,105 @@ function Hud:Draw()
     end
     love.graphics.pop()
 
+    local mx3, my3, mw3, mh3 = self:getMilitaryRect()
+    love.graphics.setColor(0, 0, 0, 0.45)
+    love.graphics.rectangle("fill", mx3 + 3, my3 + 3, mw3, mh3)
+    love.graphics.setColor(0.06, 0.08, 0.12, 0.95)
+    love.graphics.rectangle("fill", mx3, my3, mw3, mh3)
+    love.graphics.setColor(0, 0, 0, 1)
+    love.graphics.setLineWidth(2)
+    love.graphics.rectangle("line", mx3, my3, mw3, mh3)
+    love.graphics.setColor(0.2, 0.45, 0.8, 0.6)
+    love.graphics.setLineWidth(1)
+    love.graphics.rectangle("line", mx3 + 2, my3 + 2, mw3 - 4, mh3 - 4)
+    love.graphics.setColor(0.1, 0.15, 0.25, 0.9)
+    love.graphics.rectangle("fill", mx3 + 3, my3 + 3, mw3 - 6, self.headerHeight - 2)
+    love.graphics.setColor(0.2, 0.45, 0.8, 0.3)
+    love.graphics.line(mx3 + 3, my3 + self.headerHeight + 1, mx3 + mw3 - 3, my3 + self.headerHeight + 1)
+    love.graphics.setColor(0.9, 0.9, 0.95, 1)
+    love.graphics.print("MILITARY OPERATIONS", mx3 + 10, my3 + 6)
+
+    local citizensCount = GM.Battalions and GM.Battalions.citizens or 0
+    local soldiersCount = GM.Battalions and GM.Battalions.soldiers or 0
+    love.graphics.setColor(0.9, 0.9, 0.95, 1)
+    love.graphics.print("Citizens: " .. math.floor(citizensCount), mx3 + 15, my3 + 40)
+    love.graphics.print("Soldiers: " .. math.floor(soldiersCount), mx3 + 15, my3 + 60)
+
+    local isSelected = false
+    local hasPotential = false
+    if GM.Battalions and GM.Battalions.List then
+        for _, b in ipairs(GM.Battalions.List) do
+            if b.selected then
+                isSelected = true
+                if b.potentialTarget then
+                    hasPotential = true
+                end
+                break
+            end
+        end
+    end
+
+    local btn1X = mx3 + 15
+    local btn1Y = my3 + 90
+    local btn1W = mw3 - 30
+    local btn1H = 24
+    local btn1Hover = mx >= btn1X and mx <= btn1X + btn1W and my >= btn1Y and my <= btn1Y + btn1H
+    if btn1Hover then
+        love.graphics.setColor(0.1, 0.65, 0.55, 0.8)
+    else
+        love.graphics.setColor(0.1, 0.15, 0.25, 0.9)
+    end
+    love.graphics.rectangle("fill", btn1X, btn1Y, btn1W, btn1H)
+    love.graphics.setColor(0.2, 0.45, 0.8, 0.6)
+    love.graphics.rectangle("line", btn1X, btn1Y, btn1W, btn1H)
+    love.graphics.setColor(0.9, 0.9, 0.95, 1)
+    local btn1Text = "CREATE BATTALION (10 S)"
+    love.graphics.print(btn1Text, btn1X + (btn1W - love.graphics.getFont():getWidth(btn1Text)) / 2, btn1Y + 5)
+
+    local btn2X = mx3 + 15
+    local btn2Y = my3 + 120
+    local btn2W = mw3 - 30
+    local btn2H = 24
+    local btn2Hover = mx >= btn2X and mx <= btn2X + btn2W and my >= btn2Y and my <= btn2Y + btn2H
+    if isSelected then
+        if btn2Hover then
+            love.graphics.setColor(0.1, 0.65, 0.55, 0.8)
+        else
+            love.graphics.setColor(0.1, 0.15, 0.25, 0.9)
+        end
+    else
+        love.graphics.setColor(0.05, 0.05, 0.05, 0.5)
+    end
+    love.graphics.rectangle("fill", btn2X, btn2Y, btn2W, btn2H)
+    love.graphics.setColor(0.2, 0.45, 0.8, isSelected and 0.6 or 0.2)
+    love.graphics.rectangle("line", btn2X, btn2Y, btn2W, btn2H)
+    love.graphics.setColor(isSelected and 0.9 or 0.4, isSelected and 0.9 or 0.4, isSelected and 0.95 or 0.4, 1)
+    local btn2Text = "SPLIT BATTALION"
+    love.graphics.print(btn2Text, btn2X + (btn2W - love.graphics.getFont():getWidth(btn2Text)) / 2, btn2Y + 5)
+
+    local btn3X = mx3 + 15
+    local btn3Y = my3 + 150
+    local btn3W = mw3 - 30
+    local btn3H = 24
+    local btn3Hover = mx >= btn3X and mx <= btn3X + btn3W and my >= btn3Y and my <= btn3Y + btn3H
+    if isSelected and hasPotential then
+        if btn3Hover then
+            love.graphics.setColor(0.1, 0.65, 0.55, 0.8)
+        else
+            love.graphics.setColor(0.1, 0.15, 0.25, 0.9)
+        end
+    else
+        love.graphics.setColor(0.05, 0.05, 0.05, 0.5)
+    end
+    love.graphics.rectangle("fill", btn3X, btn3Y, btn3W, btn3H)
+    love.graphics.setColor(0.2, 0.45, 0.8, (isSelected and hasPotential) and 0.6 or 0.2)
+    love.graphics.rectangle("line", btn3X, btn3Y, btn3W, btn3H)
+    love.graphics.setColor((isSelected and hasPotential) and 0.9 or 0.4, (isSelected and hasPotential) and 0.9 or 0.4, (isSelected and hasPotential) and 0.95 or 0.4, 1)
+    local btn3Text = "LAUNCH MOVEMENT"
+    love.graphics.print(btn3Text, btn3X + (btn3W - love.graphics.getFont():getWidth(btn3Text)) / 2, btn3Y + 5)
+
     if self.settingsOpen then
-        local sw, sh = 280, 310
+        local sw, sh = 280, 380
         local sx = (W - sw) / 2
         local sy = (H - sh) / 2
         love.graphics.setColor(0, 0, 0, 0.45)
@@ -344,7 +443,14 @@ function Hud:Draw()
         love.graphics.print("SETTINGS", sx + 10, sy + 6)
         love.graphics.setColor(0.6, 0.7, 0.8, 1)
         love.graphics.print("Drag panel headers to move them", sx + 15, sy + 35)
-        local settingsSliders = {}
+        local settingsSliders = {
+            { name = "layersX", label = "Layers Panel X", minVal = 0, maxVal = W - lw, currentVal = lx, y = sy + 80 },
+            { name = "layersY", label = "Layers Panel Y", minVal = 0, maxVal = H - lh, currentVal = ly, y = sy + 120 },
+            { name = "powerX", label = "Power Panel X", minVal = 0, maxVal = W - pw2, currentVal = px2, y = sy + 160 },
+            { name = "powerY", label = "Power Panel Y", minVal = 0, maxVal = H - ph2, currentVal = py2, y = sy + 200 },
+            { name = "militaryX", label = "Military Panel X", minVal = 0, maxVal = W - mw3, currentVal = mx3, y = sy + 240 },
+            { name = "militaryY", label = "Military Panel Y", minVal = 0, maxVal = H - mh3, currentVal = my3, y = sy + 280 }
+        }
         for _, s in ipairs(settingsSliders) do
             love.graphics.setColor(0.9, 0.9, 0.95, 1)
             love.graphics.print(s.label, sx + 15, s.y - 17)
@@ -374,7 +480,7 @@ function Hud:Draw()
             end
         end
         local btnX = sx + 15
-        local btnY = sy + 250
+        local btnY = sy + 320
         local btnW = sw - 30
         local btnH = 35
         local btnHovered = mx >= btnX and mx <= btnX + btnW and my >= btnY and my <= btnY + btnH
@@ -430,12 +536,14 @@ function Hud:MousePressed(x, y, button, istouch, presses)
     local lx, ly, lw, lh = self:getLayersRect()
     local px2, py2, pw2, ph2 = self:getPowerRect()
 
+    local mx3, my3, mw3, mh3 = self:getMilitaryRect()
+
     if self.settingsOpen then
-        local sw, sh = 280, 310
+        local sw, sh = 280, 380
         local sx = (W - sw) / 2
         local sy = (H - sh) / 2
         local btnX = sx + 15
-        local btnY = sy + 250
+        local btnY = sy + 320
         local btnW = sw - 30
         local btnH = 35
         if mx >= btnX and mx <= btnX + btnW and my >= btnY and my <= btnY + btnH then
@@ -443,6 +551,8 @@ function Hud:MousePressed(x, y, button, istouch, presses)
             self.layersY = nil
             self.powerX = nil
             self.powerY = nil
+            self.militaryX = nil
+            self.militaryY = nil
             self:saveConfig()
             return
         end
@@ -450,7 +560,9 @@ function Hud:MousePressed(x, y, button, istouch, presses)
             { name = "layersX", minVal = 0, maxVal = W - lw,  y = sy + 80 },
             { name = "layersY", minVal = 0, maxVal = H - lh,  y = sy + 120 },
             { name = "powerX",  minVal = 0, maxVal = W - pw2, y = sy + 160 },
-            { name = "powerY",  minVal = 0, maxVal = H - ph2, y = sy + 200 }
+            { name = "powerY",  minVal = 0, maxVal = H - ph2, y = sy + 200 },
+            { name = "militaryX", minVal = 0, maxVal = W - mw3, y = sy + 240 },
+            { name = "militaryY", minVal = 0, maxVal = H - mh3, y = sy + 280 }
         }
         local sliderX = sx + 15
         local sliderWidth = sw - 30
@@ -479,6 +591,78 @@ function Hud:MousePressed(x, y, button, istouch, presses)
         self.draggingPanel = "power"
         self.dragOffsetX = mx - px2
         self.dragOffsetY = my - py2
+        return
+    end
+
+    if mx >= mx3 and mx <= mx3 + mw3 and my >= my3 and my <= my3 + self.headerHeight then
+        self.draggingPanel = "military"
+        self.dragOffsetX = mx - mx3
+        self.dragOffsetY = my - my3
+        return
+    end
+
+    local btn1X = mx3 + 15
+    local btn1Y = my3 + 90
+    local btn1W = mw3 - 30
+    local btn1H = 24
+    if mx >= btn1X and mx <= btn1X + btn1W and my >= btn1Y and my <= btn1Y + btn1H then
+        if GM.Battalions and GM.Battalions.soldiers >= 10 then
+            GM.Battalions.soldiers = GM.Battalions.soldiers - 10
+            local sx, sy = GM.PlayerCountry.capitalX, GM.PlayerCountry.capitalY
+            for _, b in ipairs(GM.Building.List) do
+                if b.cell and b.cell:getOwner() == GM.PlayerCountry then
+                    sx, sy = b.x, b.y
+                    break
+                end
+            end
+            GM.Battalions:Spawn(sx, sy, 10)
+        end
+        return
+    end
+
+    local btn2X = mx3 + 15
+    local btn2Y = my3 + 120
+    local btn2W = mw3 - 30
+    local btn2H = 24
+    if mx >= btn2X and mx <= btn2X + btn2W and my >= btn2Y and my <= btn2Y + btn2H then
+        local selectedBat = nil
+        if GM.Battalions and GM.Battalions.List then
+            for _, b in ipairs(GM.Battalions.List) do
+                if b.selected then
+                    selectedBat = b
+                    break
+                end
+            end
+        end
+        if selectedBat then
+            GM.Battalions:Split(selectedBat)
+        end
+        return
+    end
+
+    local btn3X = mx3 + 15
+    local btn3Y = my3 + 150
+    local btn3W = mw3 - 30
+    local btn3H = 24
+    if mx >= btn3X and mx <= btn3X + btn3W and my >= btn3Y and my <= btn3Y + btn3H then
+        local selectedBat = nil
+        if GM.Battalions and GM.Battalions.List then
+            for _, b in ipairs(GM.Battalions.List) do
+                if b.selected then
+                    selectedBat = b
+                    break
+                end
+            end
+        end
+        if selectedBat and selectedBat.potentialTarget then
+            selectedBat.path = selectedBat.pathPreview
+            selectedBat.pathIndex = 1
+            selectedBat.moving = true
+            selectedBat.targetX = selectedBat.potentialTarget.x
+            selectedBat.targetY = selectedBat.potentialTarget.y
+            selectedBat.potentialTarget = nil
+            selectedBat.pathPreview = nil
+        end
         return
     end
 
@@ -592,12 +776,41 @@ function Hud:getPowerRect()
     return x, y, self.width, 170
 end
 
+function Hud:getMilitaryRect()
+    local W, H = love.graphics.getDimensions()
+    local px, py, pw, ph = self:getPowerRect()
+    local x = self.militaryX or (W - self.width - self.margin)
+    local y = self.militaryY or (py + ph + self.margin)
+    return x, y, self.width, 180
+end
+
+function Hud:isMouseOver()
+    local mx, my = love.mouse.getPosition()
+    local lx, ly, lw, lh = self:getLayersRect()
+    local px2, py2, pw2, ph2 = self:getPowerRect()
+    local mx3, my3, mw3, mh3 = self:getMilitaryRect()
+    if mx >= lx and mx <= lx + lw and my >= ly and my <= ly + lh then return true end
+    if mx >= px2 and mx <= px2 + pw2 and my >= py2 and my <= py2 + ph2 then return true end
+    if mx >= mx3 and mx <= mx3 + mw3 and my >= my3 and my <= my3 + mh3 then return true end
+    if self.settingsOpen then
+        local W, H = love.graphics.getDimensions()
+        local sw, sh = 280, 380
+        local sx = (W - sw) / 2
+        local sy = (H - sh) / 2
+        if mx >= sx and mx <= sx + sw and my >= sy and my <= sy + sh then return true end
+    end
+    if mx >= 16 and mx <= 48 and my >= 16 and my <= 48 then return true end
+    return false
+end
+
 function Hud:saveConfig()
-    local data = string.format("layersX=%d\nlayersY=%d\npowerX=%d\npowerY=%d\n",
+    local data = string.format("layersX=%d\nlayersY=%d\npowerX=%d\npowerY=%d\nmilitaryX=%d\nmilitaryY=%d\n",
         math.floor(self.layersX or -1),
         math.floor(self.layersY or -1),
         math.floor(self.powerX or -1),
-        math.floor(self.powerY or -1))
+        math.floor(self.powerY or -1),
+        math.floor(self.militaryX or -1),
+        math.floor(self.militaryY or -1))
     love.filesystem.write("hud_config.txt", data)
 end
 
@@ -618,6 +831,10 @@ function Hud:loadConfig()
                             self.powerX = val
                         elseif key == "powerY" then
                             self.powerY = val
+                        elseif key == "militaryX" then
+                            self.militaryX = val
+                        elseif key == "militaryY" then
+                            self.militaryY = val
                         end
                     end
                 end
@@ -645,6 +862,9 @@ function Hud:Think(dt)
         elseif self.draggingPanel == "power" then
             self.powerX = mx - self.dragOffsetX
             self.powerY = my - self.dragOffsetY
+        elseif self.draggingPanel == "military" then
+            self.militaryX = mx - self.dragOffsetX
+            self.militaryY = my - self.dragOffsetY
         end
     elseif self.settingSliderDragging then
         if not love.mouse.isDown(1) then
@@ -653,7 +873,7 @@ function Hud:Think(dt)
             return
         end
         local W, H = love.graphics.getDimensions()
-        local sw, sh = 280, 310
+        local sw, sh = 280, 380
         local sx = (W - sw) / 2
         local sy = (H - sh) / 2
         local sliderX = sx + 15
@@ -662,6 +882,7 @@ function Hud:Think(dt)
 
         local lx, ly, lw, lh = self:getLayersRect()
         local px, py, pw, ph = self:getPowerRect()
+        local mx3, my3, mw3, mh3 = self:getMilitaryRect()
 
         if self.settingSliderDragging == "layersX" then
             self.layersX = pct * (W - lw)
@@ -671,6 +892,10 @@ function Hud:Think(dt)
             self.powerX = pct * (W - pw)
         elseif self.settingSliderDragging == "powerY" then
             self.powerY = pct * (H - ph)
+        elseif self.settingSliderDragging == "militaryX" then
+            self.militaryX = pct * (W - mw3)
+        elseif self.settingSliderDragging == "militaryY" then
+            self.militaryY = pct * (H - mh3)
         end
     elseif self.sliderDragging then
         if not love.mouse.isDown(1) then

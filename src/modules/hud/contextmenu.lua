@@ -121,6 +121,17 @@ function ContextMenu:open(mx, my, cellX, cellY)
             })
         end
     else
+        if existingBuilding.type == "city" then
+            table.insert(self.items, {
+                label = "Create battalion",
+                icon = "Team.png",
+                action = function()
+                    if GM.Battalions and GM.Battalions.soldiers >= 10 then
+                        GM.Battalions:Spawn(cellX, cellY, 10)
+                    end
+                end
+            })
+        end
         table.insert(self.items, {
             label = "Destroy Building",
             icon = "Trashbin.png",

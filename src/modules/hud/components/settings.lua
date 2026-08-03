@@ -5,7 +5,6 @@ function Settings.draw(hud)
     local mx, my = love.mouse.getPosition()
     local lx, ly, lw, lh = hud:getLayersRect()
     local px2, py2, pw2, ph2 = hud:getPowerRect()
-    local mx3, my3, mw3, mh3 = hud:getMilitaryRect()
 
     love.graphics.push("all")
     local cx, cy = 32, 32
@@ -60,8 +59,6 @@ function Settings.draw(hud)
             { name = "layersY",   label = "Layers Panel Y",   minVal = 0, maxVal = H - lh,  currentVal = ly,  y = sy + 120 },
             { name = "powerX",    label = "Power Panel X",    minVal = 0, maxVal = W - pw2, currentVal = px2, y = sy + 160 },
             { name = "powerY",    label = "Power Panel Y",    minVal = 0, maxVal = H - ph2, currentVal = py2, y = sy + 200 },
-            { name = "militaryX", label = "Military Panel X", minVal = 0, maxVal = W - mw3, currentVal = mx3, y = sy + 240 },
-            { name = "militaryY", label = "Military Panel Y", minVal = 0, maxVal = H - mh3, currentVal = my3, y = sy + 280 }
         }
 
         for _, s in ipairs(settingsSliders) do
@@ -118,9 +115,8 @@ end
 
 function Settings.mousePressed(hud, mx, my, _)
     local W, H = love.graphics.getDimensions()
-    local lx, ly, lw, lh = hud:getLayersRect()
-    local px2, py2, pw2, ph2 = hud:getPowerRect()
-    local mx3, my3, mw3, mh3 = hud:getMilitaryRect()
+    local _, _, lw, lh = hud:getLayersRect()
+    local _, _, pw2, ph2 = hud:getPowerRect()
 
     if mx >= 16 and mx <= 48 and my >= 16 and my <= 48 then
         hud.settingsOpen = not hud.settingsOpen
@@ -152,8 +148,6 @@ function Settings.mousePressed(hud, mx, my, _)
             { name = "layersY",   minVal = 0, maxVal = H - lh,  y = sy + 120 },
             { name = "powerX",    minVal = 0, maxVal = W - pw2, y = sy + 160 },
             { name = "powerY",    minVal = 0, maxVal = H - ph2, y = sy + 200 },
-            { name = "militaryX", minVal = 0, maxVal = W - mw3, y = sy + 240 },
-            { name = "militaryY", minVal = 0, maxVal = H - mh3, y = sy + 280 }
         }
 
         local sliderX = sx + 15

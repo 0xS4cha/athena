@@ -5,7 +5,6 @@ local ContextMenu = require("src.modules.hud.contextmenu")
 
 local Layers = require("src.modules.hud.components.layers")
 local Power = require("src.modules.hud.components.power")
-local Military = require("src.modules.hud.components.military")
 local Settings = require("src.modules.hud.components.settings")
 
 local Hud = Class()
@@ -27,8 +26,6 @@ function Hud:init()
     self.layersY = nil
     self.powerX = nil
     self.powerY = nil
-    self.militaryX = nil
-    self.militaryY = nil
     self.settingsOpen = false
     self.settingSliderDragging = nil
     self.draggingPanel = nil
@@ -61,7 +58,6 @@ function Hud:Draw()
 
     Layers.draw(self)
     Power.draw(self)
-    Military.draw(self)
     Settings.draw(self)
 
     if self.contextMenu then
@@ -82,9 +78,8 @@ function Hud:MousePressed(x, y, button, istouch, presses)
     if button ~= 1 then return end
 
     local mx, my = love.mouse.getPosition()
-    local lx, ly, lw, lh = self:getLayersRect()
-    local px2, py2, pw2, ph2 = self:getPowerRect()
-    local mx3, my3, mw3, mh3 = self:getMilitaryRect()
+    local lx, ly, lw, _ = self:getLayersRect()
+    local px2, py2, pw2, _ = self:getPowerRect()
 
     if Settings.mousePressed(self, mx, my, button) then
         return
@@ -101,17 +96,6 @@ function Hud:MousePressed(x, y, button, istouch, presses)
         self.draggingPanel = "power"
         self.dragOffsetX = mx - px2
         self.dragOffsetY = my - py2
-        return
-    end
-
-    if mx >= mx3 and mx <= mx3 + mw3 and my >= my3 and my <= my3 + self.headerHeight then
-        self.draggingPanel = "military"
-        self.dragOffsetX = mx - mx3
-        self.dragOffsetY = my - my3
-        return
-    end
-
-    if Military.mousePressed(self, mx, my, button) then
         return
     end
 
@@ -138,7 +122,7 @@ function Hud:MouseReleased(x, y, button, istouch, presses)
     end
 end
 
-function Hud:KeyPressed(key, scancode, isrepeat)
+function Hud:KeyPressed(key, _, _)
     local map = GM.Game and GM.Game.Map
     if not map then return end
     if key == "1" then
@@ -193,22 +177,12 @@ function Hud:getPowerRect()
     return x, y, self.width, 170
 end
 
-function Hud:getMilitaryRect()
-    local W, H = love.graphics.getDimensions()
-    local px, py, pw, ph = self:getPowerRect()
-    local x = self.militaryX or (W - self.width - self.margin)
-    local y = self.militaryY or (py + ph + self.margin)
-    return x, y, self.width, 180
-end
-
 function Hud:isMouseOver()
     local mx, my = love.mouse.getPosition()
     local lx, ly, lw, lh = self:getLayersRect()
     local px2, py2, pw2, ph2 = self:getPowerRect()
-    local mx3, my3, mw3, mh3 = self:getMilitaryRect()
     if mx >= lx and mx <= lx + lw and my >= ly and my <= ly + lh then return true end
     if mx >= px2 and mx <= px2 + pw2 and my >= py2 and my <= py2 + ph2 then return true end
-    if mx >= mx3 and mx <= mx3 + mw3 and my >= my3 and my <= my3 + mh3 then return true end
     if self.settingsOpen then
         local W, H = love.graphics.getDimensions()
         local sw, sh = 280, 380
@@ -221,13 +195,12 @@ function Hud:isMouseOver()
 end
 
 function Hud:saveConfig()
-    local data = string.format("layersX=%d\nlayersY=%d\npowerX=%d\npowerY=%d\nmilitaryX=%d\nmilitaryY=%d\n",
+    local data = string.format("layersX=%d\nlayersY=%d\npowerX=%d\npowerY=%d\n",
         math.floor(self.layersX or -1),
         math.floor(self.layersY or -1),
         math.floor(self.powerX or -1),
-        math.floor(self.powerY or -1),
-        math.floor(self.militaryX or -1),
-        math.floor(self.militaryY or -1))
+        math.floor(self.powerY or -1)
+    )
     love.filesystem.write("hud_config.txt", data)
 end
 
@@ -248,10 +221,6 @@ function Hud:loadConfig()
                             self.powerX = val
                         elseif key == "powerY" then
                             self.powerY = val
-                        elseif key == "militaryX" then
-                            self.militaryX = val
-                        elseif key == "militaryY" then
-                            self.militaryY = val
                         end
                     end
                 end
@@ -279,9 +248,6 @@ function Hud:Think(dt)
         elseif self.draggingPanel == "power" then
             self.powerX = mx - self.dragOffsetX
             self.powerY = my - self.dragOffsetY
-        elseif self.draggingPanel == "military" then
-            self.militaryX = mx - self.dragOffsetX
-            self.militaryY = my - self.dragOffsetY
         end
     elseif self.settingSliderDragging then
         if not love.mouse.isDown(1) then
@@ -290,16 +256,14 @@ function Hud:Think(dt)
             return
         end
         local W, H = love.graphics.getDimensions()
-        local sw, sh = 280, 380
+        local sw = 280
         local sx = (W - sw) / 2
-        local sy = (H - sh) / 2
         local sliderX = sx + 15
         local sliderWidth = sw - 30
         local pct = math.max(0, math.min(1.0, (mx - sliderX) / sliderWidth))
 
         local _, _, lw, lh = self:getLayersRect()
         local _, _, pw, ph = self:getPowerRect()
-        local _, _, mw3, mh3 = self:getMilitaryRect()
 
         if self.settingSliderDragging == "layersX" then
             self.layersX = pct * (W - lw)
@@ -309,10 +273,6 @@ function Hud:Think(dt)
             self.powerX = pct * (W - pw)
         elseif self.settingSliderDragging == "powerY" then
             self.powerY = pct * (H - ph)
-        elseif self.settingSliderDragging == "militaryX" then
-            self.militaryX = pct * (W - mw3)
-        elseif self.settingSliderDragging == "militaryY" then
-            self.militaryY = pct * (H - mh3)
         end
     elseif self.sliderDragging then
         if not love.mouse.isDown(1) then

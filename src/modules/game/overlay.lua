@@ -553,6 +553,72 @@ function Overlay.drawCombat(game, camera, W, H)
     end
 end
 
+local function spawnSoldier(game, attack, soldier)
+    local recent = attack.recent
+    local front = recent[love.math.random(#recent)]
+    local fx, fy = game.map:coords(front)
+    local cx, cy = attack.attacker:center()
+    local dx, dy = fx - cx, fy - cy
+    local length = math.sqrt(dx * dx + dy * dy)
+    if length < 1 then dx, dy, length = 1, 0, 1 end
+    dx, dy = dx / length, dy / length
+    local distance = love.math.random(4, 11)
+    local side = love.math.random(-2, 2)
+    soldier.sx = fx - dx * distance - dy * side
+    soldier.sy = fy - dy * distance + dx * side
+    soldier.ex = fx - dy * side * 0.5
+    soldier.ey = fy + dx * side * 0.5
+    soldier.dx, soldier.dy = dx, dy
+    soldier.t = 0
+    soldier.duration = 0.7 + love.math.random() * 0.9
+    return soldier
+end
+
+function Overlay.drawTroops(game, camera, W, H)
+    local alpha = math.max(0, math.min(1, (camera.scale - 1.8) / 1.5))
+    local dt = game.paused and 0 or love.timer.getDelta() * game:speed()
+    local size = camera.scale
+    for _, attack in ipairs(game.attacks) do
+        if not attack.done and attack.recent and #attack.recent > 0 then
+            local wanted = math.max(4, math.min(30, math.floor(math.sqrt(attack.troops) / 6)))
+            local soldiers = attack.soldiers
+            if not soldiers then
+                soldiers = {}
+                attack.soldiers = soldiers
+            end
+            while #soldiers < wanted do
+                local soldier = spawnSoldier(game, attack, {})
+                soldier.t = love.math.random() * soldier.duration
+                soldiers[#soldiers + 1] = soldier
+            end
+            while #soldiers > wanted do
+                soldiers[#soldiers] = nil
+            end
+            local c = attack.attacker.color
+            for _, soldier in ipairs(soldiers) do
+                soldier.t = soldier.t + dt
+                if soldier.t >= soldier.duration then
+                    spawnSoldier(game, attack, soldier)
+                end
+                if alpha > 0 then
+                    local p = soldier.t / soldier.duration
+                    local x = soldier.sx + (soldier.ex - soldier.sx) * p
+                    local y = soldier.sy + (soldier.ey - soldier.sy) * p
+                    local sx, sy = camera:toScreen(math.floor(x), math.floor(y))
+                    if sx > -size and sy > -size and sx < W and sy < H then
+                        local fade = alpha * math.min(1, (1 - p) * 4)
+                        local bx, by = camera:toScreen(math.floor(x - soldier.dx), math.floor(y - soldier.dy))
+                        love.graphics.setColor(c[1] * 0.4, c[2] * 0.4, c[3] * 0.4, fade)
+                        love.graphics.rectangle("fill", bx, by, size, size)
+                        love.graphics.setColor(math.min(1, c[1] * 1.3 + 0.2), math.min(1, c[2] * 1.3 + 0.2), math.min(1, c[3] * 1.3 + 0.2), fade)
+                        love.graphics.rectangle("fill", sx, sy, size, size)
+                    end
+                end
+            end
+        end
+    end
+end
+
 function Overlay.draw(game, camera)
     love.graphics.push("all")
     local W, H = love.graphics.getDimensions()
@@ -561,6 +627,9 @@ function Overlay.draw(game, camera)
         Overlay.drawSupply(game, camera)
     end
     Overlay.drawCombat(game, camera, W, H)
+    if layers.units then
+        Overlay.drawTroops(game, camera, W, H)
+    end
     if layers.units then
         Overlay.drawRails(game, camera)
         Overlay.drawUnits(game, camera, W, H)

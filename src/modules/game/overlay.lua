@@ -246,40 +246,87 @@ function Overlay.drawUnits(game, camera, W, H)
     end
 end
 
-function Overlay.drawShip(game, camera, unit, radius, shape)
-    local sx, sy = camera:toScreen(unit.x, unit.y)
-    local c = unit.owner.color
-    local r = math.max(4, radius * 0.8)
-    if unit.owner == game.human and unit.path then
-        love.graphics.setColor(1, 1, 1, 0.35)
-        love.graphics.setLineWidth(1)
-        local last = unit.path[#unit.path]
-        local lx, ly = game.map:coords(last)
-        local tx, ty = camera:toScreen(lx + 0.5, ly + 0.5)
-        love.graphics.line(sx, sy, tx, ty)
+local SHIP_COLORS = {
+    d = { 0.16, 0.14, 0.13 },
+    l = { 0.95, 0.94, 0.88 },
+    y = { 0.95, 0.78, 0.3 },
+    g = { 0.5, 0.52, 0.56 }
+}
+
+Overlay.ships = {
+    transport = { "..l..", ".lll.", "cccc.", ".dddd" },
+    trade = { ".y.y.", "cyyy.", "ddddd", ".ddd." },
+    warship = { "...g...", "..ggg..", "cccccgd", ".ddddd." }
+}
+
+local function heading(game, unit)
+    local path = unit.path
+    if not path or #path < 2 then return 1, 0 end
+    local index = math.max(1, math.min(#path - 1, math.floor(unit.progress)))
+    local map = game.map
+    local ax, ay = map:coords(path[index])
+    local bx, by = map:coords(path[math.min(#path, index + 2)])
+    local dx, dy = bx - ax, by - ay
+    if math.abs(dx) >= math.abs(dy) then
+        return dx >= 0 and 1 or -1, 0
     end
-    love.graphics.setColor(0, 0, 0, 0.7)
-    if shape == "triangle" then
-        love.graphics.polygon("fill", sx, sy - r - 2, sx - r - 2, sy + r + 1, sx + r + 2, sy + r + 1)
-        love.graphics.setColor(c[1], c[2], c[3], 1)
-        love.graphics.polygon("fill", sx, sy - r, sx - r, sy + r, sx + r, sy + r)
-    elseif shape == "circle" then
-        love.graphics.circle("fill", sx, sy, r * 0.8 + 1.5)
-        love.graphics.setColor(c[1], c[2], c[3], 1)
-        love.graphics.circle("fill", sx, sy, r * 0.8)
-    else
-        love.graphics.rectangle("fill", sx - r * 1.3 - 1.5, sy - r * 0.6 - 1.5, r * 2.6 + 3, r * 1.2 + 3, 2, 2)
-        love.graphics.setColor(c[1], c[2], c[3], 1)
-        love.graphics.rectangle("fill", sx - r * 1.3, sy - r * 0.6, r * 2.6, r * 1.2, 2, 2)
+    return 0, dy >= 0 and 1 or -1
+end
+
+function Overlay.drawShip(game, camera, unit)
+    local sprite = Overlay.ships[unit.kind]
+    if not sprite then return end
+    local map = game.map
+    local size = math.max(1.5, camera.scale)
+    local hx, hy = heading(game, unit)
+    local tx, ty = math.floor(unit.x), math.floor(unit.y)
+
+    if unit.path and camera.scale >= 2 then
+        local index = math.floor(unit.progress)
+        for k = 1, 5 do
+            local tile = unit.path[index - k]
+            if tile then
+                local x, y = map:coords(tile)
+                local sx, sy = camera:toScreen(x, y)
+                love.graphics.setColor(0.9, 0.95, 1, 0.5 * (1 - k / 6))
+                love.graphics.rectangle("fill", sx, sy, size, size)
+            end
+        end
     end
-    if unit.troops and radius >= 6 then
+
+    local owner = unit.owner.color
+    local h = #sprite
+    local w = #sprite[1]
+    local cx, cy = math.floor(w / 2), math.floor(h / 2)
+    for row = 1, h do
+        local line = sprite[row]
+        for col = 1, w do
+            local ch = line:sub(col, col)
+            if ch ~= "." then
+                local ox, oy = col - 1 - cx, row - 1 - cy
+                local px, py
+                if hx ~= 0 then
+                    px, py = ox * hx, oy
+                else
+                    px, py = -oy * hy, ox * hy
+                end
+                local color = ch == "c" and owner or SHIP_COLORS[ch]
+                love.graphics.setColor(color[1], color[2], color[3], 1)
+                local sx, sy = camera:toScreen(tx + px, ty + py)
+                love.graphics.rectangle("fill", sx, sy, size, size)
+            end
+        end
+    end
+
+    if unit.troops and camera.scale >= 3 then
         local font = Style.font(10)
         love.graphics.setFont(font)
         local text = Format.number(unit.troops)
+        local sx, sy = camera:toScreen(tx + 0.5, ty + cy + 1.5)
         love.graphics.setColor(0, 0, 0, 0.8)
-        love.graphics.print(text, sx - font:getWidth(text) / 2 + 1, sy + r + 2)
+        love.graphics.print(text, sx - font:getWidth(text) / 2 + 1, sy + 1)
         love.graphics.setColor(1, 1, 1, 1)
-        love.graphics.print(text, sx - font:getWidth(text) / 2, sy + r + 1)
+        love.graphics.print(text, sx - font:getWidth(text) / 2, sy)
     end
 end
 
@@ -321,21 +368,24 @@ Overlay.unitDrawers = {
     nuke = function(game, camera, unit)
         Overlay.drawNuke(game, camera, unit)
     end,
-    transport = function(game, camera, unit, radius)
-        Overlay.drawShip(game, camera, unit, radius, "boat")
-    end,
-    trade = function(game, camera, unit, radius)
-        Overlay.drawShip(game, camera, unit, radius * 0.8, "circle")
-    end,
-    warship = function(game, camera, unit, radius)
-        Overlay.drawShip(game, camera, unit, radius, "triangle")
-        if unit.health and unit.health < Config.units.warship.health and radius >= 5 then
-            local sx, sy = camera:toScreen(unit.x, unit.y)
-            local w = radius * 2.4
-            love.graphics.setColor(0, 0, 0, 0.8)
-            love.graphics.rectangle("fill", sx - w / 2, sy - radius - 7, w, 3)
-            love.graphics.setColor(0.3, 0.9, 0.4, 1)
-            love.graphics.rectangle("fill", sx - w / 2, sy - radius - 7, w * unit.health / Config.units.warship.health, 3)
+    transport = Overlay.drawShip,
+    trade = Overlay.drawShip,
+    warship = function(game, camera, unit)
+        Overlay.drawShip(game, camera, unit)
+        local max = Config.units.warship.health
+        if unit.health and unit.health < max and camera.scale >= 2 then
+            local size = camera.scale
+            local tx, ty = math.floor(unit.x), math.floor(unit.y)
+            for k = -3, 3 do
+                local filled = (k + 4) / 7 <= unit.health / max
+                if filled then
+                    love.graphics.setColor(0.3, 0.9, 0.4, 1)
+                else
+                    love.graphics.setColor(0.6, 0.15, 0.12, 1)
+                end
+                local sx, sy = camera:toScreen(tx + k, ty - 3)
+                love.graphics.rectangle("fill", sx, sy, size, size * 0.6)
+            end
         end
     end
 }

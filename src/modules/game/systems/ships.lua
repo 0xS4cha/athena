@@ -64,27 +64,42 @@ function Ships.landingTile(game, player, tile)
     return best
 end
 
+function Ships.militaryPorts(game, player)
+    local list = {}
+    for _, unit in ipairs(game.units) do
+        if unit.kind == "militaryPort" and unit.owner == player and unit.buildLeft == 0 and not unit.dead then
+            list[#list + 1] = unit
+        end
+    end
+    return list
+end
+
+function Ships.boatLimit(game, player)
+    return math.min(Config.maxBoats, #Ships.militaryPorts(game, player) * Config.boatsPerMilitaryPort)
+end
+
 function Ships.launchTile(game, player, destination)
     local map = game.map
     local dx, dy = map:coords(destination)
     local candidates = {}
-    for b in pairs(player.borders) do
-        if map:isCoast(b) then
-            local x, y = map:coords(b)
-            candidates[#candidates + 1] = { tile = b, d = (x - dx) * (x - dx) + (y - dy) * (y - dy) }
-        end
+    for _, port in ipairs(Ships.militaryPorts(game, player)) do
+        candidates[#candidates + 1] = { tile = port.tile, d = (port.x - dx) ^ 2 + (port.y - dy) ^ 2 }
     end
     table.sort(candidates, function(a, b) return a.d < b.d end)
-    for k = 1, math.min(25, #candidates) do
-        if game.pathfinder:connected(candidates[k].tile, destination) then
-            return candidates[k].tile
+    for _, candidate in ipairs(candidates) do
+        if game.pathfinder:connected(candidate.tile, destination) then
+            return candidate.tile
         end
     end
     return nil
 end
 
 function Ships.canSendBoat(game, player, tile)
-    if player:unitCount("transport") >= Config.maxBoats then
+    local limit = Ships.boatLimit(game, player)
+    if limit == 0 then
+        return false, "Needs military port"
+    end
+    if player:unitCount("transport") >= limit then
         return false, "Max boats"
     end
     local destination = Ships.landingTile(game, player, tile)
@@ -179,7 +194,7 @@ function Ships.updatePort(game, port)
     local candidates = {}
     local component = game.pathfinder:waterComponents(port.tile)
     for _, unit in ipairs(game.units) do
-        if unit.kind == "port" and unit ~= port and not unit.dead and unit.buildLeft == 0 and Ships.canTrade(port.owner, unit.owner) then
+        if unit.kind == "tradePort" and unit ~= port and not unit.dead and unit.buildLeft == 0 and Ships.canTrade(port.owner, unit.owner) then
             local shared = false
             for c in pairs(game.pathfinder:waterComponents(unit.tile)) do
                 if component[c] then shared = true end
@@ -244,7 +259,7 @@ function Ships.capture(game, ship, player)
         ship.fromPort.activeTrade = nil
         ship.fromPort = nil
     end
-    local port = Units.nearestPort(game, player, ship.tile)
+    local port = Units.nearestPort(game, player, ship.tile, "tradePort")
     local path = port and game.pathfinder:connected(ship.tile, port.tile) and Ships.findPath(game, ship.tile, port.tile)
     if not path then
         Units.remove(game, ship)
@@ -340,7 +355,7 @@ function Ships.updateWarship(game, warship)
 end
 
 function Ships.unitCompleted(game, unit)
-    if unit.kind == "port" then
+    if unit.kind == "tradePort" then
         unit.update = Ships.updatePort
     elseif unit.kind == "warship" then
         local water = Ships.waterNear(game, unit.tile)

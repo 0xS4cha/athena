@@ -2,7 +2,7 @@ local Config = require("src.config.game")
 
 local Rails = {}
 
-local STATIONS = { city = true, port = true }
+local STATIONS = { city = true, tradePort = true }
 
 function Rails.init(game)
     game.rails = {}

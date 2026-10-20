@@ -65,7 +65,11 @@ end
 
 function Nation.decide(game, player)
     local neighbors, neutral = Attack.neighbors(game, player)
-    local ctx = { neighbors = neighbors, neutral = neutral }
+    local isolated = not neutral
+    for _, other in ipairs(neighbors) do
+        if not player:isAlliedWith(other) then isolated = false end
+    end
+    local ctx = { neighbors = neighbors, neutral = neutral, isolated = isolated }
     for _, behavior in ipairs(Nation.behaviors) do
         if behavior(game, player, ctx) then
             return

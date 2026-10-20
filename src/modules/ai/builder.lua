@@ -62,9 +62,16 @@ Builder.wishes = {
         end
     end,
     function(game, player)
-        if player:unitCount("port") < 1 + math.floor(player:unitCount("city") / 2) then
+        if player:unitCount("tradePort") < 1 + math.floor(player:unitCount("city") / 2) then
             local tile = coastTile(game, player)
-            if tile then return "port", tile end
+            if tile then return "tradePort", tile end
+        end
+    end,
+    function(game, player, ctx)
+        local wanted = ctx.isolated and 2 or 1
+        if (ctx.isolated or game.tick > 1500) and player:unitCount("militaryPort") < wanted then
+            local tile = coastTile(game, player)
+            if tile then return "militaryPort", tile end
         end
     end,
     function(game, player)
@@ -74,8 +81,9 @@ Builder.wishes = {
         end
     end,
     function(game, player)
-        if player:unitCount("port") > 0 and player:unitCount("warship") < math.ceil(player:unitCount("port") / 2) and game.rng:random() < 0.3 then
-            local port = Units.nearestPort(game, player, player.spawnTile or 0)
+        local ports = player:unitCount("militaryPort")
+        if ports > 0 and player:unitCount("warship") < ports + 1 and game.rng:random() < 0.3 then
+            local port = Units.nearestPort(game, player, player.spawnTile or 0, "militaryPort")
             if port then return "warship", port.tile end
         end
     end,

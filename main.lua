@@ -18,6 +18,7 @@ function love.load(args)
     parser:add_argument("ticks", { default = 600, type = "value" })
     parser:add_argument("difficulty", { default = "medium", type = "value" })
     parser:add_argument("autostart", { default = false, type = "boolean" })
+    parser:add_argument("autoplay", { default = false, type = "boolean" })
     parser:add_argument("screenshot", { default = nil, type = "value" })
     parser:add_argument("ci", { default = false, type = "boolean" })
     flags = parser:parse(args)
@@ -31,6 +32,7 @@ function love.load(args)
         bots = flags.bots,
         seed = flags.seed,
         difficulty = flags.difficulty,
+        autoplay = flags.autoplay,
         nations = true
     }
 

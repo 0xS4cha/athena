@@ -8,7 +8,8 @@ local Palette = require("src.modules.player.palette")
 local Systems = {
     require("src.modules.game.systems.spawn"),
     require("src.modules.game.systems.economy"),
-    require("src.modules.game.systems.attack")
+    require("src.modules.game.systems.attack"),
+    require("src.modules.game.systems.ai")
 }
 
 local Game = Class()

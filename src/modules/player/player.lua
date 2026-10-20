@@ -1,4 +1,5 @@
 local Class = require("src.core.class")
+local Config = require("src.config.game")
 
 local Player = Class()
 
@@ -13,6 +14,11 @@ function Player:init(id, name, kind, color, flag)
     self.troops = 0
     self.workers = 0
     self.gold = 0
+    self.troopRatio = Config.defaultTroopRatio
+    self.attackRatio = Config.defaultAttackRatio
+    self.maxPopulation = Config.basePopulation
+    self.growth = 0
+    self.income = 0
     self.tiles = 0
     self.sumX = 0
     self.sumY = 0

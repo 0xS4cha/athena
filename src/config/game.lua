@@ -11,7 +11,23 @@ local CONFIG = {
     botSpawnAttempts = 300,
     nationSpawnSearch = 25,
     startTroops = 25000,
-    startWorkers = 10000
+    startWorkers = 10000,
+    defaultTroopRatio = 0.6,
+    defaultAttackRatio = 0.2,
+    basePopulation = 50000,
+    populationPerTile = 1000,
+    populationExponent = 0.6,
+    cityPopulation = 250000,
+    growthExponent = 0.73,
+    rebalanceRate = 0.02,
+    goldDivisor = 20,
+    botPopulationFactor = 0.4,
+    botGoldFactor = 0.5,
+    difficulties = {
+        easy = { population = 0.6, gold = 0.7, decisionTicks = 40 },
+        medium = { population = 0.85, gold = 1.0, decisionTicks = 25 },
+        hard = { population = 1.1, gold = 1.3, decisionTicks = 15 }
+    }
 }
 
 return CONFIG

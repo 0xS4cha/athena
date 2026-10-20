@@ -6,7 +6,8 @@ local Player = require("src.modules.player.player")
 local Palette = require("src.modules.player.palette")
 
 local Systems = {
-    require("src.modules.game.systems.spawn")
+    require("src.modules.game.systems.spawn"),
+    require("src.modules.game.systems.economy")
 }
 
 local Game = Class()
@@ -197,6 +198,22 @@ function Game:step()
         end
     end
     self.tick = self.tick + 1
+end
+
+function Game:difficulty()
+    return Config.difficulties[self.options.difficulty or "medium"] or Config.difficulties.medium
+end
+
+function Game:report()
+    local alive = self:alivePlayers()
+    table.sort(alive, function(a, b) return a.tiles > b.tiles end)
+    Logger:info("game", string.format("tick=%d phase=%s alive=%d", self.tick, self.phase, #alive))
+    for k = 1, math.min(8, #alive) do
+        local p = alive[k]
+        Logger:info("game", string.format("%-28s %-6s tiles=%-7d troops=%-9d workers=%-9d gold=%d", p.name, p.kind, p.tiles, p.troops, p.workers, p.gold))
+    end
+    local h = self.human
+    Logger:info("game", string.format("human tiles=%d troops=%d gold=%d alive=%s", h.tiles, h.troops, h.gold, tostring(h.alive)))
 end
 
 function Game:speed()

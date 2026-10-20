@@ -114,6 +114,11 @@ local CONFIG = {
     supplyRefreshTicks = 20,
     supplyRailStep = 12,
     supplySources = { capital = true, city = true, militaryPort = true },
+    blockadeRange = 18,
+    blockadeCheckTicks = 10,
+    stationRadius = 10,
+    aiBlockadeChance = 0.35,
+    aiBlockadeSearch = 220,
     winRatio = 0.8,
     victoryCheckTicks = 10,
     difficulties = {

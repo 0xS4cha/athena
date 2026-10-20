@@ -209,6 +209,24 @@ Interaction.sections[#Interaction.sections + 1] = function(game, tile, items)
     }
 end
 
+Interaction.sections[#Interaction.sections + 1] = function(game, tile, items)
+    local human = game.human
+    if human:unitCount("warship") == 0 then return end
+    local map = game.map
+    local x, y = map:coords(tile)
+    local nearWater = map:findNear(x, y, Config.blockadeRange, function(i) return map:isWater(i) end)
+    if not nearWater then return end
+    items[#items + 1] = {
+        label = "Send Warship Here",
+        icon = "Wrench3.png",
+        sublabel = human:unitCount("warship") .. " ships",
+        sublabelColor = { 0.45, 0.75, 1, 1 },
+        action = function()
+            game:pushIntent({ type = "warship", player = human.id, tile = tile })
+        end
+    }
+end
+
 function Interaction.menu(game, tile)
     local map = game.map
     local x, y = map:coords(tile)

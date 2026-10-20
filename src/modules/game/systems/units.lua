@@ -65,7 +65,7 @@ function Units.nearestPort(game, player, tile, kind)
     local best, bestD
     kind = kind or "militaryPort"
     for _, unit in ipairs(game.units) do
-        if unit.kind == kind and unit.owner == player and unit.buildLeft == 0 and not unit.dead then
+        if unit.kind == kind and unit.owner == player and unit.buildLeft == 0 and not unit.dead and not unit.blockaded then
             local d = (unit.x - x) ^ 2 + (unit.y - y) ^ 2
             if not bestD or d < bestD then
                 best, bestD = unit, d
@@ -82,7 +82,7 @@ function Units.check(game, player, kind, tile)
     local map = game.map
     if def.naval then
         local port = Units.nearestPort(game, player, tile, "militaryPort")
-        if not port then return false, "Needs military port" end
+        if not port then return false, player:unitCount("militaryPort") > 0 and "Blockaded" or "Needs military port" end
         tile = port.tile
     elseif def.coastal then
         tile = Units.findPortTile(game, player, tile)

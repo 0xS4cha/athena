@@ -255,6 +255,9 @@ function Game:report()
     for _, p in ipairs(self.players) do
         for _ in pairs(p.allies) do alliances = alliances + 1 end
     end
+    local blockaded = 0
+    for _, u in ipairs(self.units) do if u.blockaded then blockaded = blockaded + 1 end end
+    Logger:info("game", string.format("blockaded ports=%d", blockaded))
     Logger:info("game", string.format("alliances=%d rails=%d events=%d", alliances / 2, #(self.rails or {}), #self.events))
     for _, e in ipairs(self.events) do
         Logger:trace("event", e.text)

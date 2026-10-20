@@ -171,6 +171,15 @@ function Overlay.drawBuilding(game, camera, unit)
     local size = camera.scale
     local half = math.floor(#pattern / 2)
     local tx, ty = math.floor(unit.x), math.floor(unit.y)
+    if unit.blockaded and math.floor(love.timer.getTime() * 3) % 2 == 0 then
+        love.graphics.setColor(0.95, 0.2, 0.15, alpha)
+        for k = -half - 1, half + 1 do
+            for _, p in ipairs({ { k, -half - 1 }, { k, half + 1 }, { -half - 1, k }, { half + 1, k } }) do
+                local sx, sy = camera:toScreen(tx + p[1], ty + p[2])
+                love.graphics.rectangle("fill", sx, sy, size, size)
+            end
+        end
+    end
     for row = 1, #pattern do
         local line = pattern[row]
         for col = 1, #line do

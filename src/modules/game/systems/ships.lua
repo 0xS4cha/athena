@@ -83,7 +83,9 @@ function Ships.launchTile(game, player, destination)
     local dx, dy = map:coords(destination)
     local candidates = {}
     for _, port in ipairs(Ships.militaryPorts(game, player)) do
-        candidates[#candidates + 1] = { tile = port.tile, d = (port.x - dx) ^ 2 + (port.y - dy) ^ 2 }
+        if not port.blockaded then
+            candidates[#candidates + 1] = { tile = port.tile, d = (port.x - dx) ^ 2 + (port.y - dy) ^ 2 }
+        end
     end
     table.sort(candidates, function(a, b) return a.d < b.d end)
     for _, candidate in ipairs(candidates) do
@@ -171,7 +173,7 @@ end
 function Ships.updateTrade(game, unit)
     if not Ships.advance(game, unit, Config.tradeSpeed) then return end
     local port = unit.toPort
-    if port and not port.dead and Ships.canTrade(unit.owner, port.owner) then
+    if port and not port.dead and not port.blockaded and Ships.canTrade(unit.owner, port.owner) then
         local gold = Config.tradeBaseGold + #unit.path * Config.tradeGoldPerTile
         unit.owner.gold = unit.owner.gold + gold
         if port.owner ~= unit.owner then
@@ -185,8 +187,39 @@ function Ships.updateTrade(game, unit)
     Units.remove(game, unit)
 end
 
+local PORTS = { tradePort = true, militaryPort = true }
+
+function Ships.blockader(game, port)
+    local r2 = Config.blockadeRange * Config.blockadeRange
+    for _, ship in ipairs(game.ships or {}) do
+        if ship.kind == "warship" and not ship.dead and Ships.isHostile(ship.owner, port.owner)
+            and (ship.x - port.x) ^ 2 + (ship.y - port.y) ^ 2 <= r2 then
+            return ship
+        end
+    end
+    return nil
+end
+
+function Ships.updateBlockades(game)
+    for _, unit in ipairs(game.units) do
+        if PORTS[unit.kind] and not unit.dead and unit.buildLeft == 0 then
+            local ship = Ships.blockader(game, unit)
+            local was = unit.blockaded
+            unit.blockaded = ship ~= nil
+            if unit.blockaded and not was then
+                local label = Config.units[unit.kind].label
+                game:notify(unit.owner, string.format("%s is blockading your %s!", ship.owner.name, label), { color = { 0.95, 0.35, 0.3, 1 } })
+                game:notify(ship.owner, string.format("Your warship is blockading a %s of %s.", label, unit.owner.name), { color = { 0.3, 0.85, 0.45, 1 } })
+                game:emit("blockadeStarted", unit, ship)
+            elseif was and not unit.blockaded then
+                game:notify(unit.owner, "The blockade of your " .. Config.units[unit.kind].label .. " has been lifted.", { color = { 0.55, 0.75, 1, 1 } })
+            end
+        end
+    end
+end
+
 function Ships.updatePort(game, port)
-    if port.buildLeft > 0 or port.activeTrade then return end
+    if port.buildLeft > 0 or port.activeTrade or port.blockaded then return end
     port.tradeTimer = (port.tradeTimer or game.rng:random(1, Config.tradeInterval)) - 1
     if port.tradeTimer > 0 then return end
     port.tradeTimer = Config.tradeInterval + game.rng:random(0, Config.tradeInterval)
@@ -233,6 +266,9 @@ function Ships.step(game)
         end
     end
     game.ships = ships
+    if game.phase == "playing" and game.tick % Config.blockadeCheckTicks == 0 then
+        Ships.updateBlockades(game)
+    end
 end
 
 function Ships.nearestShip(game, warship, range)
@@ -290,13 +326,50 @@ function Ships.strike(game, warship, target)
     end
 end
 
+function Ships.station(game, warship, tile)
+    local map = game.map
+    local x, y = map:coords(tile)
+    local component = game.pathfinder.component[warship.tile]
+    local water = map:findNear(x, y, Config.blockadeRange, function(i)
+        return map:isWater(i) and game.pathfinder.component[i] == component
+    end)
+    if not water then return nil end
+    warship.home = water
+    warship.stationed = true
+    warship.retry = nil
+    return water
+end
+
+function Ships.blockadeTarget(game, warship)
+    local best, bestD
+    local r2 = Config.aiBlockadeSearch * Config.aiBlockadeSearch
+    local component = game.pathfinder.component[warship.tile]
+    for _, unit in ipairs(game.units) do
+        if PORTS[unit.kind] and not unit.dead and Ships.isHostile(warship.owner, unit.owner) and not unit.owner:isBot() then
+            local d = (unit.x - warship.x) ^ 2 + (unit.y - warship.y) ^ 2
+            if d <= r2 and (not bestD or d < bestD) and game.pathfinder:waterComponents(unit.tile)[component] then
+                best, bestD = unit, d
+            end
+        end
+    end
+    return best
+end
+
 function Ships.patrolTarget(game, warship)
     local map = game.map
     local def = Config.units.warship
+    if not warship.stationed and warship.owner ~= game.human and game.rng:random() < Config.aiBlockadeChance then
+        local port = Ships.blockadeTarget(game, warship)
+        local water = port and Ships.station(game, warship, port.tile)
+        if water then
+            return water
+        end
+    end
+    local radius = warship.stationed and Config.stationRadius or def.patrolRadius
     local hx, hy = map:coords(warship.home)
     for _ = 1, 10 do
-        local x = hx + game.rng:random(-def.patrolRadius, def.patrolRadius)
-        local y = hy + game.rng:random(-def.patrolRadius, def.patrolRadius)
+        local x = hx + game.rng:random(-radius, radius)
+        local y = hy + game.rng:random(-radius, radius)
         if map:isValid(x, y) then
             local i = map:index(x, y)
             if map:isWater(i) and game.pathfinder.component[i] == game.pathfinder.component[warship.home] then
@@ -387,6 +460,31 @@ function Ships.eliminated(game, player)
 end
 
 Ships.intents = {
+    warship = function(game, intent)
+        local player = game.players[intent.player]
+        if not player or not player.alive then return end
+        local map = game.map
+        local tx, ty = map:coords(intent.tile)
+        local best, bestD
+        for _, ship in ipairs(game.ships or {}) do
+            if ship.kind == "warship" and ship.owner == player and not ship.dead
+                and game.pathfinder:connected(ship.tile, intent.tile) then
+                local d = (ship.x - tx) ^ 2 + (ship.y - ty) ^ 2
+                if not bestD or d < bestD then best, bestD = ship, d end
+            end
+        end
+        local water = best and Ships.station(game, best, intent.tile)
+        local path = water and Ships.findPath(game, best.tile, water)
+        if not path then
+            game:notify(player, "No warship can reach that place.")
+            return
+        end
+        best.path = path
+        best.progress = 1
+        best.target = nil
+        best.chasing = nil
+        game:notify(player, "Warship dispatched.", { color = { 0.55, 0.75, 1, 1 } })
+    end,
     boat = function(game, intent)
         if game.phase ~= "playing" then return end
         local player = game.players[intent.player]

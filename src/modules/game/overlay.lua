@@ -95,7 +95,7 @@ function Overlay.drawBuilding(game, camera, unit, radius)
 end
 
 function Overlay.drawUnits(game, camera, W, H)
-    local radius = math.max(4, math.min(11, camera.scale * 2.5))
+    local radius = math.max(2.5, math.min(11, camera.scale * 2.5))
     for _, unit in ipairs(game.units) do
         if not unit.dead then
             local sx, sy = camera:toScreen(unit.x, unit.y)
@@ -107,7 +107,48 @@ function Overlay.drawUnits(game, camera, W, H)
     end
 end
 
-Overlay.unitDrawers = {}
+function Overlay.drawShip(game, camera, unit, radius, shape)
+    local sx, sy = camera:toScreen(unit.x, unit.y)
+    local c = unit.owner.color
+    local r = math.max(4, radius * 0.8)
+    if unit.owner == game.human and unit.path then
+        love.graphics.setColor(1, 1, 1, 0.35)
+        love.graphics.setLineWidth(1)
+        local last = unit.path[#unit.path]
+        local lx, ly = game.map:coords(last)
+        local tx, ty = camera:toScreen(lx + 0.5, ly + 0.5)
+        love.graphics.line(sx, sy, tx, ty)
+    end
+    love.graphics.setColor(0, 0, 0, 0.7)
+    if shape == "triangle" then
+        love.graphics.polygon("fill", sx, sy - r - 2, sx - r - 2, sy + r + 1, sx + r + 2, sy + r + 1)
+        love.graphics.setColor(c[1], c[2], c[3], 1)
+        love.graphics.polygon("fill", sx, sy - r, sx - r, sy + r, sx + r, sy + r)
+    elseif shape == "circle" then
+        love.graphics.circle("fill", sx, sy, r * 0.8 + 1.5)
+        love.graphics.setColor(c[1], c[2], c[3], 1)
+        love.graphics.circle("fill", sx, sy, r * 0.8)
+    else
+        love.graphics.rectangle("fill", sx - r * 1.3 - 1.5, sy - r * 0.6 - 1.5, r * 2.6 + 3, r * 1.2 + 3, 2, 2)
+        love.graphics.setColor(c[1], c[2], c[3], 1)
+        love.graphics.rectangle("fill", sx - r * 1.3, sy - r * 0.6, r * 2.6, r * 1.2, 2, 2)
+    end
+    if unit.troops and radius >= 6 then
+        local font = Style.font(10)
+        love.graphics.setFont(font)
+        local text = Format.number(unit.troops)
+        love.graphics.setColor(0, 0, 0, 0.8)
+        love.graphics.print(text, sx - font:getWidth(text) / 2 + 1, sy + r + 2)
+        love.graphics.setColor(1, 1, 1, 1)
+        love.graphics.print(text, sx - font:getWidth(text) / 2, sy + r + 1)
+    end
+end
+
+Overlay.unitDrawers = {
+    transport = function(game, camera, unit, radius)
+        Overlay.drawShip(game, camera, unit, radius, "boat")
+    end
+}
 
 function Overlay.draw(game, camera)
     love.graphics.push("all")

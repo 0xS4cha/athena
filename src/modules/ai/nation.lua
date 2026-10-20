@@ -1,9 +1,10 @@
 local Attack = require("src.modules.game.systems.attack")
 local Builder = require("src.modules.ai.builder")
+local Navy = require("src.modules.ai.navy")
 
 local Nation = {}
 
-Nation.behaviors = { Builder.behavior }
+Nation.behaviors = { Builder.behavior, Navy.behavior }
 
 function Nation.setup(game, player)
     player.troopRatio = 0.55 + game.rng:random() * 0.15

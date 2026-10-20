@@ -42,8 +42,13 @@ local CONFIG = {
         port = { label = "Port", icon = "CatchingNet.png", cost = 125000, scale = "double", cap = 1000000, buildTicks = 20, coastal = true },
         defensePost = { label = "Defense Post", icon = "Locked.png", cost = 50000, scale = "linear", cap = 250000, buildTicks = 50, radius = 30, defense = 2.5, destroyOnCapture = true },
         silo = { label = "Missile Silo", icon = "Battery.png", cost = 1000000, scale = "flat", cap = 1000000, buildTicks = 100, cooldownTicks = 100 },
+        transport = { label = "Transport Ship", icon = "Luggage.png", cost = 0, scale = "flat", cap = 0 },
         sam = { label = "SAM Launcher", icon = "Eye.png", cost = 1500000, scale = "linear", cap = 3000000, buildTicks = 30, range = 75, cooldownTicks = 75 }
     },
+    maxBoats = 3,
+    boatSpeed = 1.5,
+    boatLandingSearch = 30,
+    pathMaxNodes = 200000,
     winRatio = 0.8,
     victoryCheckTicks = 10,
     difficulties = {

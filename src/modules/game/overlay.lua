@@ -71,43 +71,72 @@ function Overlay.drawLabel(game, camera, player, W, H)
     end
 end
 
-function Overlay.drawBuilding(game, camera, unit, radius)
-    local sx, sy = camera:toScreen(unit.x, unit.y)
-    local c = unit.owner.color
-    local alpha = unit.buildLeft > 0 and 0.5 or 1
-    love.graphics.setColor(0, 0, 0, 0.6 * alpha)
-    love.graphics.circle("fill", sx + 1, sy + 1, radius + 1)
-    love.graphics.setColor(c[1], c[2], c[3], alpha)
-    love.graphics.circle("fill", sx, sy, radius)
-    love.graphics.setColor(1, 1, 1, alpha)
-    love.graphics.setLineWidth(1.5)
-    love.graphics.circle("line", sx, sy, radius)
-    local icon = Icons.get(Config.units[unit.kind].icon)
-    if icon and radius >= 6 then
-        local scale = radius * 1.3 / icon:getWidth()
-        love.graphics.draw(icon, sx, sy, 0, scale, scale, icon:getWidth() / 2, icon:getHeight() / 2)
+Overlay.structureZoomStart = 1.6
+Overlay.structureZoomFull = 3.5
+
+local STRUCTURE_COLORS = {
+    d = { 0.14, 0.14, 0.17 },
+    l = { 0.86, 0.85, 0.8 },
+    r = { 0.78, 0.22, 0.16 },
+    y = { 0.95, 0.78, 0.3 },
+    g = { 0.45, 0.47, 0.5 }
+}
+
+Overlay.structures = {
+    city = { "rr.rr", "ll.ll", ".....", "rr.rr", "ll.ll" },
+    tradePort = { "yy.yy", "yy.yy", "ggggg", "g.g.g", "g.g.g" },
+    militaryPort = { "..d..", ".ddd.", "..d..", "d.d.d", ".ddd." },
+    factory = { "d...d", "d...d", "ddddd", "dlcld", "ddddd" },
+    defensePost = { "d.d.d", "ddddd", "dcccd", "dcccd", "ddddd" },
+    silo = { ".ddd.", "dlrld", "dlrld", "dlrld", ".ddd." },
+    sam = { "r...r", ".r.r.", "..d..", ".ddd.", "ddddd" }
+}
+
+function Overlay.structureAlpha(camera)
+    return math.max(0, math.min(1, (camera.scale - Overlay.structureZoomStart) / (Overlay.structureZoomFull - Overlay.structureZoomStart)))
+end
+
+function Overlay.drawBuilding(game, camera, unit)
+    local alpha = Overlay.structureAlpha(camera)
+    if alpha <= 0 then return end
+    local pattern = Overlay.structures[unit.kind]
+    if not pattern then return end
+    if unit.buildLeft > 0 then
+        alpha = alpha * 0.45
     end
-    if unit.buildLeft > 0 and unit.buildTotal then
-        local progress = 1 - unit.buildLeft / unit.buildTotal
-        love.graphics.setColor(1, 1, 1, 1)
-        love.graphics.setLineWidth(2)
-        love.graphics.arc("line", "open", sx, sy, radius + 3, -math.pi / 2, -math.pi / 2 + progress * math.pi * 2)
+    local owner = unit.owner.color
+    local size = camera.scale
+    local half = math.floor(#pattern / 2)
+    local tx, ty = math.floor(unit.x), math.floor(unit.y)
+    for row = 1, #pattern do
+        local line = pattern[row]
+        for col = 1, #line do
+            local ch = line:sub(col, col)
+            if ch ~= "." then
+                local color = ch == "c" and owner or STRUCTURE_COLORS[ch]
+                love.graphics.setColor(color[1], color[2], color[3], alpha)
+                local sx, sy = camera:toScreen(tx + col - 1 - half, ty + row - 1 - half)
+                love.graphics.rectangle("fill", sx, sy, size, size)
+            end
+        end
     end
 end
 
 function Overlay.drawRails(game, camera)
     if not game.rails or #game.rails == 0 then return end
-    local width = math.max(1, math.min(3, camera.scale * 0.6))
+    local alpha = Overlay.structureAlpha(camera)
+    if alpha <= 0 then return end
+    local width = math.max(1, math.min(3, camera.scale * 0.4))
     for _, rail in ipairs(game.rails) do
         local ax, ay = camera:toScreen(rail.a.x, rail.a.y)
         local bx, by = camera:toScreen(rail.b.x, rail.b.y)
-        love.graphics.setColor(0.15, 0.15, 0.17, 0.85)
+        love.graphics.setColor(0.15, 0.15, 0.17, 0.85 * alpha)
         love.graphics.setLineWidth(width + 2)
         love.graphics.line(ax, ay, bx, by)
-        love.graphics.setColor(0.65, 0.62, 0.55, 0.9)
+        love.graphics.setColor(0.65, 0.62, 0.55, 0.9 * alpha)
         love.graphics.setLineWidth(width)
         love.graphics.line(ax, ay, bx, by)
-        if camera.scale >= 1 then
+        if alpha >= 1 then
             local tx, ty = camera:toScreen(Rails.trainPosition(game, rail))
             local c = rail.a.owner.color
             love.graphics.setColor(0, 0, 0, 0.8)

@@ -1,10 +1,9 @@
 local GM = require("src.core.index")
 GM.Modules = {}
-GM.Map = {}
 GM.Modules.List = {}
-GM.Modules.HasFunction = { Think = {}, Draw = {}, KeyPressed = {}, MousePressed = {}, MouseReleased = {} }
+GM.Modules.HasFunction = { Think = {}, Draw = {}, KeyPressed = {}, MousePressed = {}, MouseReleased = {}, WheelMoved = {}, TextInput = {} }
 
-local lastTick = os.clock()
+local lastTick = love.timer.getTime()
 
 --- @param name string
 --- @param priority number?
@@ -93,6 +92,12 @@ function GM:InitializeModules()
             if self[name].MouseReleased then
                 table.insert(GM.Modules.HasFunction.MouseReleased, name)
             end
+            if self[name].WheelMoved then
+                table.insert(GM.Modules.HasFunction.WheelMoved, name)
+            end
+            if self[name].TextInput then
+                table.insert(GM.Modules.HasFunction.TextInput, name)
+            end
         else
             Logger:warn("Module", "Module " .. name .. " registered but does not have a function")
         end
@@ -105,8 +110,8 @@ end
 --- @param dt number?
 --- @return void
 function GM:Think(dt)
-    if os.clock() - lastTick > 1000 then
-        lastTick = os.clock()
+    if love.timer.getTime() - lastTick >= 1 then
+        lastTick = love.timer.getTime()
         self.TickSecond = true
     end
 
@@ -157,6 +162,23 @@ end
 function GM:MouseReleased(x, y, button, istouch, presses)
     for _, moduleName in pairs(self.Modules.HasFunction.MouseReleased) do
         self[moduleName]:MouseReleased(x, y, button, istouch, presses)
+    end
+end
+
+--- @param x number
+--- @param y number
+--- @return void
+function GM:WheelMoved(x, y)
+    for _, moduleName in pairs(self.Modules.HasFunction.WheelMoved) do
+        self[moduleName]:WheelMoved(x, y)
+    end
+end
+
+--- @param text string
+--- @return void
+function GM:TextInput(text)
+    for _, moduleName in pairs(self.Modules.HasFunction.TextInput) do
+        self[moduleName]:TextInput(text)
     end
 end
 

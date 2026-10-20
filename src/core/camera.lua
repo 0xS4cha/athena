@@ -23,7 +23,7 @@ function Camera:init()
     self.lastMouseX = 0
     self.lastMouseY = 0
     self.minScale = 0.05
-    self.maxScale = 10.0
+    self.maxScale = 24.0
 end
 
 
@@ -99,6 +99,30 @@ function Camera:clamp()
     self.y = math.max(minY, math.min(0, self.y))
 end
 
+
+--- @param sx number
+--- @param sy number
+--- @return number, number
+function Camera:toWorld(sx, sy)
+    return sx / self.scale - self.x, sy / self.scale - self.y
+end
+
+--- @param wx number
+--- @param wy number
+--- @return number, number
+function Camera:toScreen(wx, wy)
+    return (wx + self.x) * self.scale, (wy + self.y) * self.scale
+end
+
+--- @param wx number
+--- @param wy number
+--- @return void
+function Camera:centerOn(wx, wy)
+    local W, H = love.graphics.getDimensions()
+    self.x = W / (2 * self.scale) - wx
+    self.y = H / (2 * self.scale) - wy
+    self:clamp()
+end
 
 --- @return void
 function Camera:apply()

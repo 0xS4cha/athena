@@ -10,12 +10,14 @@ local CONFIG_FILE = "hud_config.txt"
 Hud.componentPaths = {
     "src.modules.hud.components.info",
     "src.modules.hud.components.banner",
+    "src.modules.hud.components.clock",
     "src.modules.hud.components.layers",
     "src.modules.hud.components.control",
     "src.modules.hud.components.leaderboard",
     "src.modules.hud.components.events",
     "src.modules.hud.components.settings",
-    "src.modules.hud.components.endscreen"
+    "src.modules.hud.components.endscreen",
+    "src.modules.hud.components.help"
 }
 
 function Hud:init()
@@ -191,6 +193,10 @@ function Hud:KeyPressed(key)
     if key == "escape" then
         if self.contextMenu.visible then
             self.contextMenu:close()
+            return
+        end
+        if self.helpOpen then
+            self.helpOpen = false
             return
         end
     end

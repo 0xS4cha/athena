@@ -22,6 +22,7 @@ function Banner.draw(hud)
     if game.phase == "spawn" then
         local seconds = math.ceil(game.spawnTicksLeft / Config.tickRate)
         y = centered("Choose your starting location", y, 18)
+        centered("Press H for controls", y + 64, 12, Style.colors.muted)
         if game.human.spawned then
             centered(string.format("Starting in %ds  -  press SPACE to start now", seconds), y, 13, Style.colors.good)
         else
@@ -30,9 +31,7 @@ function Banner.draw(hud)
         return
     end
     if game.paused then
-        y = centered("PAUSED  -  press P to resume", y, 16, Style.colors.gold)
-    elseif game:speed() > 1 then
-        y = centered(string.format("Speed x%d", game:speed()), y, 13, Style.colors.muted)
+        centered("PAUSED  -  press P to resume", y + 44, 16, Style.colors.gold)
     end
 end
 

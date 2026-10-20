@@ -54,15 +54,18 @@ love .
 - **Population**: your maximum population grows with your territory and your cities. Growth is fastest when you are far from the cap.
 - **Troops / Workers**: the slider splits your population. Troops attack and defend; workers produce gold.
 - **Attacks**: left-click a neighbour (or the wilderness) to send `Attack Ratio` percent of your troops. The front advances tile by tile. Each tile costs troops depending on terrain (plains < highland < mountain), fallout, the defender's troop density, defense posts, and whether the defender is a traitor. Attacks can be retreated from the Empire panel, and opposite attacks cancel each other out.
-- **Boats**: left-click a coast you do not border to send a transport ship (3 at most). It lands and starts an attack from the beach.
+- **Biomes**: land is plains, desert, mountain or snow, derived from elevation and latitude. Each biome has a base conquest cost, plus an adaptation penalty that fades as that biome makes up a larger share of your land (full adaptation at 20%). A desert empire struggles to push into snow until it owns some. Your adaptation appears in the Empire panel, and hovering a tile shows your cost multiplier.
+- **Boats**: transport ships leave from your **military ports** (2 boats per port, 6 at most). Left-click a coast you do not border to invade it. Without a military port you cannot leave your continent.
+- **Hidden intel**: structures are drawn as small pixel buildings on the map, readable only when zoomed in. Enemy structures and ships are visible only within 35 tiles of your territory or 55 tiles of your warships, so warships double as scouts.
 - **Buildings** (right-click > Build), paid in gold with escalating costs:
   - City: raises your maximum population.
-  - Port: sends trade ships to nearby ports, so both sides earn gold.
-  - Factory: connects rail lines to your cities and ports; trains generate gold.
+  - Trade Port: sends trade ships to nearby trade ports, so both sides earn gold. It is also a rail station.
+  - Military Port: launches invasions overseas and builds warships.
+  - Factory: connects rail lines to your cities and trade ports; trains generate gold.
   - Defense Post: raises the cost of attacking nearby tiles.
   - Missile Silo: launches nukes.
   - SAM Launcher: intercepts nukes aimed inside its range.
-  - Warship: built at a port; patrols, sinks transports, captures trade ships, and fights other warships.
+  - Warship: built at a military port; patrols, sinks transports, captures trade ships, and fights other warships.
 - **Nukes** (right-click > Launch Nuke):
   - Atom Bomb, Hydrogen Bomb, and MIRV (splits into many warheads over the target nation).
   - Nuked land loses its owner and gets fallout, which slowly decays and doubles conquest costs.

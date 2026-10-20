@@ -185,7 +185,8 @@ function GM.Menu:Draw()
             love.graphics.draw(image, panel.x + (panel.w - iw) / 2, panel.y + Style.headerHeight + 14, 0, scale, scale)
         end
         local m = map.manifest
-        local info = string.format("%d x %d  |  %s land tiles  |  %d nations", m.map.width, m.map.height, Format.number(m.map.num_land_tiles or 0), #(m.nations or {}))
+        local opponents = (self.settings.nations and #(m.nations or {}) or 0) + self.settings.bots
+        local info = string.format("%d x %d  |  %s land tiles  |  %d AI opponents", m.map.width, m.map.height, Format.number(m.map.num_land_tiles or 0), opponents)
         love.graphics.setFont(Style.font(13))
         Style.setColor(Style.colors.muted)
         love.graphics.print(info, panel.x + 20, controls.name.y - 44)
@@ -205,12 +206,13 @@ function GM.Menu:Draw()
 
         love.graphics.setFont(Style.font(12))
         Style.setColor(Style.colors.text)
-        love.graphics.print("Bots", c.bots.x, c.bots.y - 20)
+        love.graphics.print("Bots (wild tribes)", c.bots.x, c.bots.y - 20)
         local botsText = tostring(self.settings.bots)
         love.graphics.print(botsText, c.bots.x + c.bots.w - font:getWidth(botsText), c.bots.y - 20)
         Style.slider(c.bots.x, c.bots.y, c.bots.w, self.settings.bots / MAX_BOTS, Style.colors.troops, self.slider ~= nil)
 
-        Style.button(c.nations.x, c.nations.y, c.nations.w, c.nations.h, self.settings.nations and "Nations: On" or "Nations: Off", { active = self.settings.nations })
+        local nationCount = #(m.nations or {})
+        Style.button(c.nations.x, c.nations.y, c.nations.w, c.nations.h, self.settings.nations and string.format("Nations: %d", nationCount) or "Nations: Off", { active = self.settings.nations })
         local dw = c.difficulty.w / #DIFFICULTIES
         for k, d in ipairs(DIFFICULTIES) do
             local label = d:sub(1, 1):upper() .. d:sub(2)

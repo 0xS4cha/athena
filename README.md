@@ -104,7 +104,8 @@ Drag a panel by its header to move it. Positions are saved in `hud_config.txt`, 
 | Flag | Description |
 | --- | --- |
 | `--map assets/maps/europe/` | Map to use with `--autostart` or `--ci` |
-| `--bots 100` | Number of bots |
+| `--bots 100` | Number of bots (wild tribes) |
+| `--nations on\|off` | Spawn the AI nations listed in the map manifest |
 | `--difficulty easy\|medium\|hard` | Nation AI difficulty |
 | `--seed 42` | RNG seed |
 | `--autostart` | Skip the menu |

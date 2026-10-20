@@ -32,6 +32,7 @@ function love.load(args)
     parser:add_argument("screenshot", { default = nil, type = "value" })
     parser:add_argument("ci", { default = false, type = "boolean" })
     parser:add_argument("menu", { default = false, type = "boolean" })
+    parser:add_argument("nations", { default = "on", type = "value" })
     parser:add_argument("zoom", { default = nil, type = "value" })
     parser:add_argument("frames", { default = nil, type = "value" })
     parser:add_argument("layer", { default = nil, type = "value" })
@@ -48,7 +49,7 @@ function love.load(args)
         seed = flags.seed,
         difficulty = flags.difficulty,
         autoplay = flags.autoplay,
-        nations = true
+        nations = flags.nations ~= "off"
     }
 
     if flags.menu then

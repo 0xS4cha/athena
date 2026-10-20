@@ -7,6 +7,14 @@ function Victory.init(game)
     game.stats = { peakTiles = 0, peakRank = nil }
 end
 
+function Victory.started(game)
+    local count = 0
+    for _, player in ipairs(game.players) do
+        if player.alive and player.spawned then count = count + 1 end
+    end
+    game.startingPlayers = count
+end
+
 function Victory.declare(game, winner)
     game.winner = winner
     game.phase = "ended"
@@ -35,7 +43,7 @@ function Victory.step(game)
             end
         end
     end
-    if alive == 1 then
+    if alive == 1 and (game.startingPlayers or 0) > 1 then
         Victory.declare(game, last)
     end
 end

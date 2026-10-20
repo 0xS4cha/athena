@@ -23,10 +23,15 @@ Style.colors = {
 
 local fonts = {}
 
+Style.fontPath = "assets/fonts/Jersey10-Regular.ttf"
+Style.fontScale = 1.4
+
 function Style.font(size)
-    size = math.max(6, math.floor(size + 0.5))
+    size = math.max(8, math.floor(size * Style.fontScale + 0.5))
     if not fonts[size] then
-        fonts[size] = love.graphics.newFont(size)
+        local font = love.graphics.newFont(Style.fontPath, size, "mono")
+        font:setFilter("nearest", "nearest")
+        fonts[size] = font
     end
     return fonts[size]
 end

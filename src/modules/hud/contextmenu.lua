@@ -15,7 +15,7 @@ function ContextMenu:init(hud)
     self.items = {}
     self.stack = {}
     self.hoveredIdx = nil
-    self.width = 230
+    self.width = 260
     self.itemHeight = 26
     self.pressedX = 0
     self.pressedY = 0

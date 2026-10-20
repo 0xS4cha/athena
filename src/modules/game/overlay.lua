@@ -239,7 +239,7 @@ function Overlay.decorateLabel(game, player, sx, y, size)
         end
     end
     if player.embargo[human.id] or human.embargo[player.id] then marks[#marks + 1] = "Locked.png" end
-    local iconSize = math.max(10, size * 0.7)
+    local iconSize = math.max(14, size * 0.8)
     local x = sx - (#marks * (iconSize + 2)) / 2
     for _, name in ipairs(marks) do
         local icon = Icons.get(name)

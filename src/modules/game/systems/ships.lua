@@ -47,9 +47,21 @@ function Ships.landingTile(game, player, tile)
     if ownerId == player.id then return nil end
     if map:isCoast(tile) then return tile end
     local x, y = map:coords(tile)
-    return map:findNear(x, y, Config.boatLandingSearch, function(i)
+    local near = map:findNear(x, y, Config.boatLandingSearch, function(i)
         return map.owner[i] == ownerId and map:isCoast(i)
     end)
+    if near or ownerId == 0 then return near end
+    local best, bestD
+    for b in pairs(game.players[ownerId].borders) do
+        if map:isCoast(b) then
+            local bx, by = map:coords(b)
+            local d = (bx - x) ^ 2 + (by - y) ^ 2
+            if not bestD or d < bestD then
+                best, bestD = b, d
+            end
+        end
+    end
+    return best
 end
 
 function Ships.launchTile(game, player, destination)

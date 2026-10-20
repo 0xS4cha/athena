@@ -29,7 +29,7 @@ function Nukes.check(game, player, kind, tile)
     if game.phase ~= "playing" or not player.alive then return false, "Not now" end
     if player:unitCount("silo") == 0 then return false, "Needs silo" end
     if not Nukes.readySilo(game, player, tile) then return false, "Reloading" end
-    if player.gold < def.cost then return false, "Not enough gold" end
+    if player.gold < def.cost then return false, "No gold" end
     local target = game:playerAt(tile)
     if def.needsPlayer and (not target or target == player) then return false, "Needs enemy" end
     if target == player then return false, "Own land" end

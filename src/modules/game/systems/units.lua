@@ -90,7 +90,7 @@ function Units.check(game, player, kind, tile)
         if map.owner[tile] ~= player.id or not map:isLand(tile) then return false, "Not your land" end
         if not Units.isSpaced(game, tile) then return false, "Too close" end
     end
-    if player.gold < Units.cost(game, player, kind) then return false, "Not enough gold" end
+    if player.gold < Units.cost(game, player, kind) then return false, "No gold" end
     return true, nil, tile
 end
 

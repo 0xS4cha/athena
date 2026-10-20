@@ -1,6 +1,7 @@
 local Style = require("src.modules.hud.style")
 local Format = require("src.core.format")
 local Config = require("src.config.game")
+local Attack = require("src.modules.game.systems.attack")
 
 local Control = { id = "control", title = "EMPIRE", panel = true }
 
@@ -32,8 +33,61 @@ function Control.visible(hud)
     return human.spawned
 end
 
+local MAX_ROWS = 5
+local ROW = 22
+
+local function attackRows(hud)
+    local game = hud:game()
+    local rows = {}
+    for _, attack in ipairs(Attack.outgoing(game, game.human)) do
+        rows[#rows + 1] = { attack = attack, outgoing = true }
+    end
+    for _, attack in ipairs(Attack.incoming(game, game.human)) do
+        rows[#rows + 1] = { attack = attack, outgoing = false }
+    end
+    while #rows > MAX_ROWS do
+        table.remove(rows)
+    end
+    return rows
+end
+
 function Control.extraHeight(hud)
-    return 0
+    local n = #attackRows(hud)
+    return n > 0 and n * ROW + 8 or 0
+end
+
+function Control.drawExtra(hud, x, y, w)
+    local font = Style.font(12)
+    love.graphics.setFont(font)
+    for k, row in ipairs(attackRows(hud)) do
+        local ry = y + (k - 1) * ROW
+        local attack = row.attack
+        local name
+        if row.outgoing then
+            name = "> " .. (attack.target and attack.target.name or "Wilderness")
+            Style.setColor(Style.colors.text)
+        else
+            name = "< " .. attack.attacker.name
+            Style.setColor(Style.colors.bad)
+        end
+        love.graphics.print(name, x + PAD, ry + 3)
+        local troops = Format.number(attack.troops)
+        local right = row.outgoing and 70 or 0
+        love.graphics.print(troops, x + w - PAD - right - font:getWidth(troops) - 6, ry + 3)
+        if row.outgoing then
+            Style.button(x + w - PAD - 64, ry, 64, 19, "Retreat", { size = 11 })
+        end
+    end
+end
+
+function Control.pressExtra(hud, mx, my, x, y, w)
+    local game = hud:game()
+    for k, row in ipairs(attackRows(hud)) do
+        if row.outgoing and Style.inside(mx, my, x + w - PAD - 64, y + (k - 1) * ROW, 64, 19) then
+            game:pushIntent({ type = "retreat", player = game.human.id, attack = row.attack.id })
+            return
+        end
+    end
 end
 
 function Control.size(hud)

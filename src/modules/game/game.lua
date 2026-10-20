@@ -7,7 +7,8 @@ local Palette = require("src.modules.player.palette")
 
 local Systems = {
     require("src.modules.game.systems.spawn"),
-    require("src.modules.game.systems.economy")
+    require("src.modules.game.systems.economy"),
+    require("src.modules.game.systems.attack")
 }
 
 local Game = Class()
@@ -129,6 +130,24 @@ function Game:setOwner(i, id)
     if i < map.size - w then self:refreshBorder(i + w) end
 
     self:emit("tileChanged", i, previous, id)
+
+    if previous and previous.tiles == 0 and self.phase == "playing" then
+        self:eliminate(previous, id ~= 0 and self.players[id] or nil)
+    end
+end
+
+function Game:eliminate(player, by)
+    if not player.alive then return end
+    player.alive = false
+    player.troops = 0
+    player.workers = 0
+    self:emit("eliminated", player, by)
+    if player == self.human then
+        self:addEvent("You have been eliminated!", { color = { 0.95, 0.35, 0.3, 1 }, duration = 600 })
+    elseif not player:isBot() then
+        local text = by and string.format("%s was conquered by %s", player.name, by.name) or (player.name .. " has collapsed")
+        self:addEvent(text, { color = { 0.95, 0.6, 0.3, 1 } })
+    end
 end
 
 function Game:emit(name, ...)

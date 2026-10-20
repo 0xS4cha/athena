@@ -3,6 +3,7 @@ local bit = require("bit")
 local Class = require("src.core.class")
 local Config = require("src.config.game")
 local Map = require("src.modules.map.map")
+local GameConfig = require("src.config.game")
 
 local band = bit.band
 local floor = math.floor
@@ -107,7 +108,10 @@ function Renderer:paintTile(i)
 
     if id == 0 then
         local f = map.fallout[i]
-        if f > 0 then
+        if f >= GameConfig.scorchedFallout then
+            local n = (i * 2654435761) % 7
+            ptr[o], ptr[o + 1], ptr[o + 2], ptr[o + 3] = 38 + n * 3, 32 + n * 2, 28 + n, 215
+        elseif f > 0 then
             ptr[o], ptr[o + 1], ptr[o + 2], ptr[o + 3] = 110, 190, 50, 40 + floor(f * 0.6)
         else
             ptr[o], ptr[o + 1], ptr[o + 2], ptr[o + 3] = 0, 0, 0, 0

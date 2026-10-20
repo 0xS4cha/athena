@@ -330,37 +330,107 @@ function Overlay.drawShip(game, camera, unit)
     end
 end
 
-function Overlay.drawNuke(game, camera, unit)
-    local def = Config.nukes[unit.nukeKind]
-    local sx, sy = camera:toScreen(unit.fromX, unit.fromY)
-    local cx, cy = camera:toScreen(unit.x, unit.y)
-    local tx, ty = camera:toScreen(unit.toX, unit.toY)
-    local pulse = 0.5 + 0.5 * math.sin(love.timer.getTime() * 8)
-    if unit.nukeKind ~= "warhead" then
-        love.graphics.setColor(1, 0.2, 0.15, 0.25 + 0.25 * pulse)
-        love.graphics.setLineWidth(2)
-        love.graphics.circle("line", tx, ty, def.outer * camera.scale)
-        love.graphics.setColor(1, 0.2, 0.15, 0.12)
-        love.graphics.circle("fill", tx, ty, def.inner * camera.scale)
-        love.graphics.setColor(1, 0.6, 0.3, 0.5)
-        love.graphics.setLineWidth(1.5)
-        love.graphics.line(sx, sy, cx, cy)
-    end
-    love.graphics.setColor(1, 0.9, 0.4, 1)
-    love.graphics.circle("fill", cx, cy, unit.nukeKind == "warhead" and 2 or 4)
-    love.graphics.setColor(1, 0.3, 0.1, 1)
-    love.graphics.circle("line", cx, cy, unit.nukeKind == "warhead" and 3 or 6)
+local function pixel(camera, x, y, size, r, g, b, a)
+    love.graphics.setColor(r, g, b, a)
+    local sx, sy = camera:toScreen(math.floor(x), math.floor(y))
+    love.graphics.rectangle("fill", sx, sy, size, size)
 end
 
+local function pixelRing(camera, cx, cy, radius, size, step)
+    local count = math.max(16, math.floor(radius * 6.28 / step))
+    for k = 0, count - 1 do
+        local angle = k / count * math.pi * 2
+        local sx, sy = camera:toScreen(math.floor(cx + math.cos(angle) * radius), math.floor(cy + math.sin(angle) * radius))
+        love.graphics.rectangle("fill", sx, sy, size, size)
+    end
+end
+
+local bit = require("bit")
+
+local function noise(a, b)
+    return bit.band(bit.bxor(a * 73856093, b * 19349663), 0x7fffffff) % 97
+end
+
+function Overlay.drawNuke(game, camera, unit)
+    local def = Config.nukes[unit.nukeKind]
+    local size = math.max(1.5, camera.scale)
+    local blink = math.floor(love.timer.getTime() * 4) % 2 == 0
+    if unit.nukeKind ~= "warhead" then
+        love.graphics.setColor(1, 0.2, 0.15, blink and 0.9 or 0.4)
+        pixelRing(camera, unit.toX, unit.toY, def.outer, size, 2)
+        love.graphics.setColor(1, 0.45, 0.2, 0.7)
+        pixelRing(camera, unit.toX, unit.toY, def.inner, size, 3)
+        local dx, dy = unit.x - unit.fromX, unit.y - unit.fromY
+        local length = math.sqrt(dx * dx + dy * dy)
+        local trail = math.min(length, 40)
+        for k = 1, math.floor(trail) do
+            local t = k / math.max(1, length)
+            local fade = 1 - k / (trail + 1)
+            local shade = 0.55 + (noise(k, game.tick) % 3) * 0.1
+            pixel(camera, unit.x - dx * t, unit.y - dy * t, size, shade, shade, shade, 0.7 * fade)
+        end
+    end
+    pixel(camera, unit.x, unit.y, size, 1, 1, 0.85, 1)
+    if unit.nukeKind ~= "warhead" then
+        pixel(camera, unit.x + 1, unit.y, size, 1, 0.55, 0.15, 1)
+        pixel(camera, unit.x, unit.y + 1, size, 1, 0.55, 0.15, 1)
+        pixel(camera, unit.x + 1, unit.y + 1, size, 0.9, 0.2, 0.1, 1)
+    end
+end
+
+local FIRE = {
+    { 1, 1, 0.85 },
+    { 1, 0.85, 0.3 },
+    { 1, 0.55, 0.12 },
+    { 0.85, 0.22, 0.08 },
+    { 0.45, 0.42, 0.4 }
+}
+
 function Overlay.drawExplosions(game, camera)
+    local frame = math.floor(love.timer.getTime() * 10)
     for _, e in ipairs(game.explosions or {}) do
-        local age = (game.tick - e.tick) / 20
-        local sx, sy = camera:toScreen(e.x, e.y)
-        love.graphics.setColor(1, 0.85 - age * 0.5, 0.4 - age * 0.3, 0.7 * (1 - age))
-        love.graphics.circle("fill", sx, sy, e.radius * camera.scale * (0.4 + age * 0.8))
-        love.graphics.setColor(1, 1, 1, 0.8 * (1 - age))
-        love.graphics.setLineWidth(2)
-        love.graphics.circle("line", sx, sy, e.radius * camera.scale * (0.5 + age))
+        local age = (game.tick - e.tick) / Config.explosionTicks
+        local alpha = 1 - age
+        local radius = e.radius * math.min(1, 0.3 + age * 2)
+        local step = radius > 40 and 2 or 1
+        local size = math.max(1, camera.scale) * step
+        local cx, cy = math.floor(e.x), math.floor(e.y)
+        local r = math.floor(radius)
+        for dy = -r, r, step do
+            for dx = -r, r, step do
+                local d2 = dx * dx + dy * dy
+                if d2 <= r * r then
+                    local n = noise(cx + dx, cy + dy + frame)
+                    if n < 60 then
+                        local heat = math.sqrt(d2) / math.max(1, r) + age * 1.4
+                        local index = math.min(#FIRE, 1 + math.floor(heat * 2.5 + (n % 3) * 0.4))
+                        local c = FIRE[index]
+                        pixel(camera, cx + dx, cy + dy, size, c[1], c[2], c[3], alpha * (index == #FIRE and 0.6 or 0.9))
+                    end
+                end
+            end
+        end
+        love.graphics.setColor(1, 1, 1, alpha * 0.9)
+        pixelRing(camera, cx, cy, e.radius * (0.6 + age * 1.2), math.max(1.5, camera.scale), 1.5)
+        if e.radius >= 20 and age > 0.2 then
+            local rise = e.radius * 0.9 * math.min(1, age * 1.5)
+            local cap = math.floor(e.radius * 0.35)
+            for dy = -cap, math.floor(cap / 2) do
+                for dx = -cap, cap do
+                    if dx * dx + dy * dy * 3 <= cap * cap then
+                        local n = noise(dx, dy + frame)
+                        local c = FIRE[n % 2 == 0 and 5 or 3]
+                        pixel(camera, cx + dx, cy - rise + dy, math.max(1, camera.scale), c[1], c[2], c[3], alpha * 0.85)
+                    end
+                end
+            end
+            for y = 0, math.floor(rise) do
+                local width = math.max(1, math.floor(cap * 0.25))
+                for dx = -width, width do
+                    pixel(camera, cx + dx, cy - y, math.max(1, camera.scale), 0.5, 0.45, 0.42, alpha * 0.7)
+                end
+            end
+        end
     end
 end
 

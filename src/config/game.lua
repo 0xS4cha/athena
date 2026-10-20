@@ -83,6 +83,8 @@ local CONFIG = {
         warhead = { label = "Warhead", cost = 0, inner = 6, outer = 12, speed = 12 }
     },
     falloutStrength = 200,
+    scorchedFallout = 150,
+    explosionTicks = 40,
     falloutDecay = 4,
     falloutDecayTicks = 10,
     nukeTroopKill = 1.5,

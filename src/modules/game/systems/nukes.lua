@@ -187,7 +187,7 @@ end
 function Nukes.step(game)
     if game.phase ~= "playing" then return end
     for k = #game.explosions, 1, -1 do
-        if game.tick - game.explosions[k].tick > 20 then
+        if game.tick - game.explosions[k].tick > Config.explosionTicks then
             table.remove(game.explosions, k)
         end
     end

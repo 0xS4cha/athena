@@ -201,6 +201,43 @@ Overlay.unitDrawers = {
     end
 }
 
+function Overlay.decorateLabel(game, player, sx, y, size)
+    local human = game.human
+    local marks = {}
+    if player:isAlliedWith(human) then marks[#marks + 1] = "Team.png" end
+    if player.traitorUntil > game.tick then marks[#marks + 1] = "Unlocked.png" end
+    if human.target == player.id then marks[#marks + 1] = "MagnifyingGlass.png" end
+    for id in pairs(human.allies) do
+        local ally = game.players[id]
+        if ally and ally.target == player.id then
+            marks[#marks + 1] = "MagnifyingGlass.png"
+            break
+        end
+    end
+    if player.embargo[human.id] or human.embargo[player.id] then marks[#marks + 1] = "Locked.png" end
+    local iconSize = math.max(10, size * 0.7)
+    local x = sx - (#marks * (iconSize + 2)) / 2
+    for _, name in ipairs(marks) do
+        local icon = Icons.get(name)
+        if icon then
+            love.graphics.setColor(1, 1, 1, 1)
+            love.graphics.draw(icon, x, y - iconSize - 2, 0, iconSize / icon:getWidth(), iconSize / icon:getHeight())
+        end
+        x = x + iconSize + 2
+    end
+    if player.emoji then
+        local icon = Icons.get(player.emoji.icon)
+        if icon then
+            local s = math.max(18, size * 1.4)
+            local bob = math.sin(love.timer.getTime() * 4) * 3
+            love.graphics.setColor(0, 0, 0, 0.5)
+            love.graphics.circle("fill", sx, y - iconSize - s / 2 - 6 + bob, s * 0.7)
+            love.graphics.setColor(1, 1, 1, 1)
+            love.graphics.draw(icon, sx - s / 2, y - iconSize - s - 6 + bob, 0, s / icon:getWidth(), s / icon:getHeight())
+        end
+    end
+end
+
 function Overlay.draw(game, camera)
     love.graphics.push("all")
     local W, H = love.graphics.getDimensions()

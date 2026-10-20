@@ -27,6 +27,18 @@ function Info.draw(hud)
         parts[#parts + 1] = owner.name
         parts[#parts + 1] = Format.number(owner.troops) .. " troops"
         parts[#parts + 1] = Format.percent(owner.tiles / map.landCount)
+        local human = game.human
+        if owner == human then
+            parts[#parts + 1] = "You"
+        elseif owner:isAlliedWith(human) then
+            parts[#parts + 1] = "Ally"
+        end
+        if owner.traitorUntil > game.tick then
+            parts[#parts + 1] = "Traitor"
+        end
+        if human.embargo[owner.id] then
+            parts[#parts + 1] = "Embargo"
+        end
     end
     local text = table.concat(parts, "  |  ")
 

@@ -13,6 +13,7 @@ local Systems = {
     require("src.modules.game.systems.units"),
     require("src.modules.game.systems.ships"),
     require("src.modules.game.systems.nukes"),
+    require("src.modules.game.systems.diplomacy"),
     require("src.modules.game.systems.ai"),
     require("src.modules.game.systems.victory")
 }
@@ -245,6 +246,14 @@ function Game:report()
     for k, v in pairs(counts) do parts[#parts + 1] = k .. "=" .. v end
     table.sort(parts)
     Logger:info("game", "units " .. table.concat(parts, " "))
+    local alliances = 0
+    for _, p in ipairs(self.players) do
+        for _ in pairs(p.allies) do alliances = alliances + 1 end
+    end
+    Logger:info("game", string.format("alliances=%d events=%d", alliances / 2, #self.events))
+    for _, e in ipairs(self.events) do
+        Logger:trace("event", e.text)
+    end
     local alive = self:alivePlayers()
     table.sort(alive, function(a, b) return a.tiles > b.tiles end)
     Logger:info("game", string.format("tick=%d phase=%s alive=%d", self.tick, self.phase, #alive))

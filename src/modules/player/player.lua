@@ -27,6 +27,7 @@ function Player:init(id, name, kind, color, flag)
     self.borders = {}
     self.allies = {}
     self.allianceRequests = {}
+    self.requestEvents = {}
     self.embargo = {}
     self.relations = {}
     self.traitorUntil = -1

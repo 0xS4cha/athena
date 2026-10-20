@@ -137,6 +137,78 @@ Interaction.sections[#Interaction.sections + 1] = function(game, tile, items)
     }
 end
 
+Interaction.sections[#Interaction.sections + 1] = function(game, tile, items)
+    local human = game.human
+    local target = game:playerAt(tile)
+    if not target or target == human or not target.alive then return end
+    local GOOD, BAD = { 0.3, 0.85, 0.45, 1 }, { 0.95, 0.35, 0.3, 1 }
+    if human:isAlliedWith(target) then
+        items[#items + 1] = {
+            label = "Donate Troops",
+            icon = "Team.png",
+            sublabel = Format.number(human.troops * human.attackRatio),
+            sublabelColor = { 0.45, 0.75, 1, 1 },
+            action = function() game:pushIntent({ type = "donate", player = human.id, target = target.id, kind = "troops" }) end
+        }
+        items[#items + 1] = {
+            label = "Donate Gold",
+            icon = "Coin.png",
+            sublabel = Format.number(human.gold * human.attackRatio),
+            action = function() game:pushIntent({ type = "donate", player = human.id, target = target.id, kind = "gold" }) end
+        }
+        items[#items + 1] = {
+            label = "Break Alliance",
+            icon = "Unlocked.png",
+            color = BAD,
+            action = function() game:pushIntent({ type = "allianceBreak", player = human.id, target = target.id }) end
+        }
+    elseif not target:isBot() then
+        local pending = target.allianceRequests[human.id] ~= nil
+        local incoming = human.allianceRequests[target.id] ~= nil
+        items[#items + 1] = {
+            label = incoming and "Accept Alliance" or "Request Alliance",
+            icon = "Team.png",
+            color = GOOD,
+            disabled = pending,
+            sublabel = pending and "Pending" or nil,
+            action = function()
+                if incoming then
+                    game:pushIntent({ type = "allianceReply", player = human.id, from = target.id, accept = true })
+                else
+                    game:pushIntent({ type = "allianceRequest", player = human.id, target = target.id })
+                end
+            end
+        }
+    end
+    local embargoed = human.embargo[target.id] ~= nil
+    items[#items + 1] = {
+        label = embargoed and "Lift Embargo" or "Embargo",
+        icon = "Locked.png",
+        action = function() game:pushIntent({ type = "embargo", player = human.id, target = target.id, enabled = not embargoed }) end
+    }
+    local targeted = human.target == target.id
+    items[#items + 1] = {
+        label = targeted and "Clear Target" or "Mark As Target",
+        icon = "MagnifyingGlass.png",
+        action = function() game:pushIntent({ type = "setTarget", player = human.id, target = not targeted and target.id or nil }) end
+    }
+    items[#items + 1] = {
+        label = "Send Emoji",
+        icon = "Sun.png",
+        submenu = function()
+            local list = {}
+            for _, icon in ipairs(Config.emojis) do
+                list[#list + 1] = {
+                    label = icon:gsub("%.png$", ""),
+                    icon = icon,
+                    action = function() game:pushIntent({ type = "emoji", player = human.id, target = target.id, icon = icon }) end
+                }
+            end
+            return "EMOJI", list
+        end
+    }
+end
+
 function Interaction.menu(game, tile)
     local map = game.map
     local x, y = map:coords(tile)

@@ -35,6 +35,7 @@ function love.load(args)
     parser:add_argument("zoom", { default = nil, type = "value" })
     parser:add_argument("frames", { default = nil, type = "value" })
     parser:add_argument("layer", { default = nil, type = "value" })
+    parser:add_argument("focus", { default = nil, type = "value" })
     flags = parser:parse(args)
     GM.Flags = flags
 
@@ -77,6 +78,14 @@ function love.load(args)
             end
             if flags.layer then
                 game.renderer.layers[flags.layer] = true
+            end
+            if flags.focus then
+                local tile = game.combat.tiles[game.combat.head]
+                if tile then
+                    local x, y = game.map:coords(tile)
+                    GM.Session.Camera:zoom(flags.focus)
+                    GM.Session.Camera:centerOn(x, y)
+                end
             end
             if flags.zoom then
                 local camera = GM.Session.Camera

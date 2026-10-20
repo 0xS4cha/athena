@@ -241,6 +241,7 @@ function Attack.stepAttack(game, attack)
             end
             game:setOwner(i, attacker.id)
             enqueueNeighbors(game, attack, i)
+            Attack.recordFront(game, attack, i)
             budget = budget - 1
             if target and not target.alive then
                 Attack.finish(game, attack)
@@ -253,6 +254,23 @@ end
 function Attack.init(game)
     game.attacks = {}
     game.attackSerial = 0
+    game.combat = { tiles = {}, ticks = {}, head = 0 }
+end
+
+function Attack.recordFront(game, attack, i)
+    local recent = attack.recent
+    if not recent then
+        recent = { head = 0 }
+        attack.recent = recent
+    end
+    recent.head = recent.head % Config.recentFront + 1
+    recent[recent.head] = i
+    if attack.target then
+        local combat = game.combat
+        combat.head = combat.head % Config.combatBuffer + 1
+        combat.tiles[combat.head] = i
+        combat.ticks[combat.head] = game.tick
+    end
 end
 
 function Attack.step(game)

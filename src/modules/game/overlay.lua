@@ -396,6 +396,43 @@ function Overlay.drawSupply(game, camera)
     end
 end
 
+local COMBAT_COLORS = {
+    { 1, 0.95, 0.7 },
+    { 1, 0.6, 0.15 },
+    { 0.95, 0.25, 0.1 }
+}
+
+function Overlay.drawCombat(game, camera, W, H)
+    local combat = game.combat
+    if not combat then return end
+    local map = game.map
+    local size = math.max(1.5, camera.scale)
+    local frame = math.floor(love.timer.getTime() * 12)
+    local window = Config.combatTicks
+    for k = 1, #combat.tiles do
+        local age = game.tick - combat.ticks[k]
+        if age < window then
+            local tile = combat.tiles[k]
+            local x, y = map:coords(tile)
+            local sx, sy = camera:toScreen(x, y)
+            if sx > -size and sy > -size and sx < W and sy < H then
+                local seed = (tile * 7 + frame) % 5
+                if seed < 3 then
+                    local c = COMBAT_COLORS[seed + 1]
+                    love.graphics.setColor(c[1], c[2], c[3], 1 - age / window)
+                    love.graphics.rectangle("fill", sx, sy, size, size)
+                end
+                if seed == 0 and camera.scale >= 3 then
+                    local ox = (tile % 3) - 1
+                    local oy = (math.floor(tile / 3) % 3) - 1
+                    love.graphics.setColor(1, 1, 0.8, 0.8 * (1 - age / window))
+                    love.graphics.rectangle("fill", sx + ox * size, sy + oy * size, size, size)
+                end
+            end
+        end
+    end
+end
+
 function Overlay.draw(game, camera)
     love.graphics.push("all")
     local W, H = love.graphics.getDimensions()
@@ -403,6 +440,7 @@ function Overlay.draw(game, camera)
     if layers.supply and game.phase == "playing" then
         Overlay.drawSupply(game, camera)
     end
+    Overlay.drawCombat(game, camera, W, H)
     if layers.units then
         Overlay.drawRails(game, camera)
         Overlay.drawUnits(game, camera, W, H)

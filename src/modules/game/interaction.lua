@@ -1,6 +1,11 @@
 local Interaction = {}
 
 function Interaction.click(game, tile)
+    local human = game.human
+    if game.phase == "spawn" then
+        game:pushIntent({ type = "spawn", player = human.id, tile = tile })
+        return
+    end
 end
 
 function Interaction.menu(game, tile)

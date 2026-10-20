@@ -5,7 +5,9 @@ local Renderer = require("src.modules.map.renderer")
 local Player = require("src.modules.player.player")
 local Palette = require("src.modules.player.palette")
 
-local Systems = {}
+local Systems = {
+    require("src.modules.game.systems.spawn")
+}
 
 local Game = Class()
 
@@ -26,6 +28,7 @@ function Game:init(options)
     self.speedIndex = 1
     self.paused = false
     self.renderer = Renderer(self)
+    self.human = self:addPlayer(self.options.playerName or "Player", "human", self.options.playerFlag)
 
     for _, system in ipairs(Systems) do
         if system.intents then
@@ -35,19 +38,6 @@ function Game:init(options)
         end
         if system.init then
             system.init(self)
-        end
-    end
-
-    self:createPlayers()
-end
-
-function Game:createPlayers()
-    self.human = self:addPlayer(self.options.playerName or "Player", "human", self.options.playerFlag)
-    local nations = self.map.manifest.nations or {}
-    for _, nation in ipairs(nations) do
-        if nation.coordinates then
-            local player = self:addPlayer(nation.name, "nation", nation.flag)
-            self:claimDisk(player, nation.coordinates[1], nation.coordinates[2], 4)
         end
     end
 end
@@ -70,11 +60,24 @@ end
 
 function Game:claimDisk(player, cx, cy, radius)
     local map = self.map
+    local count = 0
     map:forDisk(cx, cy, radius, function(i)
         if map:isLand(i) and map.owner[i] == 0 then
             self:setOwner(i, player.id)
+            count = count + 1
         end
     end)
+    return count
+end
+
+function Game:alivePlayers()
+    local list = {}
+    for _, player in ipairs(self.players) do
+        if player.alive and player.spawned then
+            list[#list + 1] = player
+        end
+    end
+    return list
 end
 
 function Game:refreshBorder(i)

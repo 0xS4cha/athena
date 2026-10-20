@@ -2,6 +2,7 @@ local Style = require("src.modules.hud.style")
 local Format = require("src.core.format")
 local Config = require("src.config.game")
 local Icons = require("src.modules.hud.icons")
+local Rails = require("src.modules.game.systems.rails")
 
 local Overlay = {}
 
@@ -91,6 +92,29 @@ function Overlay.drawBuilding(game, camera, unit, radius)
         love.graphics.setColor(1, 1, 1, 1)
         love.graphics.setLineWidth(2)
         love.graphics.arc("line", "open", sx, sy, radius + 3, -math.pi / 2, -math.pi / 2 + progress * math.pi * 2)
+    end
+end
+
+function Overlay.drawRails(game, camera)
+    if not game.rails or #game.rails == 0 then return end
+    local width = math.max(1, math.min(3, camera.scale * 0.6))
+    for _, rail in ipairs(game.rails) do
+        local ax, ay = camera:toScreen(rail.a.x, rail.a.y)
+        local bx, by = camera:toScreen(rail.b.x, rail.b.y)
+        love.graphics.setColor(0.15, 0.15, 0.17, 0.85)
+        love.graphics.setLineWidth(width + 2)
+        love.graphics.line(ax, ay, bx, by)
+        love.graphics.setColor(0.65, 0.62, 0.55, 0.9)
+        love.graphics.setLineWidth(width)
+        love.graphics.line(ax, ay, bx, by)
+        if camera.scale >= 1 then
+            local tx, ty = camera:toScreen(Rails.trainPosition(game, rail))
+            local c = rail.a.owner.color
+            love.graphics.setColor(0, 0, 0, 0.8)
+            love.graphics.rectangle("fill", tx - 4, ty - 3, 8, 6)
+            love.graphics.setColor(c[1], c[2], c[3], 1)
+            love.graphics.rectangle("fill", tx - 3, ty - 2, 6, 4)
+        end
     end
 end
 
@@ -243,6 +267,7 @@ function Overlay.draw(game, camera)
     local W, H = love.graphics.getDimensions()
     local layers = game.renderer.layers
     if layers.units then
+        Overlay.drawRails(game, camera)
         Overlay.drawUnits(game, camera, W, H)
     end
     Overlay.drawExplosions(game, camera)

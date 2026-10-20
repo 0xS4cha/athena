@@ -68,6 +68,12 @@ Builder.wishes = {
         end
     end,
     function(game, player)
+        local cities = player:unitCount("city")
+        if cities >= 2 and player:unitCount("factory") < 1 + math.floor(cities / 3) then
+            return "factory", randomOwnTile(game, player, function(i) return Units.isSpaced(game, i) end)
+        end
+    end,
+    function(game, player)
         if player:unitCount("port") > 0 and player:unitCount("warship") < math.ceil(player:unitCount("port") / 2) and game.rng:random() < 0.3 then
             local port = Units.nearestPort(game, player, player.spawnTile or 0)
             if port then return "warship", port.tile end

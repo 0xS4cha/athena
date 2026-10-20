@@ -12,6 +12,7 @@ local Systems = {
     require("src.modules.game.systems.attack"),
     require("src.modules.game.systems.units"),
     require("src.modules.game.systems.ships"),
+    require("src.modules.game.systems.rails"),
     require("src.modules.game.systems.nukes"),
     require("src.modules.game.systems.diplomacy"),
     require("src.modules.game.systems.ai"),
@@ -250,7 +251,7 @@ function Game:report()
     for _, p in ipairs(self.players) do
         for _ in pairs(p.allies) do alliances = alliances + 1 end
     end
-    Logger:info("game", string.format("alliances=%d events=%d", alliances / 2, #self.events))
+    Logger:info("game", string.format("alliances=%d rails=%d events=%d", alliances / 2, #(self.rails or {}), #self.events))
     for _, e in ipairs(self.events) do
         Logger:trace("event", e.text)
     end

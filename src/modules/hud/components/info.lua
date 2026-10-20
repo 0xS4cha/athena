@@ -7,6 +7,7 @@ local Info = { id = "info" }
 local Config = require("src.config.game")
 local Attack = require("src.modules.game.systems.attack")
 local Overlay = require("src.modules.game.overlay")
+local Supply = require("src.modules.game.systems.supply")
 
 function Info.draw(hud)
     local game = hud:game()
@@ -19,6 +20,10 @@ function Info.draw(hud)
     local parts = { string.format("X:%d Y:%d", x, y), Config.biomes[biome].label }
     if biome ~= "water" and game.human.spawned then
         parts[#parts + 1] = string.format("Cost x%.1f", Attack.biomeMultiplier(game.human, biome))
+        if game.phase == "playing" then
+            local supply = Supply.multiplier(game, game.human, tile)
+            parts[#parts + 1] = supply > 1 and string.format("Supply x%.1f", supply) or "Supplied"
+        end
     end
     local camera = hud:camera()
     local structure = Overlay.structureAlpha(camera) > 0 and Overlay.structureAt(game, tile)

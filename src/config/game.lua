@@ -108,6 +108,12 @@ local CONFIG = {
     capitalTroopLoss = 0.15,
     capitalPenalty = 0.5,
     capitalSearch = 60,
+    supplyRange = 45,
+    supplyFalloff = 70,
+    supplyMaxPenalty = 3,
+    supplyRefreshTicks = 20,
+    supplyRailStep = 12,
+    supplySources = { capital = true, city = true, militaryPort = true },
     winRatio = 0.8,
     victoryCheckTicks = 10,
     difficulties = {

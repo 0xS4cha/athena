@@ -34,6 +34,7 @@ function love.load(args)
     parser:add_argument("menu", { default = false, type = "boolean" })
     parser:add_argument("zoom", { default = nil, type = "value" })
     parser:add_argument("frames", { default = nil, type = "value" })
+    parser:add_argument("layer", { default = nil, type = "value" })
     flags = parser:parse(args)
     GM.Flags = flags
 
@@ -73,6 +74,9 @@ function love.load(args)
             Logger:info("ci", string.format("Simulated %d ticks in %.2fs", flags.ticks, love.timer.getTime() - started))
             if game.report then
                 game:report()
+            end
+            if flags.layer then
+                game.renderer.layers[flags.layer] = true
             end
             if flags.zoom then
                 local camera = GM.Session.Camera

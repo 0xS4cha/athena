@@ -1,6 +1,7 @@
 local Config = require("src.config.game")
 local NumHeap = require("src.modules.algorithms.numheap")
 local Format = require("src.core.format")
+local Supply = require("src.modules.game.systems.supply")
 
 local Attack = {}
 
@@ -107,6 +108,9 @@ end
 
 function Attack.cost(game, attack, i)
     local terrain = Attack.terrainMultiplier(game, i, attack.attacker)
+    if attack.attacker then
+        terrain = terrain * Supply.multiplier(game, attack.attacker, i)
+    end
     local target = attack.target
     if not target then
         return Config.neutralTileCost * terrain, 0

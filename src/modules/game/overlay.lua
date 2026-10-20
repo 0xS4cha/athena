@@ -3,6 +3,7 @@ local Format = require("src.core.format")
 local Config = require("src.config.game")
 local Icons = require("src.modules.hud.icons")
 local Rails = require("src.modules.game.systems.rails")
+local Supply = require("src.modules.game.systems.supply")
 
 local Overlay = {}
 
@@ -367,10 +368,32 @@ function Overlay.decorateLabel(game, player, sx, y, size)
     end
 end
 
+function Overlay.drawSupply(game, camera)
+    local points = Supply.points(game, game.human)
+    if not points then return end
+    local radius = Config.supplyRange
+    local size = math.max(1, camera.scale)
+    love.graphics.setColor(0.45, 1, 0.55, 0.8)
+    local steps = math.max(24, math.floor(radius * 4))
+    for k = 1, #points, 2 do
+        local cx, cy = points[k], points[k + 1]
+        for s = 0, steps - 1 do
+            if s % 4 ~= 3 then
+                local angle = s / steps * math.pi * 2
+                local sx, sy = camera:toScreen(math.floor(cx + math.cos(angle) * radius), math.floor(cy + math.sin(angle) * radius))
+                love.graphics.rectangle("fill", sx, sy, size, size)
+            end
+        end
+    end
+end
+
 function Overlay.draw(game, camera)
     love.graphics.push("all")
     local W, H = love.graphics.getDimensions()
     local layers = game.renderer.layers
+    if layers.supply and game.phase == "playing" then
+        Overlay.drawSupply(game, camera)
+    end
     if layers.units then
         Overlay.drawRails(game, camera)
         Overlay.drawUnits(game, camera, W, H)

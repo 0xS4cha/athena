@@ -62,7 +62,7 @@ end
 function Renderer:init(game)
     self.game = game
     self.map = game.map
-    self.layers = { terrain = true, political = true, units = true, names = true }
+    self.layers = { terrain = true, political = true, units = true, names = true, supply = false }
 
     local map = self.map
     local w, h = map.width, map.height

@@ -21,6 +21,7 @@ function Player:init(id, name, kind, color, flag)
     self.income = 0
     self.tiles = 0
     self.cities = 0
+    self.biomeTiles = { [0] = 0, 0, 0, 0, 0 }
     self.unitCounts = {}
     self.sumX = 0
     self.sumY = 0
@@ -63,6 +64,11 @@ function Player:center()
         return 0, 0
     end
     return self.sumX / self.tiles + 0.5, self.sumY / self.tiles + 0.5
+end
+
+function Player:familiarity(biomeId)
+    if self.tiles == 0 then return 0 end
+    return math.min(1, (self.biomeTiles[biomeId] or 0) / self.tiles / Config.biomeFamiliarShare)
 end
 
 function Player:unitCount(kind)

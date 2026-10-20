@@ -4,12 +4,8 @@ local Format = require("src.core.format")
 
 local Info = { id = "info" }
 
-local TERRAIN_LABELS = {
-    water = "Water",
-    plains = "Plains",
-    highland = "Highland",
-    mountain = "Mountain"
-}
+local Config = require("src.config.game")
+local Attack = require("src.modules.game.systems.attack")
 
 function Info.draw(hud)
     local game = hud:game()
@@ -18,7 +14,11 @@ function Info.draw(hud)
 
     local map = game.map
     local x, y = map:coords(tile)
-    local parts = { string.format("X:%d Y:%d", x, y), TERRAIN_LABELS[map:terrainType(tile)] }
+    local biome = map:terrainType(tile)
+    local parts = { string.format("X:%d Y:%d", x, y), Config.biomes[biome].label }
+    if biome ~= "water" and game.human.spawned then
+        parts[#parts + 1] = string.format("Cost x%.1f", Attack.biomeMultiplier(game.human, biome))
+    end
     if map.fallout[tile] > 0 then
         parts[#parts + 1] = "Fallout"
     end

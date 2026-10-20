@@ -90,9 +90,15 @@ function Attack.neighbors(game, player)
     return list, neutral
 end
 
-function Attack.terrainMultiplier(game, i)
+function Attack.biomeMultiplier(player, biomeName)
+    local biome = Config.biomes[biomeName]
+    return biome.cost * (1 + biome.penalty * (1 - player:familiarity(biome.id)))
+end
+
+function Attack.terrainMultiplier(game, i, attacker)
     local map = game.map
-    local mult = Config.terrainCost[map:terrainType(i)] or 1
+    local name = map:terrainType(i)
+    local mult = attacker and Attack.biomeMultiplier(attacker, name) or Config.biomes[name].cost
     if map.fallout[i] > 0 then
         mult = mult * Config.falloutCost
     end
@@ -100,7 +106,7 @@ function Attack.terrainMultiplier(game, i)
 end
 
 function Attack.cost(game, attack, i)
-    local terrain = Attack.terrainMultiplier(game, i)
+    local terrain = Attack.terrainMultiplier(game, i, attack.attacker)
     local target = attack.target
     if not target then
         return Config.neutralTileCost * terrain, 0

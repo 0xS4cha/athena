@@ -91,7 +91,7 @@ function Control.pressExtra(hud, mx, my, x, y, w)
 end
 
 function Control.size(hud)
-    return WIDTH, Style.headerHeight + 190 + Control.extraHeight(hud)
+    return WIDTH, Style.headerHeight + 260 + Control.extraHeight(hud)
 end
 
 function Control.position(_, w, h, W, H)
@@ -140,8 +140,31 @@ function Control.draw(hud, x, y, w)
         Style.slider(x + PAD, sy, w - PAD * 2, s.value, s.color, hud.slider and hud.slider.id == s.label)
     end
 
+    local by = y + Style.headerHeight + 192
+    Style.setColor(Style.colors.text)
+    love.graphics.print("Biome Adaptation", x + PAD, by)
+    local small = Style.font(10)
+    love.graphics.setFont(small)
+    local cw = (w - PAD * 2) / 2
+    for k, name in ipairs(Config.biomeOrder) do
+        local biome = Config.biomes[name]
+        local col, row = (k - 1) % 2, math.floor((k - 1) / 2)
+        local bx = x + PAD + col * cw
+        local ry = by + 20 + row * 22
+        local value = human:familiarity(biome.id)
+        Style.setColor(Style.colors.muted)
+        love.graphics.print(biome.label, bx, ry)
+        local text = string.format("%d%%", math.floor(value * 100))
+        love.graphics.print(text, bx + cw - 12 - small:getWidth(text), ry)
+        love.graphics.setColor(0.05, 0.06, 0.09, 1)
+        love.graphics.rectangle("fill", bx, ry + 13, cw - 12, 5)
+        Style.setColor(biome.color)
+        love.graphics.rectangle("fill", bx, ry + 13, (cw - 12) * value, 5)
+    end
+    love.graphics.setFont(font)
+
     if Control.drawExtra then
-        Control.drawExtra(hud, x, y + Style.headerHeight + 190, w)
+        Control.drawExtra(hud, x, y + Style.headerHeight + 260, w)
     end
 end
 
@@ -155,7 +178,7 @@ function Control.mousePressed(hud, mx, my, button, x, y, w)
         end
     end
     if Control.pressExtra then
-        Control.pressExtra(hud, mx, my, x, y + Style.headerHeight + 190, w)
+        Control.pressExtra(hud, mx, my, x, y + Style.headerHeight + 260, w)
     end
 end
 

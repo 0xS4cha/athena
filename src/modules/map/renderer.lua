@@ -1,13 +1,15 @@
 local ffi = require("ffi")
 local bit = require("bit")
 local Class = require("src.core.class")
+local Config = require("src.config.game")
+local Map = require("src.modules.map.map")
 
 local band = bit.band
 local floor = math.floor
 
 local Renderer = Class()
 
-local function terrainColor(byte)
+local function terrainColor(byte, latitude)
     local isLand = band(byte, 128) ~= 0
     local isShore = band(byte, 64) ~= 0
     local mag = band(byte, 31)
@@ -20,18 +22,21 @@ local function terrainColor(byte)
         return math.max(70 + adj, 0), math.max(132 + adj, 0), math.max(180 + adj, 0)
     end
 
+    local biome = Map.classify(byte, latitude)
+    if biome == Config.biomes.snow.id then
+        local v = 228 + math.min(mag, 27) % 7 * 3
+        return v, math.min(255, v + 6), 255
+    elseif biome == Config.biomes.mountain.id then
+        local v = 118 + (mag - Config.mountainMagnitude) * 7
+        return v + 12, v, v - 14
+    elseif biome == Config.biomes.desert.id then
+        local d = mag - Config.desertMagnitude
+        return 228 - d * 2, 206 - d * 3, 140 - d * 4
+    end
     if isShore then
         return 204, 203, 158
     end
-
-    if mag < 10 then
-        return 190, 220 - 2 * mag, 138
-    elseif mag < 20 then
-        local adj = 2 * mag
-        return 200 + adj, 183 + adj, 138 + adj
-    end
-    local v = math.min(255, floor(230 + mag / 2))
-    return v, v, v
+    return 150 - mag * 4, 205 - mag * 3, 110 - mag * 2
 end
 
 Renderer.terrainColor = terrainColor
@@ -45,7 +50,7 @@ function Renderer.preview(path, manifest)
     local data = love.image.newImageData(w, h)
     local ptr = ffi.cast("uint8_t*", data:getFFIPointer())
     for i = 0, math.min(#raw, w * h) - 1 do
-        local r, g, b = terrainColor(raw:byte(i + 1))
+        local r, g, b = terrainColor(raw:byte(i + 1), (math.floor(i / w) + 0.5) / h)
         ptr[i * 4], ptr[i * 4 + 1], ptr[i * 4 + 2], ptr[i * 4 + 3] = r, g, b, 255
     end
     local image = love.graphics.newImage(data)
@@ -69,7 +74,7 @@ function Renderer:init(game)
 
     for i = 0, map.size - 1 do
         local byte = terrain[i]
-        local r, g, b = terrainColor(byte)
+        local r, g, b = terrainColor(byte, (math.floor(i / w) + 0.5) / h)
         local o = i * 4
         tp[o], tp[o + 1], tp[o + 2], tp[o + 3] = r, g, b, 255
         if band(byte, 128) ~= 0 then

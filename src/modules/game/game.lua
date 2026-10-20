@@ -120,7 +120,9 @@ function Game:setOwner(i, id)
     map.owner[i] = id
 
     local previous = old ~= 0 and self.players[old] or nil
+    local biome = map.biome[i]
     if previous then
+        previous.biomeTiles[biome] = previous.biomeTiles[biome] - 1
         previous.tiles = previous.tiles - 1
         previous.sumX = previous.sumX - x
         previous.sumY = previous.sumY - y
@@ -128,6 +130,7 @@ function Game:setOwner(i, id)
     end
     if id ~= 0 then
         local p = self.players[id]
+        p.biomeTiles[biome] = p.biomeTiles[biome] + 1
         p.tiles = p.tiles + 1
         p.sumX = p.sumX + x
         p.sumY = p.sumY + y

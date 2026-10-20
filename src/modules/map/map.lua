@@ -2,11 +2,33 @@ local ffi = require("ffi")
 local bit = require("bit")
 local Class = require("src.core.class")
 local LoadFile = require("src.core.loadFile")
+local Config = require("src.config.game")
 
 local band = bit.band
 local floor = math.floor
 
 local Map = Class()
+
+Map.biomeNames = {}
+for name, biome in pairs(Config.biomes) do
+    Map.biomeNames[biome.id] = name
+end
+
+function Map.classify(byte, latitude)
+    if band(byte, 128) == 0 then
+        return 0
+    end
+    local mag = band(byte, 31)
+    local polar = latitude < Config.polarLatitude or latitude > 1 - Config.polarLatitude
+    if polar or mag >= Config.snowMagnitude then
+        return Config.biomes.snow.id
+    elseif mag >= Config.mountainMagnitude then
+        return Config.biomes.mountain.id
+    elseif mag >= Config.desertMagnitude then
+        return Config.biomes.desert.id
+    end
+    return Config.biomes.plains.id
+end
 
 function Map:init(path)
     if path:sub(-1) ~= "/" then
@@ -28,11 +50,19 @@ function Map:init(path)
     self.owner = ffi.new("uint16_t[?]", self.size)
     self.fallout = ffi.new("uint8_t[?]", self.size)
 
+    self.biome = ffi.new("uint8_t[?]", self.size)
     self.landCount = 0
     local terrain = self.terrain
-    for i = 0, self.size - 1 do
-        if band(terrain[i], 128) ~= 0 then
-            self.landCount = self.landCount + 1
+    local biome = self.biome
+    local w, h = self.width, self.height
+    for y = 0, h - 1 do
+        local latitude = (y + 0.5) / h
+        for x = 0, w - 1 do
+            local i = y * w + x
+            biome[i] = Map.classify(terrain[i], latitude)
+            if biome[i] ~= 0 then
+                self.landCount = self.landCount + 1
+            end
         end
     end
 end
@@ -79,16 +109,7 @@ function Map:magnitude(i)
 end
 
 function Map:terrainType(i)
-    if self:isWater(i) then
-        return "water"
-    end
-    local mag = self:magnitude(i)
-    if mag < 10 then
-        return "plains"
-    elseif mag < 20 then
-        return "highland"
-    end
-    return "mountain"
+    return Map.biomeNames[self.biome[i]]
 end
 
 function Map:neighbors(i, out)

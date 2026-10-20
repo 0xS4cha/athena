@@ -8,19 +8,6 @@ function Rails.init(game)
     game.rails = {}
 end
 
-local function line(map, a, b)
-    local x1, y1 = map:coords(a)
-    local x2, y2 = map:coords(b)
-    local steps = math.max(math.abs(x2 - x1), math.abs(y2 - y1))
-    local tiles = {}
-    for k = 0, steps do
-        local x = math.floor(x1 + (x2 - x1) * k / steps + 0.5)
-        local y = math.floor(y1 + (y2 - y1) * k / steps + 0.5)
-        tiles[#tiles + 1] = map:index(x, y)
-    end
-    return tiles
-end
-
 local function exists(game, a, b)
     for _, rail in ipairs(game.rails) do
         if (rail.a == a and rail.b == b) or (rail.a == b and rail.b == a) then
@@ -46,10 +33,9 @@ function Rails.connect(game, factory, station)
     if exists(game, factory, station) then return end
     local distance = math.sqrt((factory.x - station.x) ^ 2 + (factory.y - station.y) ^ 2)
     if distance > Config.railRadius or distance < 2 then return end
-    local rail = { a = factory, b = station, tiles = line(game.map, factory.tile, station.tile), progress = 0, direction = 1 }
-    if Rails.valid(game, rail) then
-        table.insert(game.rails, rail)
-    end
+    local tiles = game.pathfinder:land(factory.tile, station.tile, factory.owner.id, Config.railMaxNodes)
+    if not tiles or #tiles > Config.railRadius * 2 then return end
+    table.insert(game.rails, { a = factory, b = station, tiles = tiles, built = 0, progress = 0, direction = 1 })
 end
 
 function Rails.unitCompleted(game, unit)
@@ -76,6 +62,8 @@ function Rails.step(game)
         local rail = list[k]
         if check and not Rails.valid(game, rail) then
             table.remove(list, k)
+        elseif rail.built < #rail.tiles then
+            rail.built = math.min(#rail.tiles, rail.built + Config.railBuildSpeed)
         else
             rail.progress = rail.progress + Config.trainSpeed
             if rail.progress >= #rail.tiles then

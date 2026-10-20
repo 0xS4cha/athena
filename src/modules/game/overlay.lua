@@ -183,22 +183,30 @@ function Overlay.drawBuilding(game, camera, unit)
     end
 end
 
-function Overlay.drawRail(game, camera, rail, alpha, width)
-    local ax, ay = camera:toScreen(rail.a.x, rail.a.y)
-    local bx, by = camera:toScreen(rail.b.x, rail.b.y)
-    love.graphics.setColor(0.15, 0.15, 0.17, 0.85 * alpha)
-    love.graphics.setLineWidth(width + 2)
-    love.graphics.line(ax, ay, bx, by)
-    love.graphics.setColor(0.65, 0.62, 0.55, 0.9 * alpha)
-    love.graphics.setLineWidth(width)
-    love.graphics.line(ax, ay, bx, by)
-    if alpha >= 1 then
-        local tx, ty = camera:toScreen(Rails.trainPosition(game, rail))
+local RAIL_DARK = { 0.24, 0.2, 0.17 }
+local RAIL_LIGHT = { 0.5, 0.45, 0.4 }
+
+function Overlay.drawRail(game, camera, rail, alpha, W, H)
+    local map = game.map
+    local size = camera.scale
+    local tiles = rail.tiles
+    for k = 1, math.floor(rail.built) do
+        local x, y = map:coords(tiles[k])
+        local sx, sy = camera:toScreen(x, y)
+        if sx > -size and sy > -size and sx < W and sy < H then
+            local c = k % 2 == 0 and RAIL_DARK or RAIL_LIGHT
+            love.graphics.setColor(c[1], c[2], c[3], alpha)
+            love.graphics.rectangle("fill", sx, sy, size, size)
+        end
+    end
+    if rail.built >= #tiles and alpha >= 1 then
+        local tx, ty = Rails.trainPosition(game, rail)
+        local sx, sy = camera:toScreen(math.floor(tx), math.floor(ty))
         local c = rail.a.owner.color
-        love.graphics.setColor(0, 0, 0, 0.8)
-        love.graphics.rectangle("fill", tx - 4, ty - 3, 8, 6)
+        love.graphics.setColor(0.08, 0.08, 0.1, 1)
+        love.graphics.rectangle("fill", sx - size * 0.25, sy - size * 0.25, size * 1.5, size * 1.5)
         love.graphics.setColor(c[1], c[2], c[3], 1)
-        love.graphics.rectangle("fill", tx - 3, ty - 2, 6, 4)
+        love.graphics.rectangle("fill", sx, sy, size, size)
     end
 end
 
@@ -206,10 +214,10 @@ function Overlay.drawRails(game, camera)
     if not game.rails or #game.rails == 0 then return end
     local alpha = Overlay.structureAlpha(camera)
     if alpha <= 0 then return end
-    local width = math.max(1, math.min(3, camera.scale * 0.4))
+    local W, H = love.graphics.getDimensions()
     for _, rail in ipairs(game.rails) do
         if Overlay.isVisible(game, rail.a) and Overlay.isVisible(game, rail.b) then
-            Overlay.drawRail(game, camera, rail, alpha, width)
+            Overlay.drawRail(game, camera, rail, alpha, W, H)
         end
     end
 end

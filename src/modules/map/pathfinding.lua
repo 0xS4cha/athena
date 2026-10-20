@@ -131,7 +131,7 @@ function Pathfinding:grow()
     self.capacity = capacity
 end
 
-function Pathfinding:search(w, h, start, goal, passable, maxNodes)
+function Pathfinding:search(w, h, start, goal, passable, maxNodes, orthogonal)
     local g, parent, seen, closed = self.g, self.parent, self.seen, self.closed
     self.generation = self.generation + 1
     local gen = self.generation
@@ -215,7 +215,7 @@ function Pathfinding:search(w, h, start, goal, passable, maxNodes)
                 if ny >= 0 and ny < h then
                     for dx = -1, 1 do
                         local nx = cx + dx
-                        if (dx ~= 0 or dy ~= 0) and nx >= 0 and nx < w then
+                        if (dx ~= 0 or dy ~= 0) and (not orthogonal or dx == 0 or dy == 0) and nx >= 0 and nx < w then
                             local ni = ny * w + nx
                             if closed[ni] ~= gen and passable(ni) then
                                 local diagonal = dx ~= 0 and dy ~= 0
@@ -236,6 +236,15 @@ function Pathfinding:search(w, h, start, goal, passable, maxNodes)
         end
     end
     return nil
+end
+
+function Pathfinding:land(start, goal, ownerId, maxNodes)
+    local map = self.map
+    local terrain = map.terrain
+    local own = map.owner
+    return self:search(map.width, map.height, start, goal, function(i)
+        return band(terrain[i], 128) ~= 0 and own[i] == ownerId
+    end, maxNodes, true)
 end
 
 function Pathfinding:fine(start, goal, maxNodes)

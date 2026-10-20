@@ -61,7 +61,7 @@ love .
   - City: raises your maximum population.
   - Trade Port: sends trade ships to nearby trade ports, so both sides earn gold. It is also a rail station.
   - Military Port: launches invasions overseas and builds warships.
-  - Factory: connects rail lines to your cities and trade ports; trains generate gold.
+  - Factory: lays pixel rail tracks across your own land to your cities and trade ports; trains generate gold.
   - Defense Post: raises the cost of attacking nearby tiles.
   - Missile Silo: launches nukes.
   - SAM Launcher: intercepts nukes aimed inside its range.

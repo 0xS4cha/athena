@@ -22,7 +22,7 @@ jobs:
 
     - name: Verify compilation and initialization
       run: |
-        xvfb-run love . --ci
+        xvfb-run love . --ci --autoplay --ticks 3000 --seed 1
 
     - name: Lua Diagnostics (LuaLS)
       uses: mrcjkb/lua-typecheck-action@v0

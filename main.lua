@@ -6,6 +6,16 @@ local Threads = require("src.core.thread")
 local Config = require("src.config.game")
 
 local flags
+local frames = 0
+local defaultErrorHandler = love.errorhandler
+
+function love.errorhandler(msg)
+    print(debug.traceback(tostring(msg), 3))
+    if flags and flags.frames then
+        return nil
+    end
+    return defaultErrorHandler(msg)
+end
 
 function love.load(args)
     env:Load(".env")
@@ -23,6 +33,7 @@ function love.load(args)
     parser:add_argument("ci", { default = false, type = "boolean" })
     parser:add_argument("menu", { default = false, type = "boolean" })
     parser:add_argument("zoom", { default = nil, type = "value" })
+    parser:add_argument("frames", { default = nil, type = "value" })
     flags = parser:parse(args)
     GM.Flags = flags
 
@@ -98,6 +109,12 @@ end
 function love.update(dt)
     Threads.updateScheduler()
     GM:Think(dt)
+    if flags.frames then
+        frames = frames + 1
+        if frames >= flags.frames then
+            love.event.quit()
+        end
+    end
 end
 
 function love.draw()

@@ -2,6 +2,7 @@ local GM = require("src.core.index")
 local Camera = require("src.core.camera")
 local Game = require("src.modules.game.game")
 local Interaction = require("src.modules.game.interaction")
+local Overlay = require("src.modules.game.overlay")
 
 GM.Session = {}
 GM.State = "menu"
@@ -52,6 +53,7 @@ function GM.Session:Draw()
     self.Camera:apply()
     self.Game.renderer:draw()
     self.Camera:clear()
+    Overlay.draw(self.Game, self.Camera)
 end
 
 function GM.Session:WheelMoved(_, y)

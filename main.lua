@@ -41,6 +41,7 @@ function love.load(args)
             local game = GM.Session:Start(options)
             local started = love.timer.getTime()
             for _ = 1, flags.ticks do
+                if game.phase == "ended" then break end
                 game:step()
             end
             Logger:info("ci", string.format("Simulated %d ticks in %.2fs", flags.ticks, love.timer.getTime() - started))

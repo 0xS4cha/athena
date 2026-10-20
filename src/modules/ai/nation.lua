@@ -52,7 +52,8 @@ function Nation.expandOrAttack(game, player, ctx)
         return true
     end
     local target, score = Nation.chooseTarget(game, player, ctx.neighbors)
-    if target and score > 1.1 and player.troops > player.maxPopulation * 0.45 then
+    local saturated = player:population() > player.maxPopulation * 0.9
+    if target and ((score > 1.1 and player.troops > player.maxPopulation * 0.45) or (saturated and score > 0.4)) then
         game:pushIntent({ type = "attack", player = player.id, target = target.id, ratio = 0.3 + rng:random() * 0.2 })
         return true
     end

@@ -34,6 +34,8 @@ local CONFIG = {
     maxTilesPerTick = 150,
     terrainCost = { plains = 1.0, highland = 1.4, mountain = 1.9 },
     falloutCost = 2.0,
+    winRatio = 0.8,
+    victoryCheckTicks = 10,
     difficulties = {
         easy = { population = 0.6, gold = 0.7, decisionTicks = 40 },
         medium = { population = 0.85, gold = 1.0, decisionTicks = 25 },

@@ -9,7 +9,8 @@ local Systems = {
     require("src.modules.game.systems.spawn"),
     require("src.modules.game.systems.economy"),
     require("src.modules.game.systems.attack"),
-    require("src.modules.game.systems.ai")
+    require("src.modules.game.systems.ai"),
+    require("src.modules.game.systems.victory")
 }
 
 local Game = Class()
@@ -246,6 +247,7 @@ end
 
 function Game:update(dt)
     if self.paused or self.phase == "ended" then
+        self.accumulator = 0
         return
     end
     local stepTime = 1 / Config.tickRate

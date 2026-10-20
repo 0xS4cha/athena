@@ -21,7 +21,8 @@ function Bot.decide(game, player)
             weakest = other
         end
     end
-    if weakest and weakest.troops < player.troops * 1.2 then
+    local saturated = player:population() > player.maxPopulation * 0.9
+    if weakest and (weakest.troops < player.troops * 1.2 or saturated) then
         game:pushIntent({ type = "attack", player = player.id, target = weakest.id, ratio = 0.4 })
     end
 end

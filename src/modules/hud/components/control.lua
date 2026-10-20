@@ -30,7 +30,7 @@ end
 
 function Control.visible(hud)
     local human = hud:game().human
-    return human.spawned
+    return human.spawned and human.alive
 end
 
 local MAX_ROWS = 5

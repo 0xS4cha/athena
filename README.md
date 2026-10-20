@@ -56,6 +56,9 @@ love .
 - **Attacks**: left-click a neighbour (or the wilderness) to send `Attack Ratio` percent of your troops. The front advances tile by tile. Each tile costs troops depending on terrain (plains < highland < mountain), fallout, the defender's troop density, defense posts, and whether the defender is a traitor. Attacks can be retreated from the Empire panel, and opposite attacks cancel each other out.
 - **Biomes**: land is plains, desert, mountain or snow, derived from elevation and latitude. Each biome has a base conquest cost, plus an adaptation penalty that fades as that biome makes up a larger share of your land (full adaptation at 20%). A desert empire struggles to push into snow until it owns some. Your adaptation appears in the Empire panel, and hovering a tile shows your cost multiplier.
 - **Boats**: transport ships leave from your **military ports** (2 boats per port, 6 at most). Left-click a coast you do not border to invade it. Without a military port you cannot leave your continent.
+- **Capital**: your spawn becomes your capital (+population, defense bonus around it). If it falls, you lose 15% of your troops and your growth and income are halved for 60 s, then a new capital is founded.
+- **Supply lines**: attacks get more expensive the farther they are from your capital, cities, military ports and finished rail tracks (up to x3). Toggle the Supply layer with `5` to see your supply range. Hovering a tile shows the multiplier.
+- **Naval blockade**: an enemy warship within 18 tiles of a port blockades it. A blockaded trade port stops trading, a blockaded military port cannot launch invasions or build warships. Right-click > Send Warship Here dispatches your nearest warship to a place.
 - **Hidden intel**: structures are drawn as small pixel buildings on the map, readable only when zoomed in. Enemy structures and ships are visible only within 35 tiles of your territory or 55 tiles of your warships, so warships double as scouts.
 - **Buildings** (right-click > Build), paid in gold with escalating costs:
   - City: raises your maximum population.
@@ -75,6 +78,10 @@ love .
   - Embargo, donate troops or gold to allies, mark a player as a target for your allies, send emojis.
 - **Victory**: control 80% of the land, or be the last nation standing.
 
+## Pixel Art
+
+Everything on the map is drawn on the tile grid: buildings, rails, ships with their wake, troops marching to the front, combat flashes, nukes with smoke trails, fireballs, mushroom clouds and scorched craters. The interface uses the [Jersey 10](https://fonts.google.com/specimen/Jersey+10) pixel font (SIL Open Font License, see `assets/fonts/OFL.txt`).
+
 ## Controls
 
 | Input | Action |
@@ -86,7 +93,7 @@ love .
 | `Space` | Start the game during the spawn phase |
 | `P` | Pause |
 | `+` / `-` | Change game speed (x1, x2, x4, x8) |
-| `1` `2` `3` `4` | Toggle terrain, territories, units, names |
+| `1` `2` `3` `4` `5` | Toggle terrain, territories, units, names, supply |
 | `H` | Controls help |
 | `Escape` | Settings |
 

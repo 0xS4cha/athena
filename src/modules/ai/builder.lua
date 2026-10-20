@@ -67,6 +67,12 @@ Builder.wishes = {
             if tile then return "port", tile end
         end
     end,
+    function(game, player)
+        if player:unitCount("port") > 0 and player:unitCount("warship") < math.ceil(player:unitCount("port") / 2) and game.rng:random() < 0.3 then
+            local port = Units.nearestPort(game, player, player.spawnTile or 0)
+            if port then return "warship", port.tile end
+        end
+    end,
     function(game, player, ctx)
         if player:unitCount("defensePost") >= 2 + math.floor(player.tiles / 20000) then return end
         for _, other in ipairs(ctx.neighbors) do

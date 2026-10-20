@@ -285,7 +285,22 @@ function Pathfinding:coarse(start, goal, maxNodes)
     return path
 end
 
+function Pathfinding:straight(start, goal)
+    local map = self.map
+    local terrain = map.terrain
+    local path = { start }
+    appendLine(path, map, start, goal)
+    for k = 2, #path - 1 do
+        if band(terrain[path[k]], 128) ~= 0 then
+            return nil
+        end
+    end
+    return path
+end
+
 function Pathfinding:water(start, goal, maxNodes)
+    local direct = self:straight(start, goal)
+    if direct then return direct end
     if not self:connected(start, goal) then return nil end
     local map = self.map
     local sx, sy = map:coords(start)

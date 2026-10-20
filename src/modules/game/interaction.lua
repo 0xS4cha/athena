@@ -55,7 +55,7 @@ end
 
 function Interaction.buildItems(game, tile)
     local items = {}
-    for _, kind in ipairs(Config.buildingTypes) do
+    for _, kind in ipairs(Config.buildMenu) do
         items[#items + 1] = Interaction.unitItem(game, kind, tile)
     end
     return items

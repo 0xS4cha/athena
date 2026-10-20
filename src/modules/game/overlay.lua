@@ -147,6 +147,20 @@ end
 Overlay.unitDrawers = {
     transport = function(game, camera, unit, radius)
         Overlay.drawShip(game, camera, unit, radius, "boat")
+    end,
+    trade = function(game, camera, unit, radius)
+        Overlay.drawShip(game, camera, unit, radius * 0.8, "circle")
+    end,
+    warship = function(game, camera, unit, radius)
+        Overlay.drawShip(game, camera, unit, radius, "triangle")
+        if unit.health and unit.health < Config.units.warship.health and radius >= 5 then
+            local sx, sy = camera:toScreen(unit.x, unit.y)
+            local w = radius * 2.4
+            love.graphics.setColor(0, 0, 0, 0.8)
+            love.graphics.rectangle("fill", sx - w / 2, sy - radius - 7, w, 3)
+            love.graphics.setColor(0.3, 0.9, 0.4, 1)
+            love.graphics.rectangle("fill", sx - w / 2, sy - radius - 7, w * unit.health / Config.units.warship.health, 3)
+        end
     end
 }
 

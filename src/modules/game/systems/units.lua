@@ -59,12 +59,31 @@ function Units.findPortTile(game, player, tile)
     end)
 end
 
+function Units.nearestPort(game, player, tile)
+    local map = game.map
+    local x, y = map:coords(tile)
+    local best, bestD
+    for _, unit in ipairs(game.units) do
+        if unit.kind == "port" and unit.owner == player and unit.buildLeft == 0 and not unit.dead then
+            local d = (unit.x - x) ^ 2 + (unit.y - y) ^ 2
+            if not bestD or d < bestD then
+                best, bestD = unit, d
+            end
+        end
+    end
+    return best
+end
+
 function Units.check(game, player, kind, tile)
     local def = Config.units[kind]
     if not def then return false, "Unknown unit" end
     if game.phase ~= "playing" or not player.alive then return false, "Not now" end
     local map = game.map
-    if def.coastal then
+    if def.naval then
+        local port = Units.nearestPort(game, player, tile)
+        if not port then return false, "Needs port" end
+        tile = port.tile
+    elseif def.coastal then
         tile = Units.findPortTile(game, player, tile)
         if not tile then return false, "Needs coast" end
     else
@@ -114,7 +133,11 @@ function Units.build(game, player, kind, tile)
     local cost = Units.cost(game, player, kind)
     player.gold = player.gold - cost
     local def = Config.units[kind]
-    return Units.add(game, player, kind, target, { buildLeft = def.buildTicks, buildTotal = def.buildTicks, cost = cost })
+    local unit = Units.add(game, player, kind, target, { buildLeft = def.buildTicks, buildTotal = def.buildTicks, cost = cost })
+    if def.buildTicks == 0 then
+        Units.complete(game, unit)
+    end
+    return unit
 end
 
 function Units.remove(game, unit)

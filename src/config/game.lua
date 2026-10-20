@@ -37,11 +37,14 @@ local CONFIG = {
     buildingSpacing = 5,
     portSearch = 12,
     buildingTypes = { "city", "port", "defensePost", "silo", "sam" },
+    buildMenu = { "city", "port", "defensePost", "silo", "sam", "warship" },
     units = {
         city = { label = "City", icon = "Home.png", cost = 125000, scale = "double", cap = 1000000, buildTicks = 20 },
         port = { label = "Port", icon = "CatchingNet.png", cost = 125000, scale = "double", cap = 1000000, buildTicks = 20, coastal = true },
         defensePost = { label = "Defense Post", icon = "Locked.png", cost = 50000, scale = "linear", cap = 250000, buildTicks = 50, radius = 30, defense = 2.5, destroyOnCapture = true },
         silo = { label = "Missile Silo", icon = "Battery.png", cost = 1000000, scale = "flat", cap = 1000000, buildTicks = 100, cooldownTicks = 100 },
+        warship = { label = "Warship", icon = "Wrench3.png", cost = 250000, scale = "linear", cap = 1000000, buildTicks = 0, naval = true, health = 1000, damage = 250, range = 40, attackRange = 8, reloadTicks = 10, speed = 1.6, patrolRadius = 60 },
+        trade = { label = "Trade Ship", icon = "Coin.png", cost = 0, scale = "flat", cap = 0 },
         transport = { label = "Transport Ship", icon = "Luggage.png", cost = 0, scale = "flat", cap = 0 },
         sam = { label = "SAM Launcher", icon = "Eye.png", cost = 1500000, scale = "linear", cap = 3000000, buildTicks = 30, range = 75, cooldownTicks = 75 }
     },
@@ -49,6 +52,12 @@ local CONFIG = {
     boatSpeed = 1.5,
     boatLandingSearch = 30,
     pathMaxNodes = 200000,
+    tradeInterval = 200,
+    tradeChance = 0.6,
+    tradePartners = 6,
+    tradeSpeed = 1.2,
+    tradeBaseGold = 10000,
+    tradeGoldPerTile = 120,
     winRatio = 0.8,
     victoryCheckTicks = 10,
     difficulties = {

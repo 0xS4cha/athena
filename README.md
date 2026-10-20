@@ -1,6 +1,6 @@
 # Athena
 
-Geographical map rendering and geopolitical simulation engine built with Lua and Love2D.
+A real-time territory conquest game inspired by [OpenFront.io](https://openfront.io), written in Lua with Love2D.
 
 ## Authors
 
@@ -9,217 +9,154 @@ Geographical map rendering and geopolitical simulation engine built with Lua and
 
 ## Description
 
-Athena is a lightweight, high-performance simulation and visualization application written in Lua for the Love2D framework. It is designed to deserialize and render large binary heightmaps and simulate territorial control for historical or custom nations.
+Athena is a single-player clone of OpenFront. You spawn on one of the 100+ bundled maps alongside AI nations and bots, then expand, trade, wage war, and launch nukes until one empire controls 80% of the land.
 
-The engine parses geographic coordinate records from JSON manifests, registers nation structures, assigns random territory colors, and simulates cell-based geopolitical boundaries. Performance is optimized for rendering maps with millions of cells (e.g. 2000x1000 world map grid) by utilizing a viewport-bounded canvas caching (chunking) architecture.
+The simulation runs on a fixed 10 ticks-per-second loop with a seeded RNG. Every player action, human or AI, goes through an intent queue that is processed at the start of each tick. Tile data lives in LuaJIT FFI arrays (`uint8` terrain, `uint16` owner, `uint8` fallout), and the territory layer is a single `ImageData` patched pixel by pixel and uploaded once per frame.
 
 ```mermaid
 graph TD
-    %% Styles
-    classDef config fill:#BBDEFB,stroke:#1565C0,stroke-width:2px,color:black;
-    classDef algo fill:#C8E6C9,stroke:#2E7D32,stroke-width:2px,color:black;
-    classDef graphics fill:#FFF9C4,stroke:#FBC02D,stroke-width:2px,color:black;
-    classDef utils fill:#E1BEE7,stroke:#6A1B9A,stroke-width:2px,color:black;
+    classDef core fill:#BBDEFB,stroke:#1565C0,stroke-width:2px,color:black;
+    classDef sim fill:#C8E6C9,stroke:#2E7D32,stroke-width:2px,color:black;
+    classDef view fill:#FFF9C4,stroke:#FBC02D,stroke-width:2px,color:black;
+    classDef ai fill:#E1BEE7,stroke:#6A1B9A,stroke-width:2px,color:black;
 
-    %% Nodes
-    CLI["Command Line Interface<br/>args.lua"]:::config
-    Env["Environment Loader<br/>env.lua"]:::config
-    Modules["Module Manager<br/>modules/index.lua"]:::utils
-    
-    Map["Map Renderer & Grid<br/>map.lua & cell.lua"]:::graphics
-    Camera["Camera Engine<br/>camera.lua"]:::graphics
-    
-    Country["Country Simulation<br/>country.lua"]:::algo
+    Menu["Main Menu<br/>menu/index.lua"]:::view
+    Session["Session<br/>session/index.lua"]:::core
+    Game["Game loop & intents<br/>game/game.lua"]:::core
+    Map["Typed tile map<br/>map/map.lua"]:::core
+    Systems["Systems<br/>spawn, economy, attack, units,<br/>ships, rails, nukes, diplomacy, victory"]:::sim
+    AI["AI<br/>bot, nation, builder, navy,<br/>strategist, diplomat"]:::ai
+    Renderer["Renderer<br/>map/renderer.lua"]:::view
+    Overlay["Overlay<br/>labels, units, nukes"]:::view
+    Hud["HUD components"]:::view
 
-    %% Connections
-    CLI -->|Parse Flags| Map
-    Env -->|Load Variables| Modules
-    Modules -->|Load Submodules| Map
-    Modules -->|Initialize| Country
-    
-    Map -->|Render Cells| Camera
-    Country -->|Claim Territory| Map
+    Menu -->|Start| Session
+    Session --> Game
+    Game --> Systems
+    Systems --> Map
+    AI -->|Intents| Game
+    Hud -->|Intents| Game
+    Map --> Renderer
+    Game --> Overlay
 ```
 
-## Setup Instructions
+## Setup
 
-Athena runs on the Love2D framework. Ensure you have Love2D installed on your system.
-
-### Prerequisites
-
-- Love2D (Version 11.0 or higher recommended)
-- Git (optional, for cloning)
-
-### Running the Application
-
-1. Clone or download the repository to your local machine.
-2. Open a terminal in the project directory.
-3. Run the application using the `love` command pointing to the root directory:
+Athena runs on Love2D 11.3 or newer (it relies on `ImageData:getFFIPointer`).
 
 ```bash
 love .
 ```
 
-Alternatively, if Love2D is not registered to your system path, drag and drop the project root directory onto the Love2D executable.
+## Gameplay
 
-## Usage
+- **Spawn phase**: click anywhere on land to choose your starting location, then press `Space` or wait for the countdown.
+- **Population**: your maximum population grows with your territory and your cities. Growth is fastest when you are far from the cap.
+- **Troops / Workers**: the slider splits your population. Troops attack and defend; workers produce gold.
+- **Attacks**: left-click a neighbour (or the wilderness) to send `Attack Ratio` percent of your troops. The front advances tile by tile. Each tile costs troops depending on terrain (plains < highland < mountain), fallout, the defender's troop density, defense posts, and whether the defender is a traitor. Attacks can be retreated from the Empire panel, and opposite attacks cancel each other out.
+- **Boats**: left-click a coast you do not border to send a transport ship (3 at most). It lands and starts an attack from the beach.
+- **Buildings** (right-click > Build), paid in gold with escalating costs:
+  - City: raises your maximum population.
+  - Port: sends trade ships to nearby ports, so both sides earn gold.
+  - Factory: connects rail lines to your cities and ports; trains generate gold.
+  - Defense Post: raises the cost of attacking nearby tiles.
+  - Missile Silo: launches nukes.
+  - SAM Launcher: intercepts nukes aimed inside its range.
+  - Warship: built at a port; patrols, sinks transports, captures trade ships, and fights other warships.
+- **Nukes** (right-click > Launch Nuke):
+  - Atom Bomb, Hydrogen Bomb, and MIRV (splits into many warheads over the target nation).
+  - Nuked land loses its owner and gets fallout, which slowly decays and doubles conquest costs.
+- **Diplomacy** (right-click on another nation):
+  - Request or accept an alliance; alliances expire after 5 minutes.
+  - Break an alliance, which marks you as a traitor and halves your defense for 30 s.
+  - Embargo, donate troops or gold to allies, mark a player as a target for your allies, send emojis.
+- **Victory**: control 80% of the land, or be the last nation standing.
 
-Athena provides a command-line interface to customize loaded maps and visualization behavior.
+## Controls
 
-### Command Line Interface
+| Input | Action |
+| --- | --- |
+| Left click | Spawn / attack / send boat |
+| Right click | Context menu |
+| Right drag | Move the camera |
+| Mouse wheel | Zoom |
+| `Space` | Start the game during the spawn phase |
+| `P` | Pause |
+| `+` / `-` | Change game speed (x1, x2, x4, x8) |
+| `1` `2` `3` `4` | Toggle terrain, territories, units, names |
+| `H` | Controls help |
+| `Escape` | Settings |
 
-You can control the map loader using the arguments parsed at startup:
+Drag a panel by its header to move it. Positions are saved in `hud_config.txt`, and menu choices in `menu_config.txt`, both in the Love2D save directory.
 
-**1. Load a Custom Map**
-Athena supports loading various map directories. The default map is the world map. You can specify a different folder from the asset repository using the `--map` flag:
+## Command Line
+
+| Flag | Description |
+| --- | --- |
+| `--map assets/maps/europe/` | Map to use with `--autostart` or `--ci` |
+| `--bots 100` | Number of bots |
+| `--difficulty easy\|medium\|hard` | Nation AI difficulty |
+| `--seed 42` | RNG seed |
+| `--autostart` | Skip the menu |
+| `--autoplay` | The nation AI also plays for you |
+| `--ci` | Headless run: simulate `--ticks` ticks, render one frame, quit (exit code 1 on error) |
+| `--ticks 600` | Number of ticks simulated by `--ci` |
+| `--screenshot shot.png` | Save the `--ci` frame in the Love2D save directory |
+| `--zoom 4` | Zoom on your empire before the `--ci` screenshot |
+| `--frames 600` | Quit after N real frames, printing any error |
+| `--menu` | Render the main menu to a screenshot and quit |
+
+Example soak test:
+
 ```bash
-love . --map assets/maps/europe/
+love . --ci --autoplay --ticks 6000 --seed 42 --screenshot shot.png
 ```
-```bash
-love . --map assets/maps/asia/
-```
-
-**2. Enable Heightmap Constraints**
-You can launch Athena with the heightmap flag enabled, which restricts zoom controls:
-```bash
-love . --heightmap
-```
-
-### Controls
-
-- **Pan Map**: Click and hold the Right Mouse Button, then drag the mouse to move around the map viewport.
-- **Zoom Map**: Scroll up with the Mouse Wheel to zoom in, and scroll down to zoom out (unless disabled by the heightmap flag). The viewport coordinates are automatically updated to scale from the cursor's focus point.
-- **Boundaries**: Viewport navigation is constrained so you can never drag or zoom the map out of the screen bounds.
-
-### Gameplay Mechanics (Battalions & Slider Effects)
-
-#### 1. Military Operations & Battalion Management
-- **Create Battalion**: Consumes 10 soldiers from your reserves to spawn a new unit at your cities.
-- **Select & Move**: Left-click a battalion to select it. Click any valid land cell to calculate a BFS path (shown as a green line). Click the green play icon at the target or the HUD button to launch the movement.
-- **Split**: Left-click a battalion and select **Split Battalion** to divide its soldiers in half and spawn a new unit adjacent to it.
-- **Merge**: If two battalions land on the same map cell, they automatically merge, summing their soldier counts.
-- **Defensive Borders**: Stationing player battalions blocks AI expansion in cells within a 2-unit radius around the battalion.
-
-#### 2. Power Allocation Slider Multipliers
-- **Expansion**: Passively expands your territory by claiming neighboring land cells over time, scaled by the allocation percentage.
-- **Diplomacy**: Boosts citizen growth speed and village upgraded timers (accelerating village-to-city growth).
-- **Army**: Increases citizen recruitment rate into soldiers and boosts battalion movement speed.
-
-#### 3. HUD Customization
-- **Drag-and-Drop panels**: Click and drag panel headers to reposition them anywhere on screen.
-- **Settings Popup**: Click the gear icon to open settings coordinates. Adjust sliders manually to reposition panels or reset layouts to default. Positions are saved automatically in `hud_config.txt`.
 
 ## Project Structure
 
 ```
-│  conf.lua            # Love2D configuration and window setup
-│  main.lua            # Main entry point and game loop lifecycle hooks
-│  pyproject.toml      # Dependency configurations (under development)
-│  .env.example        # Environment variable template
+├─ main.lua                     # Love2D callbacks, CLI flags, CI mode
+├─ conf.lua
 ├─ assets/
-│  └─ maps/            # Pre-processed map asset bundles (100+ maps)
-│     └─ [map_name]/
-│        ├── manifest.json  # Map metadata and starting coordinates for nations
-│        ├── map.bin        # Volumetric map data (1x scale binary heightmap)
-│        ├── map4x.bin      # Compressed 4x scale binary heightmap
-│        ├── map16x.bin     # Compressed 16x scale binary heightmap
-│        └── thumbnail.webp # Visual thumbnail of the map
+│  ├─ maps/<name>/              # manifest.json, map.bin, map4x.bin, map16x.bin
+│  ├─ flags/                    # Nation flags
+│  └─ Icons/                    # UI and unit icons
 └─ src/
-   ├── config/
-   │   ├── window.lua  # Global window size and styling properties
-   │   └── zone.lua    # Height range configuration for terrain zones
-   ├── core/
-   │   ├── args.lua    # Command-line argument parser
-   │   ├── camera.lua  # Camera zoom, pan, and clamp calculations
-   │   ├── class.lua   # Simple prototype class implementation
-   │   ├── env.lua     # Config parser loading settings from .env file
-   │   ├── json.lua    # JSON encoder and decoder utility
-   │   ├── loadFile.lua# File systems read wrapper with memory cache
-   │   ├── logger.lua  # ANSI colored logging utility supporting levels
-   │   └── uuid.lua    # Unique identification generator (UUID v4)
-    └── modules/
-        ├── index.lua   # Global module system loader and lifecycle manager
-        ├── battalion/
-        │   └── index.lua    # Battalion module manager, BFS movement, and actions
-        ├── country/
-        │   ├── country.lua  # Object representing nations, colors, and owners
-        │   └── index.lua    # Country module registration hooks
-        ├── hud/
-        │   ├── components/  # Modular panel drawing sub-components
-        │   │   ├── layers.lua
-        │   │   ├── military.lua
-        │   │   ├── power.lua
-        │   │   └── settings.lua
-        │   ├── contextmenu.lua
-        │   ├── flags.lua
-        │   ├── hud.lua      # HUD main orchestrator / controller class
-        │   └── index.lua    # Heads-Up Display registration hooks
-        ├── map/
-        │   ├── cell.lua     # Single pixel grid cell drawing definitions
-        │   ├── index.lua    # Map module registration hooks
-        │   └── map.lua      # Map chunk baking system and binary loader
-        └── player/
-            ├── player.lua   # Player profiles representation
-            └── index.lua    # Player module registration hooks
+   ├─ config/game.lua           # Every balance constant
+   ├─ core/                     # Class, camera, logger, args, env, format, xorshift RNG
+   └─ modules/
+      ├─ index.lua              # Module loader and callback dispatch
+      ├─ session/               # Starts and stops games, camera, world input
+      ├─ menu/                  # Main menu
+      ├─ map/
+      │  ├─ map.lua             # FFI tile arrays and spatial helpers
+      │  ├─ renderer.lua        # Terrain and territory images
+      │  └─ pathfinding.lua     # Water A* with coarse grid and connectivity components
+      ├─ player/                # Player state and color palette
+      ├─ game/
+      │  ├─ game.lua            # Tick loop, intents, events, ownership changes
+      │  ├─ interaction.lua     # Left click and context menu actions
+      │  ├─ overlay.lua         # Labels, buildings, ships, rails, nukes
+      │  └─ systems/            # spawn, economy, attack, units, ships, rails,
+      │                         # nukes, diplomacy, ai, victory
+      ├─ ai/                    # bot, nation, builder, navy, strategist, diplomat
+      └─ hud/                   # Style, context menu, panels
 ```
 
-## Implementation and Core Algorithms
+## Map Format
 
-### 1. Binary Map Serialization
+Each byte of `map.bin` is one tile:
 
-To store and load maps with high resolution efficiently, Athena uses pre-compiled binary heightmap formats (`.bin`).
-- Every byte represents a single cell in the grid.
-- Using bitwise arithmetic (`bit` library), Athena decodes the 8-bit values into flags and values:
-  - **Land Flag (Bit 7)**: Specifies if the cell is land or water.
-  - **Shoreline Flag (Bit 6)**: Marks boundary water or sandy cells.
-  - **Ocean Flag (Bit 5)**: Represents deep-sea environments.
-  - **Magnitude (Bits 0-4)**: Encodes height or depth levels (0 to 31).
-
-### 2. Chunk-Based Canvas Rendering
-
-Rendering individual cell rectangles dynamically is an intensive GPU operation for large maps (e.g. 2,000,000 cells in the world map). Athena implements a spatial caching system:
-- The map grid is split into chunks of `100x100` cells.
-- Each chunk is rendered onto a persistent `love.graphics.newCanvas` frame container.
-- During execution, only the chunks intersecting the camera's viewport are rendered.
-- If a cell state changes (e.g., claimed by a country), its respective chunk is marked as dirty (`isDirty = true`) and re-baked.
-
-### 3. Geopolitical Borders and Territory Logic
-
-- Nation seeds are loaded from coordinates declared in each map's `manifest.json`.
-- A radial area calculation is applied to register initial cells around coordinates:
-  ```
-  dx * dx + dy * dy <= offset_radius * offset_radius + 1
-  ```
-- Cells owned by a nation are shaded with the country's color.
-- Outlines (borders) are calculated by inspecting orthogonal neighbors: if a cell has neighbors owned by a different country (or unowned), it is drawn as a border outline. Otherwise, it is drawn as a transparent overlay inside the territory.
-
-```mermaid
-timeline
-    title Execution Flow
-    Phase 1 : Initialization
-            : Load Environment Variables
-            : Parse CLI Flags
-            : Initialize Module Registers
-    Phase 2 : Data Setup
-            : Deserialise Binary Terrain Files
-            : Read Nation Manifest Settings
-            : Initialize Chunk Canvases
-    Phase 3 : Simulation Setup
-            : Seed Geopolitical Entities
-            : Allocate Initial Claim Radius
-            : Compute Initial Borders
-    Phase 4 : Interactive Loop
-            : Process Mouse & Zoom Inputs
-            : Re-bake Dirty Viewport Chunks
-            : Draw Bounded Map Viewport
-```
+- **Bit 7**: land
+- **Bit 6**: shoreline
+- **Bit 5**: ocean
+- **Bits 0-4**: magnitude (elevation or depth). On land, below 10 is plains, below 20 is highland, and the rest is mountain.
 
 ## Resources
 
-- [Love2D](https://love2d.org/) - 2D game framework for Lua
-- [LuaJIT BitOp](https://luajit.org/ext_bit.html) - Bitwise operations library
-- [UUID v4 generator](https://github.com/TobyJennings/uuid.lua) - Toby Jennings UUID module
-
+- [OpenFront.io](https://openfront.io), the original game and the source of the map assets
+- [Love2D](https://love2d.org/)
+- [LuaJIT FFI](https://luajit.org/ext_ffi.html)
 
 ## Feedback
 

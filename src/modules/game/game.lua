@@ -11,6 +11,7 @@ local Systems = {
     require("src.modules.game.systems.economy"),
     require("src.modules.game.systems.attack"),
     require("src.modules.game.systems.units"),
+    require("src.modules.game.systems.capital"),
     require("src.modules.game.systems.ships"),
     require("src.modules.game.systems.rails"),
     require("src.modules.game.systems.nukes"),

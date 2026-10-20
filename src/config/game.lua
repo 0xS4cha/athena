@@ -48,9 +48,10 @@ local CONFIG = {
     falloutCost = 2.0,
     buildingSpacing = 5,
     portSearch = 12,
-    buildingTypes = { "city", "tradePort", "militaryPort", "factory", "defensePost", "silo", "sam" },
+    buildingTypes = { "capital", "city", "tradePort", "militaryPort", "factory", "defensePost", "silo", "sam" },
     buildMenu = { "city", "tradePort", "militaryPort", "factory", "defensePost", "silo", "sam", "warship" },
     units = {
+        capital = { label = "Capital", icon = "Trophy.png", cost = 0, scale = "flat", cap = 0, buildTicks = 0, buildable = false, destroyOnCapture = true, radius = 25, defense = 1.6 },
         city = { label = "City", icon = "Home.png", cost = 125000, scale = "double", cap = 1000000, buildTicks = 20 },
         tradePort = { label = "Trade Port", icon = "Cash.png", cost = 125000, scale = "double", cap = 1000000, buildTicks = 20, coastal = true },
         militaryPort = { label = "Military Port", icon = "Wrench2.png", cost = 150000, scale = "double", cap = 1200000, buildTicks = 40, coastal = true },
@@ -102,6 +103,11 @@ local CONFIG = {
     visionRange = 35,
     warshipVision = 55,
     visionRefreshTicks = 20,
+    capitalPopulation = 150000,
+    capitalLossTicks = 600,
+    capitalTroopLoss = 0.15,
+    capitalPenalty = 0.5,
+    capitalSearch = 60,
     winRatio = 0.8,
     victoryCheckTicks = 10,
     difficulties = {

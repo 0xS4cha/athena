@@ -77,7 +77,7 @@ end
 
 function Units.check(game, player, kind, tile)
     local def = Config.units[kind]
-    if not def then return false, "Unknown unit" end
+    if not def or def.buildable == false then return false, "Unknown unit" end
     if game.phase ~= "playing" or not player.alive then return false, "Not now" end
     local map = game.map
     if def.naval then
@@ -184,18 +184,26 @@ local function defensePosts(game, player)
 end
 
 function Units.defenseBonus(game, player, tile)
-    if player:unitCount("defensePost") == 0 then return 1 end
-    local def = Config.units.defensePost
     local map = game.map
     local x, y = map:coords(tile)
+    local bonus = 1
+    local capital = player.capital
+    if capital and not capital.dead then
+        local cdef = Config.units.capital
+        if (capital.x - x) ^ 2 + (capital.y - y) ^ 2 <= cdef.radius * cdef.radius then
+            bonus = cdef.defense
+        end
+    end
+    if player:unitCount("defensePost") == 0 then return bonus end
+    local def = Config.units.defensePost
     local r2 = def.radius * def.radius
     for _, unit in ipairs(defensePosts(game, player)) do
         local dx, dy = unit.x - x, unit.y - y
         if dx * dx + dy * dy <= r2 then
-            return def.defense
+            return math.max(bonus, def.defense)
         end
     end
-    return 1
+    return bonus
 end
 
 function Units.init(game)
@@ -219,6 +227,7 @@ function Units.tileChanged(game, i, previous, id)
     if not unit or unit.owner.id == id then return end
     local def = Config.units[unit.kind]
     if id == 0 or unit.buildLeft > 0 or def.destroyOnCapture then
+        unit.capturedBy = id ~= 0 and game.players[id] or nil
         Units.remove(game, unit)
     else
         Units.transfer(game, unit, game.players[id])

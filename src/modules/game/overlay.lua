@@ -83,6 +83,7 @@ local STRUCTURE_COLORS = {
 }
 
 Overlay.structures = {
+    capital = { "y.y.y", "yyyyy", "yrcry", "yyyyy", ".ddd." },
     city = { "rr.rr", "ll.ll", ".....", "rr.rr", "ll.ll" },
     tradePort = { "yy.yy", "yy.yy", "ggggg", "g.g.g", "g.g.g" },
     militaryPort = { "..d..", ".ddd.", "..d..", "d.d.d", ".ddd." },

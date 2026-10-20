@@ -5,6 +5,9 @@ local Economy = {}
 function Economy.maxPopulation(game, player)
     local max = (player.tiles ^ Config.populationExponent) * Config.populationPerTile + Config.basePopulation
     max = max + (player.cities or 0) * Config.cityPopulation
+    if player.capital and not player.capital.dead then
+        max = max + Config.capitalPopulation
+    end
     if player:isBot() then
         max = max * Config.botPopulationFactor
     elseif player:isNation() then
@@ -28,6 +31,10 @@ function Economy.updatePlayer(game, player)
     player.maxPopulation = max
     local total = player.troops + player.workers
     local growth = (10 + math.max(0, total) ^ Config.growthExponent / 4) * (1 - total / max)
+    local crippled = player.capitalLostUntil and player.capitalLostUntil > game.tick
+    if crippled and growth > 0 then
+        growth = growth * Config.capitalPenalty
+    end
     player.growth = growth
     player.troops = player.troops + growth * player.troopRatio
     player.workers = player.workers + growth * (1 - player.troopRatio)
@@ -40,6 +47,9 @@ function Economy.updatePlayer(game, player)
     player.workers = math.max(0, player.workers - move)
 
     local income = Economy.goldRate(game, player)
+    if crippled then
+        income = income * Config.capitalPenalty
+    end
     player.income = income
     player.gold = player.gold + income
 end

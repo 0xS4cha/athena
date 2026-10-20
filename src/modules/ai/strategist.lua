@@ -31,6 +31,9 @@ local function chooseVictim(game, player, ctx)
 end
 
 local function targetTile(game, victim)
+    if victim.capital and not victim.capital.dead and game.rng:random() < 0.5 then
+        return victim.capital.tile
+    end
     local cities = Units.list(game, victim, "city")
     if #cities > 0 then
         return cities[game.rng:random(#cities)].tile

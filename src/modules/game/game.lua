@@ -9,6 +9,7 @@ local Systems = {
     require("src.modules.game.systems.spawn"),
     require("src.modules.game.systems.economy"),
     require("src.modules.game.systems.attack"),
+    require("src.modules.game.systems.units"),
     require("src.modules.game.systems.ai"),
     require("src.modules.game.systems.victory")
 }
@@ -44,6 +45,7 @@ function Game:init(options)
             system.init(self)
         end
     end
+    self:emit("setup")
 end
 
 function Game:addPlayer(name, kind, flag)

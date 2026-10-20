@@ -2,6 +2,7 @@ local Class = require("src.core.class")
 local GM = require("src.core.index")
 local Style = require("src.modules.hud.style")
 local Interaction = require("src.modules.game.interaction")
+local Icons = require("src.modules.hud.icons")
 
 local ContextMenu = Class()
 
@@ -13,26 +14,11 @@ function ContextMenu:init(hud)
     self.title = ""
     self.items = {}
     self.stack = {}
-    self.icons = {}
     self.hoveredIdx = nil
     self.width = 230
     self.itemHeight = 26
     self.pressedX = 0
     self.pressedY = 0
-end
-
-function ContextMenu:getIcon(name)
-    if not name then return nil end
-    if self.icons[name] == nil then
-        local ok, img = pcall(love.graphics.newImage, "assets/Icons/" .. name)
-        if ok then
-            img:setFilter("nearest", "nearest")
-            self.icons[name] = img
-        else
-            self.icons[name] = false
-        end
-    end
-    return self.icons[name] or nil
 end
 
 function ContextMenu:height()
@@ -117,7 +103,7 @@ function ContextMenu:draw()
             love.graphics.rectangle("line", self.x + 4, itemY, self.width - 8, self.itemHeight)
         end
 
-        local icon = self:getIcon(item.icon)
+        local icon = Icons.get(item.icon)
         if icon then
             love.graphics.setColor(1, 1, 1, item.disabled and 0.35 or 1)
             love.graphics.draw(icon, self.x + 10, math.floor(itemY + (self.itemHeight - icon:getHeight()) / 2))

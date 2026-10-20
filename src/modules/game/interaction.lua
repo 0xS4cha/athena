@@ -1,4 +1,7 @@
 local Attack = require("src.modules.game.systems.attack")
+local Units = require("src.modules.game.systems.units")
+local Config = require("src.config.game")
+local Format = require("src.core.format")
 
 local Interaction = {}
 
@@ -32,12 +35,59 @@ function Interaction.click(game, tile)
     game:addEvent("You do not share a border with " .. (target and target.name or "this land") .. ".")
 end
 
+function Interaction.unitItem(game, kind, tile)
+    local human = game.human
+    local def = Config.units[kind]
+    local ok, reason = Units.check(game, human, kind, tile)
+    return {
+        label = def.label,
+        icon = def.icon,
+        sublabel = ok and Format.number(Units.cost(game, human, kind)) or reason,
+        sublabelColor = not ok and { 0.95, 0.35, 0.3, 1 } or nil,
+        disabled = not ok,
+        action = function()
+            game:pushIntent({ type = "build", player = human.id, unit = kind, tile = tile })
+        end
+    }
+end
+
+function Interaction.buildItems(game, tile)
+    local items = {}
+    for _, kind in ipairs(Config.buildingTypes) do
+        items[#items + 1] = Interaction.unitItem(game, kind, tile)
+    end
+    return items
+end
+
+Interaction.sections = {}
+
+Interaction.sections[#Interaction.sections + 1] = function(game, tile, items)
+    local human = game.human
+    if game.map.owner[tile] ~= human.id and not game.map:isWater(tile) then return end
+    local nearCoast = Units.findPortTile(game, human, tile)
+    if game.map.owner[tile] ~= human.id and not nearCoast then return end
+    items[#items + 1] = {
+        label = "Build",
+        icon = "Hammer.png",
+        submenu = function()
+            return "BUILD", Interaction.buildItems(game, tile)
+        end
+    }
+end
+
 function Interaction.menu(game, tile)
     local map = game.map
     local x, y = map:coords(tile)
     local items = {}
+    if game.phase == "playing" and game.human.alive then
+        for _, section in ipairs(Interaction.sections) do
+            section(game, tile, items)
+        end
+    end
     items[#items + 1] = { label = "Close Menu", icon = "Exit.png" }
-    return string.format("TILE [%d, %d]", x, y), items
+    local owner = game:playerAt(tile)
+    local title = owner and owner.name or string.format("TILE [%d, %d]", x, y)
+    return title, items
 end
 
 return Interaction

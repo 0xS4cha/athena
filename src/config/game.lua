@@ -34,6 +34,16 @@ local CONFIG = {
     maxTilesPerTick = 150,
     terrainCost = { plains = 1.0, highland = 1.4, mountain = 1.9 },
     falloutCost = 2.0,
+    buildingSpacing = 5,
+    portSearch = 12,
+    buildingTypes = { "city", "port", "defensePost", "silo", "sam" },
+    units = {
+        city = { label = "City", icon = "Home.png", cost = 125000, scale = "double", cap = 1000000, buildTicks = 20 },
+        port = { label = "Port", icon = "CatchingNet.png", cost = 125000, scale = "double", cap = 1000000, buildTicks = 20, coastal = true },
+        defensePost = { label = "Defense Post", icon = "Locked.png", cost = 50000, scale = "linear", cap = 250000, buildTicks = 50, radius = 30, defense = 2.5, destroyOnCapture = true },
+        silo = { label = "Missile Silo", icon = "Battery.png", cost = 1000000, scale = "flat", cap = 1000000, buildTicks = 100, cooldownTicks = 100 },
+        sam = { label = "SAM Launcher", icon = "Eye.png", cost = 1500000, scale = "linear", cap = 3000000, buildTicks = 30, range = 75, cooldownTicks = 75 }
+    },
     winRatio = 0.8,
     victoryCheckTicks = 10,
     difficulties = {

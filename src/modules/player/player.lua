@@ -20,6 +20,8 @@ function Player:init(id, name, kind, color, flag)
     self.growth = 0
     self.income = 0
     self.tiles = 0
+    self.cities = 0
+    self.unitCounts = {}
     self.sumX = 0
     self.sumY = 0
     self.borders = {}
@@ -60,6 +62,10 @@ function Player:center()
         return 0, 0
     end
     return self.sumX / self.tiles + 0.5, self.sumY / self.tiles + 0.5
+end
+
+function Player:unitCount(kind)
+    return self.unitCounts[kind] or 0
 end
 
 function Player:isAlliedWith(other)

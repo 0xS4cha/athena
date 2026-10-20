@@ -73,7 +73,7 @@ function Spawn.place(game, player, tile)
     return true
 end
 
-function Spawn.init(game)
+function Spawn.setup(game)
     game.phase = "spawn"
     game.spawnTicksLeft = Config.spawnSeconds * Config.tickRate
     local map = game.map

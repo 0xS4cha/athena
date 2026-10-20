@@ -1,5 +1,7 @@
 local Style = require("src.modules.hud.style")
 local Format = require("src.core.format")
+local Config = require("src.config.game")
+local Icons = require("src.modules.hud.icons")
 
 local Overlay = {}
 
@@ -68,10 +70,52 @@ function Overlay.drawLabel(game, camera, player, W, H)
     end
 end
 
+function Overlay.drawBuilding(game, camera, unit, radius)
+    local sx, sy = camera:toScreen(unit.x, unit.y)
+    local c = unit.owner.color
+    local alpha = unit.buildLeft > 0 and 0.5 or 1
+    love.graphics.setColor(0, 0, 0, 0.6 * alpha)
+    love.graphics.circle("fill", sx + 1, sy + 1, radius + 1)
+    love.graphics.setColor(c[1], c[2], c[3], alpha)
+    love.graphics.circle("fill", sx, sy, radius)
+    love.graphics.setColor(1, 1, 1, alpha)
+    love.graphics.setLineWidth(1.5)
+    love.graphics.circle("line", sx, sy, radius)
+    local icon = Icons.get(Config.units[unit.kind].icon)
+    if icon and radius >= 6 then
+        local scale = radius * 1.3 / icon:getWidth()
+        love.graphics.draw(icon, sx, sy, 0, scale, scale, icon:getWidth() / 2, icon:getHeight() / 2)
+    end
+    if unit.buildLeft > 0 and unit.buildTotal then
+        local progress = 1 - unit.buildLeft / unit.buildTotal
+        love.graphics.setColor(1, 1, 1, 1)
+        love.graphics.setLineWidth(2)
+        love.graphics.arc("line", "open", sx, sy, radius + 3, -math.pi / 2, -math.pi / 2 + progress * math.pi * 2)
+    end
+end
+
+function Overlay.drawUnits(game, camera, W, H)
+    local radius = math.max(4, math.min(11, camera.scale * 2.5))
+    for _, unit in ipairs(game.units) do
+        if not unit.dead then
+            local sx, sy = camera:toScreen(unit.x, unit.y)
+            if sx > -20 and sy > -20 and sx < W + 20 and sy < H + 20 then
+                local draw = Overlay.unitDrawers[unit.kind] or Overlay.drawBuilding
+                draw(game, camera, unit, radius)
+            end
+        end
+    end
+end
+
+Overlay.unitDrawers = {}
+
 function Overlay.draw(game, camera)
     love.graphics.push("all")
     local W, H = love.graphics.getDimensions()
     local layers = game.renderer.layers
+    if layers.units then
+        Overlay.drawUnits(game, camera, W, H)
+    end
     if layers.names and layers.political then
         for _, player in ipairs(game.players) do
             if player.alive and player.tiles > 0 then

@@ -34,6 +34,26 @@ local function terrainColor(byte)
     return v, v, v
 end
 
+Renderer.terrainColor = terrainColor
+
+function Renderer.preview(path, manifest)
+    local info = manifest.map16x or manifest.map
+    local file = manifest.map16x and "map16x.bin" or "map.bin"
+    local raw = love.filesystem.read(path .. file)
+    if not raw then return nil end
+    local w, h = info.width, info.height
+    local data = love.image.newImageData(w, h)
+    local ptr = ffi.cast("uint8_t*", data:getFFIPointer())
+    for i = 0, math.min(#raw, w * h) - 1 do
+        local r, g, b = terrainColor(raw:byte(i + 1))
+        ptr[i * 4], ptr[i * 4 + 1], ptr[i * 4 + 2], ptr[i * 4 + 3] = r, g, b, 255
+    end
+    local image = love.graphics.newImage(data)
+    image:setFilter("linear", "linear")
+    data:release()
+    return image
+end
+
 function Renderer:init(game)
     self.game = game
     self.map = game.map

@@ -21,6 +21,7 @@ function love.load(args)
     parser:add_argument("autoplay", { default = false, type = "boolean" })
     parser:add_argument("screenshot", { default = nil, type = "value" })
     parser:add_argument("ci", { default = false, type = "boolean" })
+    parser:add_argument("menu", { default = false, type = "boolean" })
     flags = parser:parse(args)
     GM.Flags = flags
 
@@ -35,6 +36,19 @@ function love.load(args)
         autoplay = flags.autoplay,
         nations = true
     }
+
+    if flags.menu then
+        GM.Menu:Open()
+        love.draw()
+        local canvas = love.graphics.newCanvas()
+        love.graphics.setCanvas(canvas)
+        love.graphics.clear(0.08, 0.08, 0.10)
+        love.draw()
+        love.graphics.setCanvas()
+        canvas:newImageData():encode("png", flags.screenshot or "menu.png")
+        love.event.quit()
+        return
+    end
 
     if flags.ci then
         local ok, err = xpcall(function()

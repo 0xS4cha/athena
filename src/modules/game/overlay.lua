@@ -144,7 +144,44 @@ function Overlay.drawShip(game, camera, unit, radius, shape)
     end
 end
 
+function Overlay.drawNuke(game, camera, unit)
+    local def = Config.nukes[unit.nukeKind]
+    local sx, sy = camera:toScreen(unit.fromX, unit.fromY)
+    local cx, cy = camera:toScreen(unit.x, unit.y)
+    local tx, ty = camera:toScreen(unit.toX, unit.toY)
+    local pulse = 0.5 + 0.5 * math.sin(love.timer.getTime() * 8)
+    if unit.nukeKind ~= "warhead" then
+        love.graphics.setColor(1, 0.2, 0.15, 0.25 + 0.25 * pulse)
+        love.graphics.setLineWidth(2)
+        love.graphics.circle("line", tx, ty, def.outer * camera.scale)
+        love.graphics.setColor(1, 0.2, 0.15, 0.12)
+        love.graphics.circle("fill", tx, ty, def.inner * camera.scale)
+        love.graphics.setColor(1, 0.6, 0.3, 0.5)
+        love.graphics.setLineWidth(1.5)
+        love.graphics.line(sx, sy, cx, cy)
+    end
+    love.graphics.setColor(1, 0.9, 0.4, 1)
+    love.graphics.circle("fill", cx, cy, unit.nukeKind == "warhead" and 2 or 4)
+    love.graphics.setColor(1, 0.3, 0.1, 1)
+    love.graphics.circle("line", cx, cy, unit.nukeKind == "warhead" and 3 or 6)
+end
+
+function Overlay.drawExplosions(game, camera)
+    for _, e in ipairs(game.explosions or {}) do
+        local age = (game.tick - e.tick) / 20
+        local sx, sy = camera:toScreen(e.x, e.y)
+        love.graphics.setColor(1, 0.85 - age * 0.5, 0.4 - age * 0.3, 0.7 * (1 - age))
+        love.graphics.circle("fill", sx, sy, e.radius * camera.scale * (0.4 + age * 0.8))
+        love.graphics.setColor(1, 1, 1, 0.8 * (1 - age))
+        love.graphics.setLineWidth(2)
+        love.graphics.circle("line", sx, sy, e.radius * camera.scale * (0.5 + age))
+    end
+end
+
 Overlay.unitDrawers = {
+    nuke = function(game, camera, unit)
+        Overlay.drawNuke(game, camera, unit)
+    end,
     transport = function(game, camera, unit, radius)
         Overlay.drawShip(game, camera, unit, radius, "boat")
     end,
@@ -171,6 +208,7 @@ function Overlay.draw(game, camera)
     if layers.units then
         Overlay.drawUnits(game, camera, W, H)
     end
+    Overlay.drawExplosions(game, camera)
     if layers.names and layers.political then
         for _, player in ipairs(game.players) do
             if player.alive and player.tiles > 0 then

@@ -44,6 +44,7 @@ local CONFIG = {
         defensePost = { label = "Defense Post", icon = "Locked.png", cost = 50000, scale = "linear", cap = 250000, buildTicks = 50, radius = 30, defense = 2.5, destroyOnCapture = true },
         silo = { label = "Missile Silo", icon = "Battery.png", cost = 1000000, scale = "flat", cap = 1000000, buildTicks = 100, cooldownTicks = 100 },
         warship = { label = "Warship", icon = "Wrench3.png", cost = 250000, scale = "linear", cap = 1000000, buildTicks = 0, naval = true, health = 1000, damage = 250, range = 40, attackRange = 8, reloadTicks = 10, speed = 1.6, patrolRadius = 60 },
+        nuke = { label = "Nuke", icon = "PotionRed.png", cost = 0, scale = "flat", cap = 0 },
         trade = { label = "Trade Ship", icon = "Coin.png", cost = 0, scale = "flat", cap = 0 },
         transport = { label = "Transport Ship", icon = "Luggage.png", cost = 0, scale = "flat", cap = 0 },
         sam = { label = "SAM Launcher", icon = "Eye.png", cost = 1500000, scale = "linear", cap = 3000000, buildTicks = 30, range = 75, cooldownTicks = 75 }
@@ -58,6 +59,18 @@ local CONFIG = {
     tradeSpeed = 1.2,
     tradeBaseGold = 10000,
     tradeGoldPerTile = 120,
+    nukeTypes = { "atom", "hydrogen", "mirv" },
+    nukes = {
+        atom = { label = "Atom Bomb", icon = "PotionRed.png", cost = 750000, inner = 12, outer = 30, speed = 10 },
+        hydrogen = { label = "Hydrogen Bomb", icon = "Medicine.png", cost = 5000000, inner = 60, outer = 90, speed = 8 },
+        mirv = { label = "MIRV", icon = "Skull.png", cost = 35000000, warheads = 60, spread = 150, inner = 6, outer = 12, speed = 6, needsPlayer = true },
+        warhead = { label = "Warhead", cost = 0, inner = 6, outer = 12, speed = 12 }
+    },
+    falloutStrength = 200,
+    falloutDecay = 4,
+    falloutDecayTicks = 10,
+    nukeTroopKill = 1.5,
+    nukeRingChance = 0.5,
     winRatio = 0.8,
     victoryCheckTicks = 10,
     difficulties = {

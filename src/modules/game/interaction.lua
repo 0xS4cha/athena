@@ -1,6 +1,7 @@
 local Attack = require("src.modules.game.systems.attack")
 local Units = require("src.modules.game.systems.units")
 local Ships = require("src.modules.game.systems.ships")
+local Nukes = require("src.modules.game.systems.nukes")
 local Config = require("src.config.game")
 local Format = require("src.core.format")
 
@@ -104,6 +105,34 @@ Interaction.sections[#Interaction.sections + 1] = function(game, tile, items)
         disabled = not ok,
         action = function()
             game:pushIntent({ type = "boat", player = human.id, tile = tile, ratio = human.attackRatio })
+        end
+    }
+end
+
+Interaction.sections[#Interaction.sections + 1] = function(game, tile, items)
+    local human = game.human
+    if human:unitCount("silo") == 0 or game.map.owner[tile] == human.id then return end
+    items[#items + 1] = {
+        label = "Launch Nuke",
+        icon = "PotionRed.png",
+        color = { 1, 0.55, 0.4, 1 },
+        submenu = function()
+            local list = {}
+            for _, kind in ipairs(Config.nukeTypes) do
+                local def = Config.nukes[kind]
+                local ok, reason = Nukes.check(game, human, kind, tile)
+                list[#list + 1] = {
+                    label = def.label,
+                    icon = def.icon,
+                    sublabel = ok and Format.number(def.cost) or reason,
+                    sublabelColor = not ok and { 0.95, 0.35, 0.3, 1 } or nil,
+                    disabled = not ok,
+                    action = function()
+                        game:pushIntent({ type = "nuke", player = human.id, kind = kind, tile = tile })
+                    end
+                }
+            end
+            return "NUKES", list
         end
     }
 end

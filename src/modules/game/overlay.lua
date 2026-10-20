@@ -92,6 +92,67 @@ Overlay.structures = {
     sam = { "r...r", ".r.r.", "..d..", ".ddd.", "ddddd" }
 }
 
+local ALWAYS_VISIBLE = { nuke = true }
+
+local function nearTerritory(game, player, x, y, range)
+    local map = game.map
+    local own = map.owner
+    local id = player.id
+    x, y = math.floor(x), math.floor(y)
+    for dy = -range, range, 3 do
+        local ty = y + dy
+        if ty >= 0 and ty < map.height then
+            for dx = -range, range, 3 do
+                local tx = x + dx
+                if tx >= 0 and tx < map.width and own[ty * map.width + tx] == id then
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
+local function nearWarship(game, player, unit)
+    local r2 = Config.warshipVision * Config.warshipVision
+    for _, ship in ipairs(game.ships or {}) do
+        if ship.kind == "warship" and ship.owner == player and not ship.dead
+            and (ship.x - unit.x) ^ 2 + (ship.y - unit.y) ^ 2 <= r2 then
+            return true
+        end
+    end
+    return false
+end
+
+function Overlay.isVisible(game, unit)
+    local human = game.human
+    if ALWAYS_VISIBLE[unit.kind] or unit.owner:isFriendly(human) or not human.alive then
+        return true
+    end
+    if unit.visionTick and game.tick - unit.visionTick < Config.visionRefreshTicks then
+        return unit.visible
+    end
+    unit.visionTick = game.tick
+    unit.visible = nearTerritory(game, human, unit.x, unit.y, Config.visionRange) or nearWarship(game, human, unit)
+    return unit.visible
+end
+
+function Overlay.structureAt(game, tile)
+    local map = game.map
+    local x, y = map:coords(tile)
+    for dy = -2, 2 do
+        for dx = -2, 2 do
+            if map:isValid(x + dx, y + dy) then
+                local unit = game.buildingAt[map:index(x + dx, y + dy)]
+                if unit and not unit.dead and Overlay.isVisible(game, unit) then
+                    return unit
+                end
+            end
+        end
+    end
+    return nil
+end
+
 function Overlay.structureAlpha(camera)
     return math.max(0, math.min(1, (camera.scale - Overlay.structureZoomStart) / (Overlay.structureZoomFull - Overlay.structureZoomStart)))
 end
@@ -122,27 +183,33 @@ function Overlay.drawBuilding(game, camera, unit)
     end
 end
 
+function Overlay.drawRail(game, camera, rail, alpha, width)
+    local ax, ay = camera:toScreen(rail.a.x, rail.a.y)
+    local bx, by = camera:toScreen(rail.b.x, rail.b.y)
+    love.graphics.setColor(0.15, 0.15, 0.17, 0.85 * alpha)
+    love.graphics.setLineWidth(width + 2)
+    love.graphics.line(ax, ay, bx, by)
+    love.graphics.setColor(0.65, 0.62, 0.55, 0.9 * alpha)
+    love.graphics.setLineWidth(width)
+    love.graphics.line(ax, ay, bx, by)
+    if alpha >= 1 then
+        local tx, ty = camera:toScreen(Rails.trainPosition(game, rail))
+        local c = rail.a.owner.color
+        love.graphics.setColor(0, 0, 0, 0.8)
+        love.graphics.rectangle("fill", tx - 4, ty - 3, 8, 6)
+        love.graphics.setColor(c[1], c[2], c[3], 1)
+        love.graphics.rectangle("fill", tx - 3, ty - 2, 6, 4)
+    end
+end
+
 function Overlay.drawRails(game, camera)
     if not game.rails or #game.rails == 0 then return end
     local alpha = Overlay.structureAlpha(camera)
     if alpha <= 0 then return end
     local width = math.max(1, math.min(3, camera.scale * 0.4))
     for _, rail in ipairs(game.rails) do
-        local ax, ay = camera:toScreen(rail.a.x, rail.a.y)
-        local bx, by = camera:toScreen(rail.b.x, rail.b.y)
-        love.graphics.setColor(0.15, 0.15, 0.17, 0.85 * alpha)
-        love.graphics.setLineWidth(width + 2)
-        love.graphics.line(ax, ay, bx, by)
-        love.graphics.setColor(0.65, 0.62, 0.55, 0.9 * alpha)
-        love.graphics.setLineWidth(width)
-        love.graphics.line(ax, ay, bx, by)
-        if alpha >= 1 then
-            local tx, ty = camera:toScreen(Rails.trainPosition(game, rail))
-            local c = rail.a.owner.color
-            love.graphics.setColor(0, 0, 0, 0.8)
-            love.graphics.rectangle("fill", tx - 4, ty - 3, 8, 6)
-            love.graphics.setColor(c[1], c[2], c[3], 1)
-            love.graphics.rectangle("fill", tx - 3, ty - 2, 6, 4)
+        if Overlay.isVisible(game, rail.a) and Overlay.isVisible(game, rail.b) then
+            Overlay.drawRail(game, camera, rail, alpha, width)
         end
     end
 end
@@ -150,7 +217,7 @@ end
 function Overlay.drawUnits(game, camera, W, H)
     local radius = math.max(2.5, math.min(11, camera.scale * 2.5))
     for _, unit in ipairs(game.units) do
-        if not unit.dead then
+        if not unit.dead and Overlay.isVisible(game, unit) then
             local sx, sy = camera:toScreen(unit.x, unit.y)
             if sx > -20 and sy > -20 and sx < W + 20 and sy < H + 20 then
                 local draw = Overlay.unitDrawers[unit.kind] or Overlay.drawBuilding

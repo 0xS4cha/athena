@@ -6,6 +6,7 @@ local Info = { id = "info" }
 
 local Config = require("src.config.game")
 local Attack = require("src.modules.game.systems.attack")
+local Overlay = require("src.modules.game.overlay")
 
 function Info.draw(hud)
     local game = hud:game()
@@ -18,6 +19,11 @@ function Info.draw(hud)
     local parts = { string.format("X:%d Y:%d", x, y), Config.biomes[biome].label }
     if biome ~= "water" and game.human.spawned then
         parts[#parts + 1] = string.format("Cost x%.1f", Attack.biomeMultiplier(game.human, biome))
+    end
+    local camera = hud:camera()
+    local structure = Overlay.structureAlpha(camera) > 0 and Overlay.structureAt(game, tile)
+    if structure then
+        parts[#parts + 1] = Config.units[structure.kind].label .. (structure.buildLeft > 0 and " (building)" or "")
     end
     if map.fallout[tile] > 0 then
         parts[#parts + 1] = "Fallout"

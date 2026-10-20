@@ -4,6 +4,7 @@ local Map = require("src.modules.map.map")
 local Renderer = require("src.modules.map.renderer")
 local Player = require("src.modules.player.player")
 local Palette = require("src.modules.player.palette")
+local Random = require("src.core.random")
 
 local Systems = {
     require("src.modules.game.systems.spawn"),
@@ -20,7 +21,8 @@ local Game = Class()
 function Game:init(options)
     self.options = options or {}
     self.seed = self.options.seed or os.time()
-    self.rng = love.math.newRandomGenerator(self.seed)
+    self.rng = Random.new(self.seed)
+    self.handlers = {}
     self.map = Map(self.options.map or Config.defaultMap)
     self.tick = 0
     self.phase = "playing"
@@ -156,11 +158,18 @@ function Game:eliminate(player, by)
 end
 
 function Game:emit(name, ...)
-    for _, system in ipairs(Systems) do
-        local fn = system[name]
-        if fn then
-            fn(self, ...)
+    local list = self.handlers[name]
+    if not list then
+        list = {}
+        for _, system in ipairs(Systems) do
+            if system[name] then
+                list[#list + 1] = system[name]
+            end
         end
+        self.handlers[name] = list
+    end
+    for k = 1, #list do
+        list[k](self, ...)
     end
 end
 
@@ -229,6 +238,12 @@ function Game:difficulty()
 end
 
 function Game:report()
+    local counts = {}
+    for _, u in ipairs(self.units) do counts[u.kind] = (counts[u.kind] or 0) + 1 end
+    local parts = {}
+    for k, v in pairs(counts) do parts[#parts + 1] = k .. "=" .. v end
+    table.sort(parts)
+    Logger:info("game", "units " .. table.concat(parts, " "))
     local alive = self:alivePlayers()
     table.sort(alive, function(a, b) return a.tiles > b.tiles end)
     Logger:info("game", string.format("tick=%d phase=%s alive=%d", self.tick, self.phase, #alive))

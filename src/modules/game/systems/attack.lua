@@ -1,12 +1,11 @@
 local Config = require("src.config.game")
-local Heap = require("src.modules.algorithms.heap")
+local NumHeap = require("src.modules.algorithms.numheap")
 local Format = require("src.core.format")
 
 local Attack = {}
 
-local function compare(a, b)
-    return a.p < b.p
-end
+local TILE_SPACE = 8388608
+local floor = math.floor
 
 local function adjacency(map, i, id)
     local own = map.owner
@@ -26,7 +25,8 @@ local function enqueue(game, attack, j)
     local adj = adjacency(map, j, attack.attacker.id)
     if adj == 0 then return end
     attack.queued[j] = true
-    attack.queue:Push({ i = j, p = attack.wave + game.rng:random() * 2 - adj * 0.6 })
+    local priority = floor((attack.wave + game.rng:random() * 2 - adj * 0.6 + 10) * 100)
+    attack.queue:push(priority * TILE_SPACE + j)
 end
 
 local function enqueueNeighbors(game, attack, i)
@@ -176,14 +176,14 @@ function Attack.launch(game, attacker, targetId, troops)
         targetId = targetId,
         troops = troops,
         initialTroops = troops,
-        queue = Heap(compare),
+        queue = NumHeap.new(),
         queued = {},
         nb = {},
         wave = 0,
         startTick = game.tick
     }
     Attack.refreshFront(game, attack)
-    if attack.queue:Empty() then
+    if attack.queue:empty() then
         attacker.troops = attacker.troops + troops
         return nil
     end
@@ -212,12 +212,12 @@ function Attack.stepAttack(game, attack)
     attack.wave = attack.wave + 1
     local budget = Attack.tilesPerTick(attack)
     while budget > 0 do
-        local item = attack.queue:Pop()
+        local item = attack.queue:pop()
         if not item then
             Attack.finish(game, attack)
             return
         end
-        local i = item.i
+        local i = item % TILE_SPACE
         attack.queued[i] = nil
         if own[i] == attack.targetId and adjacency(map, i, attacker.id) > 0 then
             local cost, loss = Attack.cost(game, attack, i)

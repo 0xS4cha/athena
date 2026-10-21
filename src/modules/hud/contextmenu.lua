@@ -2,7 +2,8 @@ local Class = require("src.core.class")
 local GM = require("src.core.index")
 local Style = require("src.modules.hud.style")
 local Interaction = require("src.modules.game.interaction")
-local Icons = require("src.modules.hud.icons")
+local Pixel = require("src.modules.hud.pixel")
+local Fx = require("src.modules.hud.fx")
 
 local ContextMenu = Class()
 
@@ -15,8 +16,10 @@ function ContextMenu:init(hud)
     self.items = {}
     self.stack = {}
     self.hoveredIdx = nil
-    self.width = 260
-    self.itemHeight = 26
+    self.width = 270
+    self.itemHeight = 28
+    self.openedAt = 0
+    self.direction = 1
     self.pressedX = 0
     self.pressedY = 0
 end
@@ -41,6 +44,8 @@ function ContextMenu:open(mx, my, title, items)
     self.stack = {}
     self.visible = #items > 0
     self.hoveredIdx = nil
+    self.openedAt = love.timer.getTime()
+    self.direction = 1
     self:layout()
 end
 
@@ -49,6 +54,8 @@ function ContextMenu:push(title, items)
     table.insert(items, { label = "Back", icon = "Enter2.png", back = true })
     self.title = title
     self.items = items
+    self.openedAt = love.timer.getTime()
+    self.direction = 1
     self:layout()
 end
 
@@ -57,6 +64,8 @@ function ContextMenu:pop()
     if previous then
         self.title = previous.title
         self.items = previous.items
+        self.openedAt = love.timer.getTime()
+        self.direction = -1
         self:layout()
     else
         self:close()
@@ -87,45 +96,59 @@ end
 function ContextMenu:draw()
     if not self.visible then return end
     love.graphics.push("all")
+    local u = Pixel.unit
     local h = self:height()
-    Style.frame(self.x, self.y, self.width, h, self.title)
+    local age = love.timer.getTime() - self.openedAt
+    local open = Fx.outCubic(age / 0.18)
+    Pixel.alpha = open
+    local fullH = h
+    h = math.max(Style.headerHeight + u * 2, math.floor(fullH * (0.6 + 0.4 * open) / u) * u)
+    Style.frame(self.x, self.y, self.width, h, self.title, { grip = false, cornerAlpha = 0.8 })
+    love.graphics.setScissor(self.x, self.y, self.width, h)
 
     local font = Style.font(12)
-    love.graphics.setFont(font)
     local startY = self.y + Style.headerHeight + 4
+    local depth = #self.stack
     for i, item in ipairs(self.items) do
         local itemY = startY + (i - 1) * self.itemHeight
-        local hovered = self.hoveredIdx == i and not item.disabled
-        if hovered then
-            Style.setColor(Style.colors.hover)
-            love.graphics.rectangle("fill", self.x + 4, itemY, self.width - 8, self.itemHeight)
-            love.graphics.setColor(1, 1, 1, 0.25)
-            love.graphics.rectangle("line", self.x + 4, itemY, self.width - 8, self.itemHeight)
+        local e = Fx.outCubic(Fx.clamp(age * 8 - i * 0.35, 0, 1))
+        Pixel.alpha = e
+        local dx = math.floor((1 - e) * 24 * self.direction / u) * u
+        local hot = Pixel.ease("ctx:" .. depth .. ":" .. i .. ":" .. item.label, self.hoveredIdx == i and not item.disabled, 20)
+        local ix = self.x + dx
+        if hot > 0.01 then
+            Pixel.color(item.color or Pixel.colors.hover, 0.25 + 0.55 * hot)
+            Pixel.block(ix + u * 2, itemY + 1, self.width - u * 4, self.itemHeight - 2, u)
+            Pixel.color(item.color or Pixel.colors.hover, hot)
+            love.graphics.rectangle("fill", ix + u * 2, itemY + u + 1, u, self.itemHeight - 2 - u * 2)
         end
-
-        local icon = Icons.get(item.icon)
-        if icon then
-            love.graphics.setColor(1, 1, 1, item.disabled and 0.35 or 1)
-            love.graphics.draw(icon, self.x + 10, math.floor(itemY + (self.itemHeight - icon:getHeight()) / 2))
+        local shift = math.floor(hot * 2) * u
+        if item.icon then
+            Pixel.icon(item.icon, ix + 12 + shift, itemY + math.floor((self.itemHeight - 16) / 2), 16, item.disabled and 0.35 or 1)
         end
-
+        local color
         if item.disabled then
-            Style.setColor(Style.colors.disabled)
+            color = Style.colors.disabled
         elseif item.color then
-            Style.setColor(item.color)
-        elseif hovered then
-            love.graphics.setColor(1, 1, 1, 1)
+            color = item.color
         else
-            love.graphics.setColor(0.8, 0.8, 0.85, 1)
+            color = Pixel.mix({ 0.8, 0.8, 0.85, 1 }, { 1, 1, 1, 1 }, hot)
         end
-        local label = item.label .. (item.submenu and "  >" or "")
-        love.graphics.print(label, self.x + 32, itemY + 6)
-
+        Pixel.text(item.label, ix + 36 + shift, itemY + 6, 12, color)
+        local right = ix + self.width - 12
+        if item.submenu then
+            Pixel.color(item.disabled and Style.colors.disabled or Style.colors.gold, 0.6 + 0.4 * hot)
+            local bob = math.floor(hot * (math.sin(love.timer.getTime() * 8) + 1)) * u
+            Pixel.arrow(right - u * 3 + bob, itemY + math.floor(self.itemHeight / 2), 3, 1)
+            right = right - u * 6
+        end
         if item.sublabel then
-            Style.setColor(item.disabled and Style.colors.disabled or (item.sublabelColor or Style.colors.gold))
-            love.graphics.print(item.sublabel, self.x + self.width - 12 - font:getWidth(item.sublabel), itemY + 6)
+            local color = item.disabled and Style.colors.disabled or (item.sublabelColor or Style.colors.gold)
+            Pixel.text(item.sublabel, right - font:getWidth(item.sublabel), itemY + 6, 12, color)
         end
     end
+    love.graphics.setScissor()
+    Pixel.alpha = 1
     love.graphics.pop()
 end
 

@@ -1,8 +1,12 @@
 local Flags = require("src.modules.hud.flags")
+local Pixel = require("src.modules.hud.pixel")
 
 local Style = {}
 
+local floor = math.floor
+
 Style.headerHeight = 26
+Style.pixel = Pixel
 
 Style.colors = {
     shadow = { 0, 0, 0, 0.45 },
@@ -21,52 +25,42 @@ Style.colors = {
     troops = { 0.45, 0.75, 1, 1 }
 }
 
-local fonts = {}
-
-Style.fontPath = "assets/fonts/Jersey10-Regular.ttf"
-Style.fontScale = 1.4
-
-function Style.font(size)
-    size = math.max(8, math.floor(size * Style.fontScale + 0.5))
-    if not fonts[size] then
-        local font = love.graphics.newFont(Style.fontPath, size, "mono")
-        font:setFilter("nearest", "nearest")
-        fonts[size] = font
-    end
-    return fonts[size]
-end
+Style.fontPath = Pixel.fontPath
+Style.fontScale = Pixel.fontScale
+Style.font = Pixel.font
 
 function Style.setColor(c, alpha)
-    love.graphics.setColor(c[1], c[2], c[3], alpha or c[4] or 1)
+    love.graphics.setColor(c[1], c[2], c[3], (alpha or c[4] or 1) * Pixel.alpha)
 end
 
 function Style.inside(mx, my, x, y, w, h)
     return mx >= x and mx <= x + w and my >= y and my <= y + h
 end
 
-function Style.box(x, y, w, h)
-    Style.setColor(Style.colors.shadow)
-    love.graphics.rectangle("fill", x + 3, y + 3, w, h)
-    Style.setColor(Style.colors.background)
-    love.graphics.rectangle("fill", x, y, w, h)
-    Style.setColor(Style.colors.border)
-    love.graphics.setLineWidth(2)
-    love.graphics.rectangle("line", x, y, w, h)
-    Style.setColor(Style.colors.accent)
-    love.graphics.setLineWidth(1)
-    love.graphics.rectangle("line", x + 2, y + 2, w - 4, h - 4)
+function Style.box(x, y, w, h, options)
+    options = options or {}
+    Pixel.panel(x, y, w, h, { corners = options.corners or false, accent = options.accent, fill = options.fill })
 end
 
-function Style.frame(x, y, w, h, title)
-    Style.box(x, y, w, h)
+function Style.frame(x, y, w, h, title, options)
+    options = options or {}
+    local u = Pixel.unit
+    x, y, w, h = floor(x), floor(y), floor(w), floor(h)
+    Pixel.panel(x, y, w, h, { accent = options.accent, cornerAlpha = options.cornerAlpha or 0.55 })
     if title then
-        Style.setColor(Style.colors.header)
-        love.graphics.rectangle("fill", x + 3, y + 3, w - 6, Style.headerHeight - 2)
-        Style.setColor(Style.colors.separator)
-        love.graphics.line(x + 3, y + Style.headerHeight + 1, x + w - 3, y + Style.headerHeight + 1)
-        Style.setColor(Style.colors.text)
-        love.graphics.setFont(Style.font(12))
-        love.graphics.print(title, x + 10, y + 6)
+        Pixel.color(Pixel.colors.raised, 0.9)
+        love.graphics.rectangle("fill", x + u, y + u, w - 2 * u, Style.headerHeight - u)
+        Pixel.color(options.accent or Pixel.colors.edge, 0.45)
+        love.graphics.rectangle("fill", x + u, y + Style.headerHeight, w - 2 * u, u)
+        Pixel.color(options.accent or Pixel.colors.gold)
+        love.graphics.rectangle("fill", x + u * 3, y + floor(Style.headerHeight / 2) - u, u * 2, u * 2)
+        Pixel.text(title, x + u * 7, y + 5, 12, options.titleColor or Pixel.colors.gold)
+        if options.grip ~= false then
+            Pixel.color(Pixel.colors.muted, 0.35)
+            for k = 0, 2 do
+                love.graphics.rectangle("fill", x + w - u * (5 + k * 3), y + floor(Style.headerHeight / 2) - u, u, u * 2)
+            end
+        end
     end
 end
 
@@ -74,50 +68,30 @@ function Style.button(x, y, w, h, label, options)
     options = options or {}
     local mx, my = love.mouse.getPosition()
     local hovered = not options.disabled and Style.inside(mx, my, x, y, w, h)
-    if hovered or options.active then
-        Style.setColor(options.color or Style.colors.hover)
-        love.graphics.rectangle("fill", x, y, w, h)
-        love.graphics.setColor(1, 1, 1, 0.25)
-        love.graphics.rectangle("line", x, y, w, h)
-    else
-        Style.setColor(Style.colors.header)
-        love.graphics.rectangle("fill", x, y, w, h)
-        Style.setColor(Style.colors.accent)
-        love.graphics.rectangle("line", x, y, w, h)
-    end
-    local font = Style.font(options.size or 12)
-    love.graphics.setFont(font)
-    Style.setColor(options.disabled and Style.colors.disabled or Style.colors.text)
-    love.graphics.print(label, math.floor(x + (w - font:getWidth(label)) / 2), math.floor(y + (h - font:getHeight()) / 2))
+    Pixel.button(options.id or string.format("button:%s:%d:%d", label, floor(x), floor(y)), x, y, w, h, label, {
+        compact = options.compact ~= false,
+        hot = hovered,
+        active = options.active,
+        color = options.color,
+        disabled = options.disabled,
+        icon = options.icon,
+        iconSize = options.iconSize,
+        size = options.size or 12,
+        primary = options.primary,
+        align = options.align,
+        hint = options.hint
+    })
     return hovered
 end
 
 function Style.slider(x, y, w, value, color, active)
     local mx, my = love.mouse.getPosition()
-    love.graphics.setColor(0.05, 0.06, 0.09, 1)
-    love.graphics.rectangle("fill", x, y - 2, w, 4)
-    love.graphics.setColor(0.15, 0.2, 0.3, 1)
-    love.graphics.rectangle("line", x, y - 2, w, 4)
-    Style.setColor(color, 0.8)
-    love.graphics.rectangle("fill", x, y - 2, value * w, 4)
-
-    local hx = x + value * w
-    local hovered = Style.inside(mx, my, x - 6, y - 8, w + 12, 16)
-    if hovered or active then
-        love.graphics.setColor(1, 1, 1, 1)
-        love.graphics.rectangle("fill", hx - 4, y - 6, 8, 12, 2, 2)
-        Style.setColor(color, 1)
-        love.graphics.rectangle("line", hx - 4, y - 6, 8, 12, 2, 2)
-    else
-        love.graphics.setColor(0.8, 0.8, 0.85, 1)
-        love.graphics.rectangle("fill", hx - 4, y - 6, 8, 12, 2, 2)
-        love.graphics.setColor(0.4, 0.5, 0.6, 1)
-        love.graphics.rectangle("line", hx - 4, y - 6, 8, 12, 2, 2)
-    end
+    local hovered = Style.sliderHit(mx, my, x, y, w)
+    Pixel.meter(string.format("slider:%d:%d", floor(x), floor(y)), x, y - 6, w, 12, value, color, { knob = true, hot = hovered or active, instant = true })
 end
 
 function Style.sliderHit(mx, my, x, y, w)
-    return Style.inside(mx, my, x - 6, y - 8, w + 12, 16)
+    return Style.inside(mx, my, x - 6, y - 10, w + 12, 20)
 end
 
 function Style.flag(flagKey, x, y, size)
@@ -126,16 +100,19 @@ function Style.flag(flagKey, x, y, size)
     if not flag then return false end
     local fw, fh = flag:getWidth(), flag:getHeight()
     local scale = math.min(size / fw, size / fh)
-    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.setColor(1, 1, 1, Pixel.alpha)
     love.graphics.draw(flag, x, y + (size - fh * scale) / 2, 0, scale, scale)
     return true
 end
 
 function Style.swatch(color, x, y, size)
-    love.graphics.setColor(color[1], color[2], color[3], 1)
+    x, y = floor(x), floor(y)
+    Pixel.color(Pixel.colors.ink)
     love.graphics.rectangle("fill", x, y, size, size)
-    love.graphics.setColor(0, 0, 0, 1)
-    love.graphics.rectangle("line", x, y, size, size)
+    love.graphics.setColor(color[1], color[2], color[3], Pixel.alpha)
+    love.graphics.rectangle("fill", x + 2, y + 2, size - 4, size - 4)
+    love.graphics.setColor(1, 1, 1, 0.35 * Pixel.alpha)
+    love.graphics.rectangle("fill", x + 2, y + 2, size - 4, 2)
 end
 
 return Style

@@ -1,68 +1,71 @@
 local Style = require("src.modules.hud.style")
 local Format = require("src.core.format")
 local Config = require("src.config.game")
-local Icons = require("src.modules.hud.icons")
+local Pixel = require("src.modules.hud.pixel")
 
 local Clock = { id = "clock" }
 
-local W, H = 300, 34
-local BUTTON = 34
+local W, H = 330, 42
+local PAUSE = 36
 
-local function rect()
-    local sw = love.graphics.getWidth()
-    return (sw - W) / 2, 16, W, H
-end
-
-local function buttons(x, y)
-    local list = { { kind = "pause", x = x + 86, y = y + 5, w = 30, h = 24 } }
+local function labels()
+    local list = {}
     for k, speed in ipairs(Config.speeds) do
-        list[#list + 1] = { kind = "speed", index = k, label = "x" .. speed, x = x + 122 + (k - 1) * (BUTTON + 6), y = y + 5, w = BUTTON, h = 24 }
+        list[k] = "x" .. speed
     end
     return list
+end
+
+function Clock.size()
+    return W, H
+end
+
+function Clock.position(_, w, _, sw)
+    return math.floor((sw - w) / 2), 14
+end
+
+local function layout(x, y)
+    local pause = { x = x + 92, y = y + 6, w = PAUSE, h = H - 12 }
+    local speeds = { x = pause.x + PAUSE + 8, y = y + 6, h = H - 12 }
+    speeds.w = x + W - 8 - speeds.x
+    return pause, speeds
 end
 
 function Clock.visible(hud)
     return hud:game().phase ~= "spawn"
 end
 
-function Clock.hit(hud, mx, my)
-    return Style.inside(mx, my, rect())
-end
-
-function Clock.draw(hud)
+function Clock.draw(hud, x, y)
     local game = hud:game()
-    local x, y, w, h = rect()
-    Style.box(x, y, w, h)
-    love.graphics.setFont(Style.font(15))
-    Style.setColor(game.paused and Style.colors.gold or Style.colors.text)
-    love.graphics.print(Format.time(game.tick, Config.tickRate), x + 14, y + 8)
-    for _, b in ipairs(buttons(x, y)) do
-        if b.kind == "pause" then
-            Style.button(b.x, b.y, b.w, b.h, "", { active = game.paused })
-            local icon = Icons.get("PlayPause.png")
-            if icon then
-                love.graphics.setColor(1, 1, 1, 1)
-                love.graphics.draw(icon, b.x + (b.w - 16) / 2, b.y + (b.h - 16) / 2)
-            end
-        else
-            Style.button(b.x, b.y, b.w, b.h, b.label, { size = 11, active = game.speedIndex == b.index and not game.paused })
-        end
-    end
+    local u = Pixel.unit
+    Style.box(x, y, W, H, { corners = true })
+    local blink = game.paused and love.timer.getTime() % 1 < 0.5
+    Pixel.text(Format.time(game.tick, Config.tickRate), x + u * 5, y + 7, 15, blink and Style.colors.gold or Style.colors.text, blink and 1 or nil)
+    local second = (game.tick % Config.tickRate + game.accumulator * Config.tickRate) / Config.tickRate
+    Pixel.color(Pixel.colors.ink, 0.8)
+    love.graphics.rectangle("fill", x + u * 5, y + H - u * 4, 62, u)
+    Pixel.color(game.paused and Style.colors.gold or Style.colors.troops)
+    love.graphics.rectangle("fill", x + u * 5, y + H - u * 4, math.floor(62 * math.min(1, second) / u) * u, u)
+
+    local pause, speeds = layout(x, y)
+    Style.button(pause.x, pause.y, pause.w, pause.h, "", { id = "clock:pause", active = game.paused, color = Style.colors.gold, icon = "PlayPause.png", iconSize = 18 })
+    Pixel.segments("clock:speed", speeds.x, speeds.y, speeds.w, speeds.h, labels(), game.speedIndex, {
+        hot = Style.inside(love.mouse.getX(), love.mouse.getY(), speeds.x, speeds.y, speeds.w, speeds.h),
+        color = game.paused and Pixel.colors.raised or Pixel.colors.hover,
+        size = 11
+    })
 end
 
-function Clock.mousePressed(hud, mx, my, button)
+function Clock.mousePressed(hud, mx, my, button, x, y)
     if button ~= 1 then return end
     local game = hud:game()
-    local x, y = rect()
-    for _, b in ipairs(buttons(x, y)) do
-        if Style.inside(mx, my, b.x, b.y, b.w, b.h) then
-            if b.kind == "pause" then
-                game.paused = not game.paused
-            else
-                game.speedIndex = b.index
-                game.paused = false
-            end
-        end
+    local pause, speeds = layout(x, y)
+    if Style.inside(mx, my, pause.x, pause.y, pause.w, pause.h) then
+        game.paused = not game.paused
+    elseif Style.inside(mx, my, speeds.x, speeds.y, speeds.w, speeds.h) then
+        local count = #Config.speeds
+        game.speedIndex = math.max(1, math.min(count, math.floor((mx - speeds.x) / (speeds.w / count)) + 1))
+        game.paused = false
     end
 end
 

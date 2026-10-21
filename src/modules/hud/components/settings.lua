@@ -1,19 +1,26 @@
 local GM = require("src.core.index")
 local Style = require("src.modules.hud.style")
+local Pixel = require("src.modules.hud.pixel")
+local Fx = require("src.modules.hud.fx")
 
 local Modal = { id = "settings", modal = true }
 local Gear = { id = "gear" }
 
-local GEAR_X, GEAR_Y, GEAR_SIZE = 16, 16, 32
+local GEAR_X, GEAR_Y, GEAR_SIZE = 16, 14, 42
+local WIDTH = 320
+local BUTTON_H = 44
+local GAP = 12
+local TOP = 64
 
 local function buttons(hud)
     local list = {
-        { label = "Resume", action = function() hud.settingsOpen = false end },
-        { label = "Reset Panel Positions", action = function() hud:resetPositions() end }
+        { label = "Resume", icon = "Play.png", action = function() hud.settingsOpen = false end },
+        { label = "Reset Panel Positions", icon = "Restart.png", action = function() hud:resetPositions() end }
     }
     if GM.Menu then
         list[#list + 1] = {
             label = "Back To Menu",
+            icon = "Home.png",
             action = function()
                 hud.settingsOpen = false
                 GM.Session:Stop()
@@ -21,8 +28,12 @@ local function buttons(hud)
             end
         }
     end
-    list[#list + 1] = { label = "Quit Game", action = function() love.event.quit() end }
+    list[#list + 1] = { label = "Quit Game", icon = "Exit.png", danger = true, action = function() love.event.quit() end }
     return list
+end
+
+local function buttonRect(x, y, w, k)
+    return x + 34, y + TOP + (k - 1) * (BUTTON_H + GAP), w - 58, BUTTON_H
 end
 
 function Modal.visible(hud)
@@ -30,7 +41,7 @@ function Modal.visible(hud)
 end
 
 function Modal.size(hud)
-    return 280, Style.headerHeight + 50 + #buttons(hud) * 44
+    return WIDTH, TOP + #buttons(hud) * (BUTTON_H + GAP) + 18
 end
 
 function Modal.position(_, w, h, W, H)
@@ -38,15 +49,31 @@ function Modal.position(_, w, h, W, H)
 end
 
 function Modal.draw(hud, x, y, w, h)
-    love.graphics.setColor(0, 0, 0, 0.4)
+    love.graphics.push()
+    love.graphics.origin()
+    love.graphics.setColor(0.02, 0.03, 0.06, 0.55 * Pixel.alpha)
     love.graphics.rectangle("fill", 0, 0, love.graphics.getDimensions())
-    Style.frame(x, y, w, h, "SETTINGS")
-    Style.setColor(Style.colors.muted)
-    love.graphics.setFont(Style.font(12))
-    love.graphics.print("Drag panel headers to move them", x + 15, y + 36)
+    love.graphics.pop()
+    Style.frame(x, y, w, h, "PAUSE MENU", { grip = false, accent = Style.colors.gold, cornerAlpha = 0.9 })
+    Pixel.text("Drag panel headers to move them", x + 18, y + 34, 11, Style.colors.muted)
+    local mx, my = love.mouse.getPosition()
+    local age = hud:appeared(Modal)
+    local base = Pixel.alpha
     for k, button in ipairs(buttons(hud)) do
-        Style.button(x + 15, y + Style.headerHeight + 40 + (k - 1) * 44, w - 30, 34, button.label)
+        local bx, by, bw, bh = buttonRect(x, y, w, k)
+        local e = Fx.outCubic(Fx.clamp(age * 4 - k * 0.35, 0, 1))
+        Pixel.alpha = base * e
+        local hot = hud.settingsFocus == k or Style.inside(mx, my, bx, by, bw, bh)
+        Pixel.button("pause:" .. k, bx + math.floor((1 - e) * -30), by, bw, bh, button.label, {
+            hot = hot,
+            icon = button.icon,
+            align = "left",
+            size = 14,
+            color = button.danger and Style.colors.bad or nil,
+            primary = k == 1
+        })
     end
+    Pixel.alpha = base
 end
 
 function Modal.mousePressed(hud, mx, my, button, x, y, w, h)
@@ -56,7 +83,7 @@ function Modal.mousePressed(hud, mx, my, button, x, y, w, h)
         return
     end
     for k, b in ipairs(buttons(hud)) do
-        if Style.inside(mx, my, x + 15, y + Style.headerHeight + 40 + (k - 1) * 44, w - 30, 34) then
+        if Style.inside(mx, my, buttonRect(x, y, w, k)) then
             b.action()
             return
         end
@@ -66,6 +93,19 @@ end
 function Modal.keyPressed(hud, key)
     if key == "escape" then
         hud.settingsOpen = not hud.settingsOpen
+        hud.settingsFocus = nil
+        return true
+    end
+    if not hud.settingsOpen then
+        return false
+    end
+    local list = buttons(hud)
+    if key == "up" or key == "down" then
+        local focus = hud.settingsFocus or (key == "down" and 0 or 2)
+        hud.settingsFocus = (focus - 1 + (key == "down" and 1 or -1)) % #list + 1
+        return true
+    elseif (key == "return" or key == "kpenter") and hud.settingsFocus then
+        list[hud.settingsFocus].action()
         return true
     end
     return false
@@ -75,6 +115,7 @@ function Gear.init(hud)
     hud.settingsOpen = false
     hud.gearRotation = 0
     hud.gearImage = love.graphics.newImage("assets/Icons/Gear.png")
+    hud.gearImage:setFilter("nearest", "nearest")
 end
 
 function Gear.hit(_, mx, my)
@@ -83,33 +124,34 @@ end
 
 function Gear.think(hud, dt)
     local mx, my = love.mouse.getPosition()
-    if Gear.hit(hud, mx, my) then
-        hud.gearRotation = hud.gearRotation + dt * 2
-    end
+    local speed = (Gear.hit(hud, mx, my) or hud.settingsOpen) and 3 or 0.25
+    hud.gearRotation = hud.gearRotation + dt * speed
 end
 
 function Gear.draw(hud)
     local mx, my = love.mouse.getPosition()
-    local cx, cy = GEAR_X + GEAR_SIZE / 2, GEAR_Y + GEAR_SIZE / 2
-    if Gear.hit(hud, mx, my) then
-        love.graphics.setColor(0.2, 0.45, 0.8, 0.3)
-        love.graphics.circle("fill", cx, cy, 16)
-        love.graphics.setColor(0.2, 0.45, 0.8, 1)
-        love.graphics.circle("line", cx, cy, 16)
-    else
-        love.graphics.setColor(0.06, 0.08, 0.12, 0.85)
-        love.graphics.circle("fill", cx, cy, 16)
-        love.graphics.setColor(0.2, 0.45, 0.8, 0.4)
-        love.graphics.circle("line", cx, cy, 16)
-    end
+    local hot = Pixel.ease("gear:hot", Gear.hit(hud, mx, my) or hud.settingsOpen, 16)
+    local u = Pixel.unit
+    Pixel.color(Pixel.colors.ink, 0.45)
+    Pixel.block(GEAR_X + u * 2, GEAR_Y + u * 2, GEAR_SIZE, GEAR_SIZE)
+    Pixel.color(Pixel.colors.ink)
+    Pixel.block(GEAR_X, GEAR_Y, GEAR_SIZE, GEAR_SIZE)
+    Pixel.color(Pixel.mix(Pixel.colors.raised, Pixel.colors.edge, hot * 0.7))
+    Pixel.block(GEAR_X + u, GEAR_Y + u, GEAR_SIZE - u * 2, GEAR_SIZE - u * 2)
+    love.graphics.setColor(1, 1, 1, 0.1 + 0.2 * hot)
+    love.graphics.rectangle("fill", GEAR_X + u * 2, GEAR_Y + u, GEAR_SIZE - u * 4, u)
+    Pixel.corners(GEAR_X, GEAR_Y, GEAR_SIZE, GEAR_SIZE, Style.colors.gold, hot)
     local img = hud.gearImage
+    local cx, cy = GEAR_X + GEAR_SIZE / 2, GEAR_Y + GEAR_SIZE / 2
+    local snapped = math.floor(hud.gearRotation / (math.pi / 8)) * (math.pi / 8)
     love.graphics.setColor(1, 1, 1, 1)
-    love.graphics.draw(img, cx, cy, hud.gearRotation, 24 / img:getWidth(), 24 / img:getHeight(), img:getWidth() / 2, img:getHeight() / 2)
+    love.graphics.draw(img, cx, cy, snapped, 26 / img:getWidth(), 26 / img:getHeight(), img:getWidth() / 2, img:getHeight() / 2)
 end
 
 function Gear.mousePressed(hud, _, _, button)
     if button == 1 then
         hud.settingsOpen = not hud.settingsOpen
+        hud.settingsFocus = nil
     end
 end
 

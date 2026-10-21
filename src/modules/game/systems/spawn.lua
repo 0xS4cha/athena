@@ -105,7 +105,7 @@ end
 function Spawn.finish(game)
     local human = game.human
     if not human.spawned then
-        local tile = Spawn.randomTile(game)
+        local tile = not game.options.spectator and Spawn.randomTile(game)
         if tile then
             Spawn.place(game, human, tile)
         else

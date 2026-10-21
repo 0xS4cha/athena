@@ -2,27 +2,66 @@ local GM = require("src.core.index")
 local Style = require("src.modules.hud.style")
 local LoadFile = require("src.core.loadFile")
 local Renderer = require("src.modules.map.renderer")
-local Format = require("src.core.format")
 local Config = require("src.config.game")
+local Fx = require("src.modules.hud.fx")
+local UI = require("src.modules.hud.pixel")
+local Background = require("src.modules.menu.background")
 
 GM.Menu = {}
 
 GM.Modules:Register("Menu", 90)
 
 local CONFIG_FILE = "menu_config.txt"
-local ROW = 26
-local DIFFICULTIES = { "easy", "medium", "hard" }
-local MAX_BOTS = 400
+local SETTING_KEYS = { "map", "bots", "nations", "difficulty", "name", "fullscreen", "vsync", "background", "battleSpeed", "particles" }
+local SWITCH_IN = 0.6
+local SWITCH_OUT = 0.22
+local WIPE_SECONDS = 0.65
+local EMBERS = 70
+
+local Screens = {
+    root = require("src.modules.menu.screens.root"),
+    play = require("src.modules.menu.screens.play"),
+    settings = require("src.modules.menu.screens.settings"),
+    howto = require("src.modules.menu.screens.howto")
+}
 
 function GM.Menu:Initialize()
     self.maps = nil
+    self.filtered = {}
+    self.search = ""
     self.scroll = 0
     self.selected = 1
     self.previews = {}
-    self.settings = { map = Config.defaultMap, bots = Config.defaultBots, nations = true, difficulty = "medium", name = "Player" }
-    self.slider = nil
-    self.loading = nil
+    self.previewTime = 0
+    self.settings = {
+        map = Config.defaultMap,
+        bots = Config.defaultBots,
+        nations = true,
+        difficulty = "medium",
+        name = "Player",
+        fullscreen = false,
+        vsync = false,
+        background = true,
+        battleSpeed = 2,
+        particles = true
+    }
     self:loadSettings()
+    self.background = Background()
+    self.embers = Fx.embers(EMBERS)
+    self.screen = "root"
+    self.previous = nil
+    self.direction = 1
+    self.switchTime = 0
+    self.openTime = 0
+    self.focus = nil
+    self.editing = nil
+    self.dragging = nil
+    self.wipe = nil
+    self.dim = 0.2
+    local flags = GM.Flags or {}
+    if not (flags.ci or flags.menu or flags.autostart) then
+        self:applyDisplay()
+    end
 end
 
 function GM.Menu:loadMaps()
@@ -52,6 +91,7 @@ function GM.Menu:loadMaps()
             self.selected = k
         end
     end
+    self:refreshFilter()
 end
 
 function GM.Menu:loadSettings()
@@ -59,19 +99,56 @@ function GM.Menu:loadSettings()
     if not content then return end
     for line in content:gmatch("[^\r\n]+") do
         local key, value = line:match("^(%w+)=(.*)$")
-        if key == "bots" then
-            self.settings.bots = tonumber(value) or self.settings.bots
-        elseif key == "nations" then
-            self.settings.nations = value == "true"
-        elseif key == "map" or key == "difficulty" or key == "name" then
+        local default = key and self.settings[key]
+        if type(default) == "number" then
+            self.settings[key] = tonumber(value) or default
+        elseif type(default) == "boolean" then
+            self.settings[key] = value == "true"
+        elseif type(default) == "string" then
             self.settings[key] = value
         end
     end
 end
 
 function GM.Menu:saveSettings()
+    local lines = {}
+    for _, key in ipairs(SETTING_KEYS) do
+        lines[#lines + 1] = key .. "=" .. tostring(self.settings[key])
+    end
+    love.filesystem.write(CONFIG_FILE, table.concat(lines, "\n") .. "\n")
+end
+
+function GM.Menu:applyDisplay()
     local s = self.settings
-    love.filesystem.write(CONFIG_FILE, string.format("map=%s\nbots=%d\nnations=%s\ndifficulty=%s\nname=%s\n", s.map, s.bots, tostring(s.nations), s.difficulty, s.name))
+    if love.window.getFullscreen() ~= s.fullscreen then
+        love.window.setFullscreen(s.fullscreen, "desktop")
+    end
+    love.window.setVSync(s.vsync and 1 or 0)
+end
+
+function GM.Menu:setOption(key, value)
+    self.settings[key] = value
+    if key == "fullscreen" or key == "vsync" then
+        self:applyDisplay()
+    elseif key == "background" then
+        if value and not self.background.game then
+            self.background:start(self.settings.battleSpeed)
+        elseif not value then
+            self.background:stop()
+            collectgarbage()
+        end
+    elseif key == "battleSpeed" then
+        self.background:setSpeed(value)
+    end
+    self:saveSettings()
+end
+
+function GM.Menu:nextBattle()
+    if not self.settings.background then
+        self:setOption("background", true)
+        return
+    end
+    self.background:start(self.settings.battleSpeed)
 end
 
 function GM.Menu:Open()
@@ -79,24 +156,50 @@ function GM.Menu:Open()
     if not self.maps then
         self:loadMaps()
     end
+    if self.settings.background and not self.background.game then
+        self.background:start(self.settings.battleSpeed)
+    end
+    local flags = GM.Flags or {}
+    local now = love.timer.getTime()
+    self.openTime = now
+    self.previous = nil
+    self:switch(Screens[flags.screen] and flags.screen or "root", 1)
+    self.previous = nil
+    self.dim = self:dimTarget()
+    if flags.menu then
+        self.openTime = now - 100
+        self.switchTime = now - 100
+        self.previewTime = now - 100
+        self.background.fade = 0
+    else
+        self.wipe = { phase = "reveal", start = now }
+    end
+end
+
+function GM.Menu:dimTarget()
+    return self.screen == "root" and 0.12 or 0.62
 end
 
 function GM.Menu:active()
     return GM.State == "menu"
 end
 
-function GM.Menu:layout()
-    local W, H = love.graphics.getDimensions()
-    local listW = math.min(320, W * 0.3)
-    local top = 110
-    local list = { x = 40, y = top, w = listW, h = H - top - 40 }
-    local panel = { x = list.x + listW + 30, y = top, w = W - listW - 110, h = H - top - 40 }
-    return list, panel
+function GM.Menu:switch(name, direction)
+    if not Screens[name] then return end
+    self.previous = self.screen ~= name and self.screen or nil
+    self.screen = name
+    self.direction = direction or 1
+    self.switchTime = love.timer.getTime()
+    self.focus = nil
+    self.editing = nil
+    self.dragging = nil
+    if Screens[name].enter then
+        Screens[name].enter(self)
+    end
 end
 
-function GM.Menu:visibleRows()
-    local list = self:layout()
-    return math.floor((list.h - Style.headerHeight - 10) / ROW)
+function GM.Menu:stagger(p, k)
+    return Fx.outCubic(Fx.clamp(p * 1.7 - (k - 1) * 0.09, 0, 1))
 end
 
 function GM.Menu:current()
@@ -105,138 +208,81 @@ end
 
 function GM.Menu:preview(map)
     if self.previews[map.path] == nil then
-        self.previews[map.path] = Renderer.preview(map.path, map.manifest) or false
+        local image = Renderer.preview(map.path, map.manifest)
+        if image then
+            image:setFilter("nearest", "nearest")
+        end
+        self.previews[map.path] = image or false
     end
     return self.previews[map.path] or nil
 end
 
-function GM.Menu:controls(panel)
-    local x = panel.x + 20
-    local w = panel.w - 40
-    local y = panel.y + panel.h - 250
-    return {
-        name = { x = x, y = y, w = w, h = 30 },
-        bots = { x = x, y = y + 70, w = w },
-        nations = { x = x, y = y + 100, w = 180, h = 28 },
-        difficulty = { x = x + 200, y = y + 100, w = w - 200, h = 28 },
-        start = { x = x, y = y + 150, w = w, h = 46 }
-    }
+function GM.Menu:revealPreview()
+    self.previewTime = love.timer.getTime()
 end
 
-function GM.Menu:Draw()
-    if not self:active() then return end
-    local W, H = love.graphics.getDimensions()
-    love.graphics.push("all")
-    love.graphics.setColor(0.05, 0.06, 0.09, 1)
-    love.graphics.rectangle("fill", 0, 0, W, H)
-
-    if self.loading then
-        local font = Style.font(28)
-        love.graphics.setFont(font)
-        Style.setColor(Style.colors.text)
-        local text = "Loading " .. self.loading.label .. "..."
-        love.graphics.print(text, (W - font:getWidth(text)) / 2, H / 2 - 20)
-        love.graphics.pop()
-        return
-    end
-
-    local title = Style.font(40)
-    love.graphics.setFont(title)
-    Style.setColor(Style.colors.text)
-    love.graphics.print("ATHENA", 40, 26)
-    love.graphics.setFont(Style.font(14))
-    Style.setColor(Style.colors.muted)
-    love.graphics.print("Conquer the world, one tile at a time.", 44, 76)
-
-    local list, panel = self:layout()
-    local mx, my = love.mouse.getPosition()
-    Style.frame(list.x, list.y, list.w, list.h, string.format("MAPS (%d)", #self.maps))
-    local font = Style.font(13)
-    love.graphics.setFont(font)
-    love.graphics.setScissor(list.x, list.y + Style.headerHeight + 4, list.w, list.h - Style.headerHeight - 8)
-    for k = 1, self:visibleRows() do
-        local index = k + self.scroll
-        local map = self.maps[index]
-        if not map then break end
-        local ry = list.y + Style.headerHeight + 6 + (k - 1) * ROW
-        if index == self.selected then
-            Style.setColor(Style.colors.hover)
-            love.graphics.rectangle("fill", list.x + 4, ry, list.w - 8, ROW - 2)
-        elseif Style.inside(mx, my, list.x + 4, ry, list.w - 8, ROW - 2) then
-            Style.setColor(Style.colors.hover, 0.3)
-            love.graphics.rectangle("fill", list.x + 4, ry, list.w - 8, ROW - 2)
+function GM.Menu:refreshFilter()
+    local query = self.search:lower()
+    local list = {}
+    local keep = false
+    for k, map in ipairs(self.maps or {}) do
+        if query == "" or map.name:lower():find(query, 1, true) then
+            list[#list + 1] = k
+            if k == self.selected then keep = true end
         end
-        Style.setColor(map.featured and Style.colors.gold or Style.colors.text)
-        love.graphics.print(map.name, list.x + 14, ry + 5)
     end
-    love.graphics.setScissor()
-
-    local map = self:current()
-    Style.frame(panel.x, panel.y, panel.w, panel.h, map and string.upper(map.name) or "")
-    if map then
-        local image = self:preview(map)
-        local controls = self:controls(panel)
-        local areaW = panel.w - 40
-        local areaH = controls.name.y - panel.y - Style.headerHeight - 70
-        if image then
-            local scale = math.min(areaW / image:getWidth(), areaH / image:getHeight())
-            local iw, ih = image:getWidth() * scale, image:getHeight() * scale
-            love.graphics.setColor(1, 1, 1, 1)
-            love.graphics.draw(image, panel.x + (panel.w - iw) / 2, panel.y + Style.headerHeight + 14, 0, scale, scale)
-        end
-        local m = map.manifest
-        local opponents = (self.settings.nations and #(m.nations or {}) or 0) + self.settings.bots
-        local info = string.format("%d x %d  |  %s land tiles  |  %d AI opponents", m.map.width, m.map.height, Format.number(m.map.num_land_tiles or 0), opponents)
-        love.graphics.setFont(Style.font(13))
-        Style.setColor(Style.colors.muted)
-        love.graphics.print(info, panel.x + 20, controls.name.y - 44)
-
-        local c = controls
-        love.graphics.setFont(Style.font(12))
-        Style.setColor(Style.colors.text)
-        love.graphics.print("Player name", c.name.x, c.name.y - 18)
-        Style.setColor(Style.colors.header)
-        love.graphics.rectangle("fill", c.name.x, c.name.y, c.name.w, c.name.h)
-        Style.setColor(Style.colors.accent)
-        love.graphics.rectangle("line", c.name.x, c.name.y, c.name.w, c.name.h)
-        Style.setColor(Style.colors.text)
-        love.graphics.setFont(Style.font(14))
-        local cursor = (love.timer.getTime() % 1 < 0.5) and "_" or ""
-        love.graphics.print(self.settings.name .. cursor, c.name.x + 10, c.name.y + 6)
-
-        love.graphics.setFont(Style.font(12))
-        Style.setColor(Style.colors.text)
-        love.graphics.print("Bots (wild tribes)", c.bots.x, c.bots.y - 20)
-        local botsText = tostring(self.settings.bots)
-        love.graphics.print(botsText, c.bots.x + c.bots.w - font:getWidth(botsText), c.bots.y - 20)
-        Style.slider(c.bots.x, c.bots.y, c.bots.w, self.settings.bots / MAX_BOTS, Style.colors.troops, self.slider ~= nil)
-
-        local nationCount = #(m.nations or {})
-        Style.button(c.nations.x, c.nations.y, c.nations.w, c.nations.h, self.settings.nations and string.format("Nations: %d", nationCount) or "Nations: Off", { active = self.settings.nations })
-        local dw = c.difficulty.w / #DIFFICULTIES
-        for k, d in ipairs(DIFFICULTIES) do
-            local label = d:sub(1, 1):upper() .. d:sub(2)
-            Style.button(c.difficulty.x + (k - 1) * dw, c.difficulty.y, dw - 6, c.difficulty.h, label, { active = self.settings.difficulty == d })
-        end
-        Style.button(c.start.x, c.start.y, c.start.w, c.start.h, "START GAME", { size = 18, color = { 0.15, 0.55, 0.35, 0.9 } })
+    self.filtered = list
+    self.scroll = 0
+    if not keep and list[1] then
+        self:select(list[1])
     end
-    love.graphics.pop()
+    self:ensureVisible()
+end
+
+function GM.Menu:select(index)
+    if index ~= self.selected then
+        self.selected = index
+        self:revealPreview()
+    end
+end
+
+function GM.Menu:ensureVisible()
+    local rows = Screens.play.visibleRows()
+    local position
+    for k, index in ipairs(self.filtered) do
+        if index == self.selected then position = k end
+    end
+    if not position then return end
+    if position <= self.scroll then
+        self.scroll = position - 1
+    elseif position > self.scroll + rows then
+        self.scroll = position - rows
+    end
+end
+
+function GM.Menu:moveSelection(delta)
+    local position = 1
+    for k, index in ipairs(self.filtered) do
+        if index == self.selected then position = k end
+    end
+    local target = self.filtered[Fx.clamp(position + delta, 1, #self.filtered)]
+    if target then
+        self:select(target)
+        self:ensureVisible()
+    end
 end
 
 function GM.Menu:start()
     local map = self:current()
-    if not map then return end
+    if not map or self.wipe then return end
     self.settings.map = map.path
     self:saveSettings()
-    self.loading = { label = map.name, frames = 0 }
-end
-
-function GM.Menu:Think()
-    if not self:active() then return end
-    if self.loading then
-        self.loading.frames = self.loading.frames + 1
-        if self.loading.frames >= 2 then
-            self.loading = nil
+    self.wipe = {
+        phase = "cover",
+        start = love.timer.getTime(),
+        label = map.name,
+        action = function()
+            self.background:stop()
             local s = self.settings
             GM.Session:Start({
                 map = s.map,
@@ -247,83 +293,262 @@ function GM.Menu:Think()
                 seed = os.time()
             })
         end
-        return
+    }
+end
+
+function GM.Menu:updateWipe()
+    local wipe = self.wipe
+    local t = (love.timer.getTime() - wipe.start) / WIPE_SECONDS
+    if t < 1 then return end
+    if wipe.phase == "cover" then
+        if not wipe.held then
+            wipe.held = true
+            return
+        end
+        wipe.action()
+        self.wipe = { phase = "reveal", start = love.timer.getTime() }
+    else
+        self.wipe = nil
     end
-    if self.slider then
-        if love.mouse.isDown(1) then
-            local mx = love.mouse.getPosition()
-            local pct = math.max(0, math.min(1, (mx - self.slider.x) / self.slider.w))
-            self.settings.bots = math.floor(pct * MAX_BOTS / 5 + 0.5) * 5
+end
+
+function GM.Menu:drawWipe()
+    local wipe = self.wipe
+    local t = Fx.clamp((love.timer.getTime() - wipe.start) / WIPE_SECONDS, 0, 1)
+    love.graphics.push("all")
+    love.graphics.origin()
+    Fx.wipe(t, wipe.phase == "cover")
+    if wipe.phase == "cover" and t >= 1 then
+        local W, H = love.graphics.getDimensions()
+        local font = Style.font(22)
+        local text = "DEPLOYING TO " .. string.upper(wipe.label or "")
+        love.graphics.setFont(font)
+        local x = math.floor((W - font:getWidth(text)) / 2)
+        local y = math.floor(H / 2 - font:getHeight())
+        UI.alpha = 1
+        UI.shadowText(text, x, y, 22, UI.colors.gold)
+        local u = UI.unit
+        local frame = math.floor(love.timer.getTime() * 8)
+        for k = 0, 5 do
+            UI.color(UI.colors.gold, (frame - k) % 6 == 0 and 1 or 0.25)
+            love.graphics.rectangle("fill", math.floor(W / 2) - 15 * u + k * 5 * u, y + font:getHeight() + 16, u * 3, u * 3)
+        end
+    end
+    love.graphics.pop()
+end
+
+function GM.Menu:elements()
+    return Screens[self.screen].build(self)
+end
+
+local function find(elements, id)
+    for _, element in ipairs(elements) do
+        if element.id == id then return element end
+    end
+end
+
+function GM.Menu:drawBackdrop(W, H)
+    love.graphics.setColor(0.03, 0.04, 0.07, 1)
+    love.graphics.rectangle("fill", 0, 0, W, H)
+    if self.background.game then
+        self.background:draw()
+    else
+        local u = UI.unit * 2
+        local time = love.timer.getTime()
+        for y = 0, H, u * 8 do
+            for x = 0, W, u * 8 do
+                local wave = math.sin(x * 0.01 + y * 0.013 + time * 0.6)
+                love.graphics.setColor(0.2, 0.45, 0.8, 0.04 + 0.04 * wave)
+                love.graphics.rectangle("fill", x, y, u, u)
+            end
+        end
+    end
+    local ink = UI.colors.ink
+    love.graphics.setColor(ink[1], ink[2], ink[3], self.dim)
+    love.graphics.rectangle("fill", 0, 0, W, H)
+    Fx.gradient(0, 0, math.floor(W * 0.55), H, ink, 0.85)
+    Fx.gradient(0, math.floor(H * 0.7), W, math.ceil(H * 0.3), ink, 0.7, "bottom")
+    Fx.gradient(0, 0, W, 90, ink, 0.6, "top")
+    Fx.vignette(0.9)
+    Fx.scanlines(0.12)
+    if self.settings.particles then
+        Fx.drawEmbers(self.embers, 1)
+    end
+end
+
+function GM.Menu:drawScreen(name, p, direction)
+    love.graphics.push()
+    love.graphics.translate(math.floor((1 - Fx.outCubic(p)) * 50 * direction), 0)
+    Screens[name].draw(self, Screens[name].build(self), p)
+    love.graphics.pop()
+    UI.alpha = 1
+end
+
+function GM.Menu:Draw()
+    if self:active() then
+        local W, H = love.graphics.getDimensions()
+        love.graphics.push("all")
+        self:drawBackdrop(W, H)
+        local now = love.timer.getTime()
+        local delay = 0
+        if self.previous then
+            local out = 1 - Fx.clamp((now - self.switchTime) / SWITCH_OUT, 0, 1)
+            if out > 0 then
+                self:drawScreen(self.previous, out, -self.direction)
+            end
+            delay = SWITCH_OUT * 0.5
+        end
+        local p = Fx.clamp((now - self.switchTime - delay) / SWITCH_IN, 0, 1)
+        self:drawScreen(self.screen, p, self.direction)
+        love.graphics.pop()
+    end
+    if self.wipe then
+        self:drawWipe()
+    end
+end
+
+function GM.Menu:Think(dt)
+    if self.wipe then
+        self:updateWipe()
+    end
+    if not self:active() then return end
+    local now = love.timer.getTime()
+    if self.previous and now - self.switchTime > SWITCH_OUT then
+        self.previous = nil
+    end
+    self.dim = Fx.approach(self.dim, self:dimTarget(), 6, dt)
+    if self.settings.background then
+        self.background:update(dt, self.screen ~= "play" and not self.wipe)
+    end
+    if self.settings.particles then
+        Fx.updateEmbers(self.embers, dt)
+    end
+
+    local mx, my = love.mouse.getPosition()
+    local elements = self:elements()
+    if mx ~= self.mouseX or my ~= self.mouseY then
+        self.mouseX, self.mouseY = mx, my
+        local hovered
+        for _, element in ipairs(elements) do
+            if (element.press or element.drag) and UI.hotspot(element, mx, my) then
+                hovered = element.id
+            end
+        end
+        self.focus = hovered
+    end
+    if self.dragging then
+        local element = find(elements, self.dragging)
+        if element and love.mouse.isDown(1) then
+            element.drag(self, mx, my)
         else
-            self.slider = nil
+            self.dragging = nil
+            self:saveSettings()
         end
     end
 end
 
 function GM.Menu:MousePressed(x, y, button)
-    if not self:active() or self.loading or button ~= 1 then return end
-    local list, panel = self:layout()
-    if Style.inside(x, y, list.x, list.y + Style.headerHeight, list.w, list.h - Style.headerHeight) then
-        local k = math.floor((y - list.y - Style.headerHeight - 6) / ROW) + 1
-        local index = k + self.scroll
-        if self.maps[index] then
-            if index == self.selected and self.lastClick and love.timer.getTime() - self.lastClick < 0.4 then
-                self:start()
-                return
-            end
-            self.selected = index
-            self.lastClick = love.timer.getTime()
-        end
+    if not self:active() or self.wipe then return end
+    local screen = Screens[self.screen]
+    if button == 4 and screen.back then
+        screen.back(self)
         return
     end
-    local c = self:controls(panel)
-    if Style.sliderHit(x, y, c.bots.x, c.bots.y, c.bots.w) then
-        self.slider = { x = c.bots.x, w = c.bots.w }
-    elseif Style.inside(x, y, c.nations.x, c.nations.y, c.nations.w, c.nations.h) then
-        self.settings.nations = not self.settings.nations
-    elseif Style.inside(x, y, c.start.x, c.start.y, c.start.w, c.start.h) then
-        self:start()
-    else
-        local dw = c.difficulty.w / #DIFFICULTIES
-        for k, d in ipairs(DIFFICULTIES) do
-            if Style.inside(x, y, c.difficulty.x + (k - 1) * dw, c.difficulty.y, dw - 6, c.difficulty.h) then
-                self.settings.difficulty = d
+    if button ~= 1 then return end
+    for _, element in ipairs(self:elements()) do
+        if UI.hotspot(element, x, y) then
+            self.focus = element.id
+            if element.drag then
+                self.dragging = element.id
+                element.drag(self, x, y)
             end
+            if element.press then
+                element.press(self, x, y)
+                self:saveSettings()
+            end
+            return
         end
     end
 end
 
 function GM.Menu:WheelMoved(_, y)
-    if not self:active() then return end
-    local maxScroll = math.max(0, #self.maps - self:visibleRows())
-    self.scroll = math.max(0, math.min(maxScroll, self.scroll - y * 3))
+    if not self:active() or self.wipe then return end
+    local screen = Screens[self.screen]
+    if screen.wheel then
+        screen.wheel(self, y)
+    end
 end
 
 function GM.Menu:TextInput(text)
-    if not self:active() or self.loading then return end
-    if #self.settings.name < 24 and text:match("^[%w%s%-_%.']$") then
-        self.settings.name = self.settings.name .. text
+    if not self:active() or self.wipe or not self.editing then return end
+    local element = find(self:elements(), self.editing)
+    if element and element.text then
+        element.text(self, text)
     end
 end
 
 function GM.Menu:KeyPressed(key)
-    if not self:active() or self.loading then return end
-    if key == "backspace" then
-        self.settings.name = self.settings.name:sub(1, -2)
-    elseif key == "return" or key == "kpenter" then
-        self:start()
-    elseif key == "up" then
-        self.selected = math.max(1, self.selected - 1)
-    elseif key == "down" then
-        self.selected = math.min(#self.maps, self.selected + 1)
-    end
-    if key == "up" or key == "down" then
-        local rows = self:visibleRows()
-        if self.selected <= self.scroll then
-            self.scroll = self.selected - 1
-        elseif self.selected > self.scroll + rows then
-            self.scroll = self.selected - rows
+    if not self:active() or self.wipe then return end
+    local screen = Screens[self.screen]
+    if key == "escape" then
+        if screen.back then
+            screen.back(self)
         end
+        return
+    end
+    local elements = self:elements()
+    if key == "backspace" and self.editing then
+        local element = find(elements, self.editing)
+        if element and element.text then
+            element.text(self, nil)
+        end
+        return
+    end
+    if screen.keyPressed and screen.keyPressed(self, key) then
+        return
+    end
+    local focused = self.focus and find(elements, self.focus)
+    if key == "up" or key == "down" then
+        if focused and focused[key] then
+            focused[key](self)
+            return
+        end
+        local nav = {}
+        local position
+        for _, element in ipairs(elements) do
+            if element.nav ~= false and (element.press or element.drag or element.left) then
+                nav[#nav + 1] = element
+                if element == focused then position = #nav end
+            end
+        end
+        if #nav == 0 then return end
+        if position then
+            position = (position - 1 + (key == "down" and 1 or -1)) % #nav + 1
+        else
+            position = 1
+        end
+        self.focus = nav[position].id
+        if nav[position].text then
+            self.editing = nav[position].id
+        end
+    elseif (key == "left" or key == "right") and focused and focused[key] then
+        focused[key](self)
+        self:saveSettings()
+    elseif (key == "return" or key == "kpenter") and focused and focused.press then
+        focused.press(self)
+        self:saveSettings()
+    elseif key == "tab" then
+        local fields = {}
+        for _, element in ipairs(elements) do
+            if element.text then fields[#fields + 1] = element.id end
+        end
+        for k, id in ipairs(fields) do
+            if id == self.editing then
+                self.editing = fields[k % #fields + 1]
+                return
+            end
+        end
+        self.editing = fields[1]
     end
 end
 

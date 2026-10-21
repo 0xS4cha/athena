@@ -2,10 +2,16 @@ local Class = require("src.core.class")
 local GM = require("src.core.index")
 local Style = require("src.modules.hud.style")
 local ContextMenu = require("src.modules.hud.contextmenu")
+local Pixel = require("src.modules.hud.pixel")
+local Fx = require("src.modules.hud.fx")
 
 local Hud = Class()
 
 local CONFIG_FILE = "hud_config.txt"
+local APPEAR_SECONDS = 0.45
+local MODAL_SECONDS = 0.3
+local STAGGER = 0.07
+local SLIDE = 56
 
 Hud.componentPaths = {
     "src.modules.hud.components.info",
@@ -26,6 +32,7 @@ function Hud:init()
     self.dragging = nil
     self.slider = nil
     self.contextMenu = ContextMenu(self)
+    self.appear = {}
     for _, path in ipairs(self.componentPaths) do
         self:add(require(path))
     end
@@ -109,20 +116,80 @@ function Hud:updateSlider()
     self.slider.set(pct)
 end
 
+function Hud:appearance(component)
+    if GM.Flags and GM.Flags.ci then
+        return 100
+    end
+    local now = love.timer.getTime()
+    if not self.appear[component.id] then
+        self.appear[component.id] = now + self.stagger
+        self.stagger = self.stagger + STAGGER
+    end
+    return now - self.appear[component.id]
+end
+
+function Hud:appeared(component)
+    if GM.Flags and GM.Flags.ci then
+        return 100
+    end
+    local id = component.id
+    return id and self.appear[id] and love.timer.getTime() - self.appear[id] or 0
+end
+
+function Hud:drawPanel(component, x, y, w, h)
+    local age = self:appearance(component)
+    local W, H = love.graphics.getDimensions()
+    love.graphics.push()
+    if component.modal then
+        local t = Fx.clamp(age / MODAL_SECONDS, 0, 1)
+        local scale = 0.9 + 0.1 * Fx.outBack(t)
+        local cx, cy = x + w / 2, y + h / 2
+        love.graphics.translate(cx, cy)
+        love.graphics.scale(scale, scale)
+        love.graphics.translate(-cx, -cy)
+        Pixel.alpha = Fx.outCubic(t)
+    else
+        local t = Fx.outCubic(age / APPEAR_SECONDS)
+        local cx, cy = x + w / 2, y + h / 2
+        local dx, dy = 0, 0
+        if cx < W * 0.35 then
+            dx = -1
+        elseif cx > W * 0.65 then
+            dx = 1
+        else
+            dy = cy < H / 2 and -1 or 1
+        end
+        love.graphics.translate(math.floor((1 - t) * SLIDE * dx), math.floor((1 - t) * SLIDE * dy))
+        Pixel.alpha = math.max(0, t)
+    end
+    if age >= 0 then
+        if component.panel then
+            Style.frame(x, y, w, h, component.title, { accent = component.accent })
+        end
+        component.draw(self, x, y, w, h)
+    end
+    love.graphics.pop()
+    Pixel.alpha = 1
+end
+
 function Hud:Draw()
-    if not self:game() then return end
+    local game = self:game()
+    if not game then return end
+    if self.drawnGame ~= game then
+        self.drawnGame = game
+        self.appear = {}
+    end
     love.graphics.push("all")
+    self.stagger = 0
     for _, component in ipairs(self.components) do
         if self:isVisible(component) then
             if component.size then
-                local x, y, w, h = self:rect(component)
-                if component.panel then
-                    Style.frame(x, y, w, h, component.title)
-                end
-                component.draw(self, x, y, w, h)
+                self:drawPanel(component, self:rect(component))
             else
                 component.draw(self)
             end
+        elseif component.id then
+            self.appear[component.id] = nil
         end
     end
     self.contextMenu:draw()

@@ -1,37 +1,88 @@
 local Style = require("src.modules.hud.style")
 local Config = require("src.config.game")
+local Pixel = require("src.modules.hud.pixel")
+local Fx = require("src.modules.hud.fx")
+local WordArt = require("src.modules.hud.wordart")
 
 local Banner = { id = "banner" }
 
-local function centered(text, y, size, color)
+local SPLASH_SECONDS = 2.4
+
+local function centered(text, y, size, color, options)
+    options = options or {}
     local font = Style.font(size)
-    love.graphics.setFont(font)
     local W = love.graphics.getWidth()
-    local w = font:getWidth(text) + 40
-    local h = font:getHeight() + 14
-    local x = (W - w) / 2
+    local w = font:getWidth(text) + 48
+    local h = font:getHeight() + 16
+    local x = math.floor((W - w) / 2)
+    Style.box(x, y, w, h, { corners = options.corners, accent = options.accent })
+    Pixel.text(text, x + 24, y + 8, size, color or Style.colors.text)
+    return y + h + 8, x, w, h
+end
+
+local function drawSpawn(game, time)
+    local u = Pixel.unit
+    local seconds = math.ceil(game.spawnTicksLeft / Config.tickRate)
+    local y = centered("Choose your starting location", 16, 18, Style.colors.text, { corners = true, accent = Style.colors.gold })
+    local prefix, suffix, color
+    if game.human.spawned then
+        prefix, suffix, color = "Starting in ", "s  -  press SPACE to start now", Style.colors.good
+    else
+        prefix, suffix, color = "Click on the map to spawn  -  ", "s", Style.colors.gold
+    end
+    local font = Style.font(13)
+    local big = Style.font(20)
+    local numW = big:getWidth("00")
+    local W = love.graphics.getWidth()
+    local w = font:getWidth(prefix) + numW + font:getWidth(suffix) + 48
+    local h = 52
+    local x = math.floor((W - w) / 2)
     Style.box(x, y, w, h)
-    Style.setColor(color or Style.colors.text)
-    love.graphics.print(text, x + 20, y + 7)
-    return y + h + 6
+    Pixel.text(prefix, x + 24, y + 11, 13, color)
+    Pixel.text(suffix, x + 24 + font:getWidth(prefix) + numW, y + 11, 13, color)
+    local fraction = ((Config.tickRate - game.spawnTicksLeft % Config.tickRate) % Config.tickRate + game.accumulator * Config.tickRate) / Config.tickRate
+    local pulse = 1 + 0.35 * (1 - Fx.outCubic(fraction * 3))
+    local label = tostring(seconds)
+    love.graphics.push()
+    love.graphics.translate(x + 24 + font:getWidth(prefix) + numW / 2, y + 6 + big:getHeight() / 2)
+    love.graphics.scale(pulse, pulse)
+    Pixel.shadowText(label, -big:getWidth(label) / 2, -big:getHeight() / 2, 20, seconds <= 3 and Style.colors.bad or Style.colors.gold)
+    love.graphics.pop()
+    local total = Config.spawnSeconds * Config.tickRate
+    Pixel.meter("banner:spawn", x + u * 4, y + h - u * 6, w - u * 8, u * 3, game.spawnTicksLeft / total, color, { instant = true })
+    centered("Press H for controls", y + h + 10, 12, Style.colors.muted)
+    local bob = math.floor(math.sin(time * 5) + 0.5) * u
+    Pixel.color(Style.colors.gold)
+    Pixel.arrow(math.floor(W / 2), y + h + 54 + bob, 4, 1)
 end
 
 function Banner.draw(hud)
     local game = hud:game()
-    local y = 16
+    local time = love.timer.getTime()
     if game.phase == "spawn" then
-        local seconds = math.ceil(game.spawnTicksLeft / Config.tickRate)
-        y = centered("Choose your starting location", y, 18)
-        centered("Press H for controls", y + 64, 12, Style.colors.muted)
-        if game.human.spawned then
-            centered(string.format("Starting in %ds  -  press SPACE to start now", seconds), y, 13, Style.colors.good)
-        else
-            centered(string.format("Click on the map to spawn  -  %ds", seconds), y, 13, Style.colors.gold)
-        end
+        hud.splashAt = nil
+        drawSpawn(game, time)
         return
     end
+    if game.phase == "playing" and game.human.spawned and not hud.splashAt then
+        hud.splashAt = game.tick < 30 and time or time - SPLASH_SECONDS
+    end
+    local splash = hud.splashAt and time - hud.splashAt or SPLASH_SECONDS
+    if splash < SPLASH_SECONDS then
+        local W, H = love.graphics.getDimensions()
+        local scale = math.max(4, math.floor(H / 150))
+        local w, h = WordArt.size("CONQUER!", 22, scale)
+        local alpha = Fx.clamp((SPLASH_SECONDS - splash) / 0.5, 0, 1)
+        WordArt.draw("CONQUER!", (W - w) / 2, H * 0.3 - h / 2, { size = 22, scale = scale, progress = splash / 0.8, alpha = alpha })
+        Pixel.alpha = alpha
+        local sub = "Expand your territory"
+        local font = Style.font(16)
+        Pixel.shadowText(sub, (W - font:getWidth(sub)) / 2, H * 0.3 + h / 2 + 4, 16, Style.colors.text, Fx.clamp((splash - 0.6) * 3, 0, 1))
+        Pixel.alpha = 1
+    end
     if game.paused then
-        centered("PAUSED  -  press P to resume", y + 44, 16, Style.colors.gold)
+        local on = time % 1.2 < 0.8
+        centered("PAUSED  -  press P to resume", 66, 16, on and Style.colors.gold or Style.colors.muted, { corners = true, accent = Style.colors.gold })
     end
 end
 

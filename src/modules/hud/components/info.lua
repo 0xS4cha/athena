@@ -1,6 +1,7 @@
 local GM = require("src.core.index")
 local Style = require("src.modules.hud.style")
 local Format = require("src.core.format")
+local Pixel = require("src.modules.hud.pixel")
 
 local Info = { id = "info" }
 
@@ -51,23 +52,24 @@ function Info.draw(hud)
             parts[#parts + 1] = "Embargo"
         end
     end
-    local text = table.concat(parts, "  |  ")
+    local text = table.concat(parts, "  -  ")
 
     local font = Style.font(12)
-    love.graphics.setFont(font)
+    local u = Pixel.unit
     local _, H = love.graphics.getDimensions()
     local hasFlag = owner and owner.flag
-    local w = font:getWidth(text) + 24 + (hasFlag and 26 or 0)
-    local by = H - 35
-    Style.box(15, by, w, 24)
-    if owner then
-        Style.setColor(owner.color)
-    else
-        Style.setColor(Style.colors.text)
-    end
-    love.graphics.print(text, 25, by + 5)
-    if hasFlag then
-        Style.flag(owner.flag, 15 + w - 26, by + 4, 16)
+    local target = font:getWidth(text) + 30 + (hasFlag and 26 or 0)
+    local w = math.floor(Pixel.ease("info:width", target, 18))
+    local by = H - 38
+    Style.box(15, by, w, 27)
+    local accent = owner and owner.color or Style.colors.muted
+    Pixel.color(accent)
+    love.graphics.rectangle("fill", 15 + u, by + u * 2, u * 2, 27 - u * 4)
+    love.graphics.setScissor(15, by, w - u * 2, 27)
+    Pixel.text(text, 15 + u * 5, by + 6, 12, owner and owner.color or Style.colors.text)
+    love.graphics.setScissor()
+    if hasFlag and w >= target - 4 then
+        Style.flag(owner.flag, 15 + w - 28, by + 5, 16)
     end
 end
 

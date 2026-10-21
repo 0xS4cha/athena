@@ -5,6 +5,7 @@ local Economy = {}
 function Economy.maxPopulation(game, player)
     local max = (player.tiles ^ Config.populationExponent) * Config.populationPerTile + Config.basePopulation
     max = max + (player.cities or 0) * Config.cityPopulation
+    max = max + Economy.built(game, player, "farm") * Config.farmPopulation
     if player.capital and not player.capital.dead then
         max = max + Config.capitalPopulation
     end
@@ -82,8 +83,11 @@ function Economy.updatePlayer(game, player)
     local upkeep = Economy.upkeep(game, player)
     local paid = upkeep > 0 and player.gold >= upkeep
     local recruit = 1
-    if paid and growth > 0 then
-        recruit = 1 + Economy.stacked(Economy.built(game, player, "barracks"), Config.barracksRecruit)
+    if growth > 0 then
+        recruit = recruit + Economy.stacked(Economy.built(game, player, "farm"), Config.farmGrowth)
+        if paid then
+            recruit = recruit + Economy.stacked(Economy.built(game, player, "barracks"), Config.barracksRecruit)
+        end
     end
     growth = growth * recruit
     player.growth = growth

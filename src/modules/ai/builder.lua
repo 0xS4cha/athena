@@ -89,6 +89,13 @@ Builder.wishes = {
         end
     end,
     function(game, player)
+        local plains = player.biomeTiles[Config.biomes.plains.id]
+        if plains < 500 or player:unitCount("farm") >= 1 + math.floor(plains / 8000) then return end
+        return "farm", randomOwnTile(game, player, function(i)
+            return game.map:terrainType(i) == "plains" and Units.isSpaced(game, i)
+        end)
+    end,
+    function(game, player)
         local rich = player.biomeTiles[Config.biomes.mountain.id] + player.biomeTiles[Config.biomes.desert.id]
         if rich < 400 or player:unitCount("mine") >= 1 + math.floor(rich / 6000) then return end
         local biomes = Config.units.mine.biomes

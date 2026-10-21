@@ -65,6 +65,7 @@ love .
   - Trade Port: sends trade ships to nearby trade ports, so both sides earn gold. It is also a rail station.
   - Military Port: launches invasions overseas and builds warships.
   - Factory: lays pixel rail tracks across your own land to your cities and trade ports; trains generate gold.
+  - Farm: only on plains. Raises your maximum population and speeds up growth (diminishing with each extra farm), with no upkeep.
   - Mine: only on mountains or deserts. Produces a steady flow of gold, 50% more on mountains, so the biomes that are hardest to conquer finally pay off.
   - Barracks: speeds up population growth, trains your armies (each barracks lowers conquest costs, up to -25%) and extends your supply lines. It costs gold upkeep every tick; without the gold to pay, the bonuses stop.
   - Defense Post: raises the cost of attacking nearby tiles.

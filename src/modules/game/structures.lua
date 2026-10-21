@@ -56,6 +56,13 @@ Structures.art = {
         },
         fps = 2
     },
+    mine = {
+        frames = {
+            { "..M..", ".MLD.", "MLWWD", "LWWWD", "yYgYy" },
+            { "..M..", ".MLD.", "MLWWD", "LWWYD", "yYgYy" }
+        },
+        fps = 2
+    },
     defensePost = {
         frames = { { "L.L.L", "LLLLD", "LCCCD", "LCcCD", "MMMMD" } }
     },
@@ -79,12 +86,13 @@ Structures.badges = {
     militaryPort = { ".x.", ".x.", "xxx" },
     factory = { "x..", "xxx", "xxx" },
     barracks = { "x.x", "x.x", "xxx" },
+    mine = { "x.x", ".x.", "x.x" },
     defensePost = { "xxx", "xxx", ".x." },
     silo = { ".x.", "xxx", "x.x" },
     sam = { "x.x", ".x.", "xxx" }
 }
 
-local KINDS = { "capital", "city", "tradePort", "militaryPort", "factory", "barracks", "defensePost", "silo", "sam" }
+local KINDS = { "capital", "city", "tradePort", "militaryPort", "factory", "barracks", "mine", "defensePost", "silo", "sam" }
 
 local atlas, quads, rowOf = nil, {}, {}
 

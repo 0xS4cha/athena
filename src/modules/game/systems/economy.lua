@@ -36,6 +36,12 @@ function Economy.countBuildings(game)
                 counts[unit.owner.id] = owned
             end
             owned[unit.kind] = (owned[unit.kind] or 0) + 1
+            if unit.kind == "mine" then
+                if not unit.richness then
+                    unit.richness = Config.units.mine.biomes[game.map:terrainType(unit.tile)] or 1
+                end
+                owned.mineGold = (owned.mineGold or 0) + Config.units.mine.gold * unit.richness
+            end
         end
     end
     game.buildingCounts = counts
@@ -44,6 +50,11 @@ end
 function Economy.built(game, player, kind)
     local owned = game.buildingCounts and game.buildingCounts[player.id]
     return owned and owned[kind] or 0
+end
+
+function Economy.mineIncome(game, player)
+    local owned = game.buildingCounts and game.buildingCounts[player.id]
+    return owned and owned.mineGold or 0
 end
 
 function Economy.stacked(count, per)
@@ -90,6 +101,7 @@ function Economy.updatePlayer(game, player)
     if crippled then
         income = income * Config.capitalPenalty
     end
+    income = income + Economy.mineIncome(game, player)
     if paid then
         income = income - upkeep
     end

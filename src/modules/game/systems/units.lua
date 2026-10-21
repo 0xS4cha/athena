@@ -90,6 +90,7 @@ function Units.check(game, player, kind, tile)
     else
         if map.owner[tile] ~= player.id or not map:isLand(tile) then return false, "Not your land" end
         if not Units.isSpaced(game, tile) then return false, "Too close" end
+        if def.biomes and not def.biomes[map:terrainType(tile)] then return false, def.biomeHint end
     end
     if player.gold < Units.cost(game, player, kind) then return false, "No gold" end
     return true, nil, tile

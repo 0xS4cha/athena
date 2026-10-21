@@ -1,4 +1,5 @@
 local Units = require("src.modules.game.systems.units")
+local Config = require("src.config.game")
 
 local Builder = {}
 
@@ -86,6 +87,14 @@ Builder.wishes = {
             local port = Units.nearestPort(game, player, player.spawnTile or 0, "militaryPort")
             if port then return "warship", port.tile end
         end
+    end,
+    function(game, player)
+        local rich = player.biomeTiles[Config.biomes.mountain.id] + player.biomeTiles[Config.biomes.desert.id]
+        if rich < 400 or player:unitCount("mine") >= 1 + math.floor(rich / 6000) then return end
+        local biomes = Config.units.mine.biomes
+        return "mine", randomOwnTile(game, player, function(i)
+            return biomes[game.map:terrainType(i)] ~= nil and Units.isSpaced(game, i)
+        end)
     end,
     function(game, player, ctx)
         if player:unitCount("barracks") >= 1 + math.floor(player.tiles / 25000) or player.income < 40 then return end

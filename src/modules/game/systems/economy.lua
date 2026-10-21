@@ -26,6 +26,39 @@ function Economy.goldRate(game, player)
     return rate
 end
 
+function Economy.countBuildings(game)
+    local counts = {}
+    for _, unit in ipairs(game.units) do
+        if unit.buildLeft == 0 and not unit.dead then
+            local owned = counts[unit.owner.id]
+            if not owned then
+                owned = {}
+                counts[unit.owner.id] = owned
+            end
+            owned[unit.kind] = (owned[unit.kind] or 0) + 1
+        end
+    end
+    game.buildingCounts = counts
+end
+
+function Economy.built(game, player, kind)
+    local owned = game.buildingCounts and game.buildingCounts[player.id]
+    return owned and owned[kind] or 0
+end
+
+function Economy.stacked(count, per)
+    if count <= 0 then return 0 end
+    return per * count ^ Config.buildingDiminishing
+end
+
+function Economy.upkeep(game, player)
+    return Economy.built(game, player, "barracks") * Config.barracksUpkeep
+end
+
+function Economy.training(game, player)
+    return math.min(Config.barracksTrainingCap, Economy.stacked(Economy.built(game, player, "barracks"), Config.barracksTraining))
+end
+
 function Economy.updatePlayer(game, player)
     local max = Economy.maxPopulation(game, player)
     player.maxPopulation = max
@@ -35,6 +68,13 @@ function Economy.updatePlayer(game, player)
     if crippled and growth > 0 then
         growth = growth * Config.capitalPenalty
     end
+    local upkeep = Economy.upkeep(game, player)
+    local paid = upkeep > 0 and player.gold >= upkeep
+    local recruit = 1
+    if paid and growth > 0 then
+        recruit = 1 + Economy.stacked(Economy.built(game, player, "barracks"), Config.barracksRecruit)
+    end
+    growth = growth * recruit
     player.growth = growth
     player.troops = player.troops + growth * player.troopRatio
     player.workers = player.workers + growth * (1 - player.troopRatio)
@@ -50,12 +90,16 @@ function Economy.updatePlayer(game, player)
     if crippled then
         income = income * Config.capitalPenalty
     end
+    if paid then
+        income = income - upkeep
+    end
     player.income = income
-    player.gold = player.gold + income
+    player.gold = math.max(0, player.gold + income)
 end
 
 function Economy.step(game)
     if game.phase ~= "playing" then return end
+    Economy.countBuildings(game)
     for _, player in ipairs(game.players) do
         if player.alive and player.spawned and player.tiles > 0 then
             Economy.updatePlayer(game, player)

@@ -121,7 +121,7 @@ function Control.draw(hud, x, y, w)
         { "Population", rolling("population", human.troops + human.workers) .. " / " .. Format.number(human.maxPopulation), string.format("%+d/s", math.floor(human.growth * rate)), Style.colors.troops, "Team.png" },
         { "Army", rolling("army", human.troops), nil, Style.colors.bad, "Skull.png" },
         { "Workers", rolling("workers", human.workers), nil, Style.colors.good, "Hammer.png" },
-        { "Gold", rolling("gold", human.gold), "+" .. Format.number(human.income * rate) .. "/s", Style.colors.gold, "Coin.png" }
+        { "Gold", rolling("gold", human.gold), (human.income < 0 and "-" or "+") .. Format.number(math.abs(human.income * rate)) .. "/s", Style.colors.gold, "Coin.png" }
     }
     for k, row in ipairs(rows) do
         local ry = top + (k - 1) * 22

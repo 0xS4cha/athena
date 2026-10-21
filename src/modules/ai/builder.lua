@@ -88,6 +88,14 @@ Builder.wishes = {
         end
     end,
     function(game, player, ctx)
+        if player:unitCount("barracks") >= 1 + math.floor(player.tiles / 25000) or player.income < 40 then return end
+        for _, other in ipairs(ctx.neighbors) do
+            if player:canAttack(other) and not other:isBot() and other.troops > player.troops * 0.8 then
+                return "barracks", randomOwnTile(game, player, function(i) return Units.isSpaced(game, i) end)
+            end
+        end
+    end,
+    function(game, player, ctx)
         if player:unitCount("defensePost") >= 2 + math.floor(player.tiles / 20000) then return end
         for _, other in ipairs(ctx.neighbors) do
             if not player:isAlliedWith(other) and other.troops > player.troops * 1.2 then

@@ -65,6 +65,7 @@ love .
   - Trade Port: sends trade ships to nearby trade ports, so both sides earn gold. It is also a rail station.
   - Military Port: launches invasions overseas and builds warships.
   - Factory: lays pixel rail tracks across your own land to your cities and trade ports; trains generate gold.
+  - Barracks: speeds up population growth, trains your armies (each barracks lowers conquest costs, up to -25%) and extends your supply lines. It costs gold upkeep every tick; without the gold to pay, the bonuses stop.
   - Defense Post: raises the cost of attacking nearby tiles.
   - Missile Silo: launches nukes.
   - SAM Launcher: intercepts nukes aimed inside its range.

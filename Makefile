@@ -13,8 +13,11 @@ endif
 
 all: run
 
-run:
+run-client:
 	@love .
+
+run-server:
+	@love server
 
 clean:
 	@rm -rf $(DIST_DIR) $(BUILD_DIR) $(BUILD_TOOL_DIR)
@@ -27,4 +30,4 @@ fclean: clean
 dist: build
 	@cd $(DIST_DIR)/$(VERSION) && tar -czvf ../../$(PROJECT_NAME)-linux.tar.gz *
 
-.PHONY: all build run clean fclean dist standalone
+.PHONY: all build run-client clean fclean dist standalone run-server

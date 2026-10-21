@@ -78,6 +78,7 @@ love .
   - Warship: built at a military port; patrols, sinks transports, captures trade ships, and fights other warships.
 - **Nukes** (right-click > Launch Nuke):
   - Atom Bomb, Hydrogen Bomb, and MIRV (splits into many warheads over the target nation).
+  - Hovering a bomb in the menu previews its blast zone on the map: expected destroyed tiles, enemy land, friendly fire (your and your allies' tiles blink in white), known buildings hit, flight time from the silo that will fire, and the known enemy SAMs able to intercept it. Picking a bomb enters aiming mode: the preview follows the mouse, left click launches, right click or Escape cancels.
   - Nuked land loses its owner and gets fallout, which slowly decays and doubles conquest costs.
 - **Diplomacy** (right-click on another nation):
   - Request or accept an alliance; alliances expire after 5 minutes.

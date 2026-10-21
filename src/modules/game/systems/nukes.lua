@@ -1,5 +1,6 @@
 local Config = require("src.config.game")
 local Units = require("src.modules.game.systems.units")
+local Vision = require("src.modules.game.systems.vision")
 
 local Nukes = {}
 
@@ -34,6 +35,135 @@ function Nukes.check(game, player, kind, tile)
     if def.needsPlayer and (not target or target == player) then return false, "Needs enemy" end
     if target == player then return false, "Own land" end
     return true
+end
+
+local FRIENDLY_TILES = 3000
+
+function Nukes.hitChance(def, d)
+    if d <= def.inner then return 1 end
+    local ring = def.outer - def.inner
+    return math.min(1, Config.nukeRingChance * (1 - (d - def.inner) / ring) + 0.15)
+end
+
+local warheadTotal
+
+local function warheadYield()
+    if warheadTotal then return warheadTotal end
+    local def = Config.nukes.warhead
+    local total = 0
+    for dy = -def.outer, def.outer do
+        for dx = -def.outer, def.outer do
+            local d = math.sqrt(dx * dx + dy * dy)
+            if d <= def.outer then
+                total = total + Nukes.hitChance(def, d)
+            end
+        end
+    end
+    warheadTotal = total
+    return total
+end
+
+local function knownTo(game, player, unit)
+    if unit.owner:isFriendly(player) then return true end
+    if game.echoes and game.echoes[unit] then return true end
+    return Vision.live(game, player, unit)
+end
+
+function Nukes.preview(game, player, kind, tile)
+    local cache = game.nukePreview
+    local bucket = math.floor(game.tick / 5)
+    if cache and cache.kind == kind and cache.tile == tile and cache.bucket == bucket then
+        return cache
+    end
+    local map = game.map
+    local def = Config.nukes[kind]
+    local x, y = map:coords(tile)
+    local cx, cy = x + 0.5, y + 0.5
+    local ok, reason = Nukes.check(game, player, kind, tile)
+    local result = {
+        kind = kind, tile = tile, bucket = bucket, def = def, ok = ok, reason = reason,
+        x = cx, y = cy, target = game:playerAt(tile),
+        total = 0, enemy = 0, friendly = 0, friendlyTiles = {},
+        enemyBuildings = 0, friendlyBuildings = 0, sams = {}
+    }
+    local silo = Nukes.readySilo(game, player, tile)
+    if not silo then
+        for _, unit in ipairs(game.units) do
+            if unit.kind == "silo" and unit.owner == player and unit.buildLeft == 0 and not unit.dead then
+                silo = unit
+                break
+            end
+        end
+    end
+    result.silo = silo
+    if silo then
+        local distance = math.sqrt((cx - silo.x) ^ 2 + (cy - silo.y) ^ 2)
+        result.flight = math.max(15, math.floor(distance / def.speed)) / Config.tickRate
+    end
+    local function tally(i, chance)
+        local owner = map.owner[i]
+        result.total = result.total + chance
+        if owner == 0 then return end
+        local other = game.players[owner]
+        if other:isFriendly(player) then
+            result.friendly = result.friendly + chance
+            if #result.friendlyTiles < FRIENDLY_TILES then
+                result.friendlyTiles[#result.friendlyTiles + 1] = i
+            end
+        else
+            result.enemy = result.enemy + chance
+        end
+    end
+    local radius
+    if kind == "mirv" then
+        result.warheads = def.warheads
+        radius = def.spread
+        local targetId = result.target and result.target.id or 0
+        local inside = 0
+        for ty = math.max(0, y - def.spread), math.min(map.height - 1, y + def.spread), 2 do
+            for tx = math.max(0, x - def.spread), math.min(map.width - 1, x + def.spread), 2 do
+                if map.owner[map:index(tx, ty)] == targetId and targetId ~= 0 then
+                    inside = inside + 4
+                end
+            end
+        end
+        result.enemy = math.min(inside, def.warheads * warheadYield())
+        result.total = result.enemy
+        for _, unit in ipairs(game.units) do
+            if not unit.dead and unit.kind ~= "nuke" and unit.owner.id == targetId and Units.isBuilding(unit.kind)
+                and math.abs(unit.x - cx) <= def.spread and math.abs(unit.y - cy) <= def.spread and knownTo(game, player, unit) then
+                result.enemyBuildings = result.enemyBuildings + 1
+            end
+        end
+    else
+        radius = def.outer
+        map:forDisk(cx, cy, def.outer, function(i, d2)
+            if map:isLand(i) then
+                tally(i, Nukes.hitChance(def, math.sqrt(d2)))
+            end
+        end)
+        local r2 = def.outer * def.outer
+        for _, unit in ipairs(game.units) do
+            if not unit.dead and unit.kind ~= "nuke" and Units.isBuilding(unit.kind) and (unit.x - cx) ^ 2 + (unit.y - cy) ^ 2 <= r2 and knownTo(game, player, unit) then
+                if unit.owner:isFriendly(player) then
+                    result.friendlyBuildings = result.friendlyBuildings + 1
+                else
+                    result.enemyBuildings = result.enemyBuildings + 1
+                end
+            end
+        end
+    end
+    result.radius = radius
+    local range = Config.units.sam.range
+    for _, unit in ipairs(game.units) do
+        if unit.kind == "sam" and not unit.dead and unit.buildLeft == 0 and not unit.owner:isFriendly(player)
+            and (unit.x - cx) ^ 2 + (unit.y - cy) ^ 2 <= range * range and knownTo(game, player, unit) then
+            result.sams[#result.sams + 1] = unit
+        end
+    end
+    result.blind = not Vision.inRadar(game, player, cx, cy)
+    game.nukePreview = result
+    return result
 end
 
 function Nukes.spawn(game, player, kind, fromX, fromY, tile)

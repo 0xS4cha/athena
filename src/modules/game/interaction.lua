@@ -133,8 +133,9 @@ Interaction.sections[#Interaction.sections + 1] = function(game, tile, items)
                     sublabel = ok and Format.number(def.cost) or reason,
                     sublabelColor = not ok and { 0.95, 0.35, 0.3, 1 } or nil,
                     disabled = not ok,
+                    preview = { nuke = kind, tile = tile },
                     action = function()
-                        game:pushIntent({ type = "nuke", player = human.id, kind = kind, tile = tile })
+                        Interaction.startAim(game, kind)
                     end
                 }
             end
@@ -316,6 +317,40 @@ function Interaction.loanItems(game, target, items)
             return "LOAN FROM " .. string.upper(target.name), list
         end
     }
+end
+
+function Interaction.startAim(game, kind)
+    game.nukeAim = { kind = kind }
+end
+
+function Interaction.cancelAim(game)
+    game.nukeAim = nil
+end
+
+function Interaction.fireAim(game, tile)
+    local aim = game.nukeAim
+    if not aim then return false end
+    local human = game.human
+    local ok, reason = Nukes.check(game, human, aim.kind, tile)
+    if not ok then
+        game:addEvent("Cannot launch: " .. reason .. ".", { color = { 0.95, 0.35, 0.3, 1 } })
+        return true
+    end
+    game:pushIntent({ type = "nuke", player = human.id, kind = aim.kind, tile = tile })
+    game.nukeAim = nil
+    return true
+end
+
+function Interaction.previewTarget(game, mouseTile)
+    if game.phase ~= "playing" or not game.human.alive then return nil end
+    local hover = game.nukeHover
+    if hover then
+        return hover.nuke, hover.tile
+    end
+    if game.nukeAim and mouseTile then
+        return game.nukeAim.kind, mouseTile
+    end
+    return nil
 end
 
 function Interaction.menu(game, tile)

@@ -84,7 +84,9 @@ function GM.Session:MousePressed(x, y, button)
     if GM.Hud and GM.Hud:Captures(x, y) then return end
     local wx, wy = self.Camera:toWorld(x, y)
     local tile = self.Game.map:tileAt(wx, wy)
-    if tile then
+    if tile and self.Game.nukeAim then
+        Interaction.fireAim(self.Game, tile)
+    elseif tile then
         Interaction.click(self.Game, tile)
     end
 end

@@ -11,6 +11,8 @@ local Vision = require("src.modules.game.systems.vision")
 local Units = require("src.modules.game.systems.units")
 local Threats = require("src.modules.game.threats")
 local Diplomap = require("src.modules.game.diplomap")
+local Interaction = require("src.modules.game.interaction")
+local Nukes = require("src.modules.game.systems.nukes")
 
 local Overlay = {}
 
@@ -411,6 +413,83 @@ function Overlay.drawNukeAlerts(game, camera)
                 local sx, sy = camera:toScreen(floor(nuke.x + dx * d / length), floor(nuke.y + dy * d / length))
                 love.graphics.rectangle("fill", sx, sy, size, size)
             end
+        end
+    end
+end
+
+local function dashedLine(camera, ax, ay, bx, by, color, alpha, spacing)
+    local dx, dy = bx - ax, by - ay
+    local length = math.sqrt(dx * dx + dy * dy)
+    if length < 1 then return end
+    local size = math.max(2, floor(camera.scale))
+    love.graphics.setColor(color[1], color[2], color[3], alpha)
+    for d = 0, length, spacing do
+        local sx, sy = camera:toScreen(floor(ax + dx * d / length), floor(ay + dy * d / length))
+        love.graphics.rectangle("fill", sx, sy, size, size)
+    end
+end
+
+function Overlay.drawNukePreview(game, camera)
+    local mx, my = love.mouse.getPosition()
+    local mouseTile = game.map:tileAt(camera:toWorld(mx, my))
+    local kind, tile = Interaction.previewTarget(game, mouseTile)
+    if not kind then return end
+    local preview = Nukes.preview(game, game.human, kind, tile)
+    local def = preview.def
+    local time = love.timer.getTime()
+    local pulse = 0.7 + 0.3 * math.sin(time * 6)
+    local hot = preview.ok and { 1, 0.35, 0.2 } or { 0.6, 0.62, 0.68 }
+    local warm = preview.ok and { 1, 0.7, 0.3 } or { 0.75, 0.77, 0.82 }
+    local cx, cy = camera:toScreen(preview.x, preview.y)
+    local scale = camera.scale
+    local size = math.max(2, floor(scale))
+    if preview.silo then
+        Overlay.pixelCircle(camera, preview.silo.x, preview.silo.y, 6, Style.colors.gold, 0.9, time, true)
+        dashedLine(camera, preview.silo.x, preview.silo.y, preview.x, preview.y, Style.colors.gold, 0.6, 3)
+    end
+    if kind == "mirv" then
+        local half = def.spread * scale
+        love.graphics.setColor(hot[1], hot[2], hot[3], 0.1)
+        love.graphics.rectangle("fill", cx - half, cy - half, half * 2, half * 2)
+        love.graphics.setColor(hot[1], hot[2], hot[3], 0.8 * pulse)
+        for k = -def.spread, def.spread, 3 do
+            for _, p in ipairs({ { k, -def.spread }, { k, def.spread }, { -def.spread, k }, { def.spread, k } }) do
+                local sx, sy = camera:toScreen(floor(preview.x + p[1]), floor(preview.y + p[2]))
+                love.graphics.rectangle("fill", sx, sy, size, size)
+            end
+        end
+    else
+        love.graphics.setColor(warm[1], warm[2], warm[3], 0.14)
+        love.graphics.circle("fill", cx, cy, def.outer * scale)
+        love.graphics.setColor(hot[1], hot[2], hot[3], 0.28)
+        love.graphics.circle("fill", cx, cy, def.inner * scale)
+        Overlay.pixelCircle(camera, preview.x, preview.y, def.outer, warm, 0.9 * pulse, time * 0.4, true)
+        Overlay.pixelCircle(camera, preview.x, preview.y, def.inner, hot, pulse, -time * 0.6, true)
+        if #preview.friendlyTiles > 0 and time % 0.6 < 0.4 then
+            love.graphics.setColor(1, 1, 1, 0.75)
+            local map = game.map
+            for _, i in ipairs(preview.friendlyTiles) do
+                local x, y = map:coords(i)
+                local sx, sy = camera:toScreen(x, y)
+                love.graphics.rectangle("fill", sx, sy, math.max(1, scale), math.max(1, scale))
+            end
+        end
+    end
+    local samRange = Config.units.sam.range
+    for _, sam in ipairs(preview.sams) do
+        Overlay.pixelCircle(camera, sam.x, sam.y, samRange, { 1, 0.25, 0.2 }, 0.55, -time * 0.3)
+        local sx, sy = camera:toScreen(sam.x, sam.y)
+        love.graphics.setColor(1, 0.25, 0.2, 0.95)
+        love.graphics.setLineWidth(2)
+        love.graphics.line(sx - 6, sy - 6, sx + 6, sy + 6)
+        love.graphics.line(sx - 6, sy + 6, sx + 6, sy - 6)
+        love.graphics.setLineWidth(1)
+    end
+    love.graphics.setColor(hot[1], hot[2], hot[3], 1)
+    for k = -4, 4 do
+        if k ~= 0 then
+            love.graphics.rectangle("fill", cx + k * size * 1.5 - size / 2, cy - size / 2, size, size)
+            love.graphics.rectangle("fill", cx - size / 2, cy + k * size * 1.5 - size / 2, size, size)
         end
     end
 end
@@ -994,6 +1073,7 @@ function Overlay.draw(game, camera)
         Overlay.drawUnits(game, camera, W, H)
         Overlay.drawEchoes(game, camera)
         Overlay.drawNukeAlerts(game, camera)
+        Overlay.drawNukePreview(game, camera)
         Overlay.drawHoveredStructure(game, camera)
     end
     Overlay.drawExplosions(game, camera)

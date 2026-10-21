@@ -74,12 +74,20 @@ function ContextMenu:pop()
 end
 
 function ContextMenu:close()
+    local game = self.hud:game()
+    if game then
+        game.nukeHover = nil
+    end
     self.visible = false
     self.items = {}
     self.stack = {}
 end
 
 function ContextMenu:update()
+    local game = self.hud:game()
+    if game then
+        game.nukeHover = nil
+    end
     if not self.visible then return end
     local mx, my = love.mouse.getPosition()
     self.hoveredIdx = nil
@@ -89,6 +97,9 @@ function ContextMenu:update()
             local idx = math.floor(localY / self.itemHeight) + 1
             if idx >= 1 and idx <= #self.items then
                 self.hoveredIdx = idx
+                if game then
+                    game.nukeHover = self.items[idx].preview
+                end
             end
         end
     end
@@ -197,6 +208,11 @@ end
 
 function ContextMenu:mouseReleased(x, y, button)
     if button ~= 2 then return end
+    local current = self.hud:game()
+    if current and current.nukeAim then
+        current.nukeAim = nil
+        return
+    end
     local dx = x - self.pressedX
     local dy = y - self.pressedY
     if dx * dx + dy * dy >= 36 then return end

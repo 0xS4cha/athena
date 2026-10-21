@@ -21,6 +21,7 @@ Hud.componentPaths = {
     "src.modules.hud.components.control",
     "src.modules.hud.components.leaderboard",
     "src.modules.hud.components.events",
+    "src.modules.hud.components.nukepreview",
     "src.modules.hud.components.settings",
     "src.modules.hud.components.endscreen",
     "src.modules.hud.components.help"
@@ -256,7 +257,12 @@ function Hud:MouseReleased(x, y, button)
 end
 
 function Hud:KeyPressed(key)
-    if not self:game() then return end
+    local game = self:game()
+    if not game then return end
+    if key == "escape" and game.nukeAim then
+        game.nukeAim = nil
+        return
+    end
     if key == "escape" then
         if self.contextMenu.visible then
             self.contextMenu:close()

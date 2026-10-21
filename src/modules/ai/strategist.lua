@@ -19,7 +19,7 @@ local function chooseVictim(game, player, ctx)
     local land = game.map.landCount
     local best, bestScore
     for _, other in ipairs(game.players) do
-        if other ~= player and other.alive and other.tiles > 0 and not player:isAlliedWith(other) and not other:isBot() then
+        if other ~= player and other.alive and other.tiles > 0 and player:canAttack(other) and not other:isBot() then
             local score = -player:relation(other) + other.tiles / land * 300
             if not bestScore or score > bestScore then
                 best, bestScore = other, score

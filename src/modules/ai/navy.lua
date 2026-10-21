@@ -25,7 +25,7 @@ local function enemyTarget(game, player)
     local cx, cy = player:center()
     local best, bestScore
     for _, other in ipairs(game.players) do
-        if other ~= player and other.alive and other.tiles > 0 and not player:isAlliedWith(other) then
+        if other ~= player and other.alive and other.tiles > 0 and player:canAttack(other) then
             local ox, oy = other:center()
             local d = math.sqrt((ox - cx) ^ 2 + (oy - cy) ^ 2)
             local score = d * (other.troops / math.max(1, player.troops) + 0.3) * (other:isBot() and 0.6 or 1) * (0.7 + game.rng:random() * 0.6)
@@ -44,7 +44,7 @@ function Navy.behavior(game, player, ctx)
     if player.troops < player.maxPopulation * 0.35 then return false end
     local hasTarget = ctx.neutral
     for _, other in ipairs(ctx.neighbors) do
-        if not player:isAlliedWith(other) then hasTarget = true end
+        if player:canAttack(other) then hasTarget = true end
     end
     if hasTarget and game.rng:random() > 0.1 then return false end
     local tile = randomNeutralLand(game, player) or enemyTarget(game, player)

@@ -630,6 +630,7 @@ function Overlay.decorateLabel(game, player, sx, y, size)
     local human = game.human
     local marks = {}
     if player:isAlliedWith(human) then marks[#marks + 1] = "Team.png" end
+    if player:hasPact(human) then marks[#marks + 1] = "Key.png" end
     if player.traitorUntil > game.tick then marks[#marks + 1] = "Unlocked.png" end
     if human.target == player.id then marks[#marks + 1] = "MagnifyingGlass.png" end
     for id in pairs(human.allies) do

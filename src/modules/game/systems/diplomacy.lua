@@ -15,6 +15,7 @@ function Diplomacy.allianceCount(player)
 end
 
 function Diplomacy.form(game, a, b)
+    Diplomacy.dissolvePact(game, a, b)
     local expires = game.tick + Config.allianceTicks
     a.allies[b.id] = expires
     b.allies[a.id] = expires
@@ -92,6 +93,90 @@ function Diplomacy.reply(game, player, from, accept)
     end
 end
 
+local function endHostilities(game, a, b)
+    for _, attack in ipairs(game.attacks) do
+        if (attack.attacker == a and attack.target == b) or (attack.attacker == b and attack.target == a) then
+            Attack.finish(game, attack)
+        end
+    end
+end
+
+function Diplomacy.formPact(game, a, b)
+    local expires = game.tick + Config.pactTicks
+    a.pacts[b.id] = { expires = expires }
+    b.pacts[a.id] = { expires = expires }
+    a.pactRequests[b.id] = nil
+    b.pactRequests[a.id] = nil
+    a:changeRelation(b, 15)
+    b:changeRelation(a, 15)
+    endHostilities(game, a, b)
+    game:notify(a, "Non-aggression pact signed with " .. b.name .. ".", { color = GOOD })
+    game:notify(b, "Non-aggression pact signed with " .. a.name .. ".", { color = GOOD })
+end
+
+function Diplomacy.dissolvePact(game, a, b)
+    a.pacts[b.id] = nil
+    b.pacts[a.id] = nil
+end
+
+function Diplomacy.requestPact(game, from, to)
+    if from == to or not to.alive or to:isBot() or from:isAlliedWith(to) or from:hasPact(to) then return end
+    if from.pactRequests[to.id] then
+        Diplomacy.replyPact(game, from, to, true)
+        return
+    end
+    if to.pactRequests[from.id] then return end
+    to.pactRequests[from.id] = game.tick + Config.pactRequestTicks
+    game:notify(from, "Non-aggression pact proposed to " .. to.name .. ".", { color = INFO })
+    if to == game.human then
+        to.pactEvents[from.id] = game:addEvent(from.name .. " proposes a non-aggression pact.", {
+            color = INFO,
+            duration = Config.pactRequestTicks,
+            actions = {
+                { label = "Accept", color = { 0.15, 0.6, 0.3, 0.9 }, run = function() game:pushIntent({ type = "pactReply", player = to.id, from = from.id, accept = true }) end },
+                { label = "Reject", color = { 0.7, 0.2, 0.2, 0.9 }, run = function() game:pushIntent({ type = "pactReply", player = to.id, from = from.id, accept = false }) end }
+            }
+        })
+    end
+end
+
+function Diplomacy.replyPact(game, player, from, accept)
+    if not player.pactRequests[from.id] then return end
+    player.pactRequests[from.id] = nil
+    local event = player.pactEvents[from.id]
+    if event then
+        game:removeEvent(event)
+        player.pactEvents[from.id] = nil
+    end
+    if accept and from.alive and player.alive and not player:isAlliedWith(from) then
+        Diplomacy.formPact(game, player, from)
+    else
+        from:changeRelation(player, -5)
+        game:notify(from, player.name .. " rejected your non-aggression pact.", { color = BAD })
+    end
+end
+
+function Diplomacy.endPact(game, player, other)
+    local pact = player.pacts[other.id]
+    if not pact or pact.endsTick then return end
+    local ends = game.tick + Config.pactNoticeTicks
+    pact.endsTick = ends
+    other.pacts[player.id].endsTick = ends
+    other:changeRelation(player, -15)
+    local seconds = math.floor(Config.pactNoticeTicks / Config.tickRate)
+    game:notify(other, string.format("%s will end your non-aggression pact in %ds.", player.name, seconds), { color = BAD, duration = Config.pactNoticeTicks })
+    game:notify(player, string.format("Your pact with %s ends in %ds.", other.name, seconds), { color = INFO })
+end
+
+function Diplomacy.breakPact(game, traitor, victim)
+    if not traitor:hasPact(victim) then return end
+    Diplomacy.dissolvePact(game, traitor, victim)
+    traitor.traitorUntil = game.tick + Config.traitorTicks
+    victim:changeRelation(traitor, -60)
+    game:notify(victim, traitor.name .. " violated your non-aggression pact!", { color = BAD, duration = 300 })
+    game:notify(traitor, "You violated your pact with " .. victim.name .. ". You are marked as a traitor.", { color = BAD })
+end
+
 function Diplomacy.donate(game, from, to, kind, ratio)
     if not from:isAlliedWith(to) or not to.alive then return end
     if kind == "troops" then
@@ -130,6 +215,21 @@ function Diplomacy.step(game)
                 player.requestEvents[id] = nil
             end
         end
+        for id, pact in pairs(player.pacts) do
+            local other = game.players[id]
+            if (pact.endsTick or pact.expires) <= tick and other.id > player.id then
+                Diplomacy.dissolvePact(game, player, other)
+                local text = pact.endsTick and "Your non-aggression pact with %s has ended." or "Your non-aggression pact with %s has expired."
+                game:notify(player, string.format(text, other.name), { color = INFO })
+                game:notify(other, string.format(text, player.name), { color = INFO })
+            end
+        end
+        for id, expires in pairs(player.pactRequests) do
+            if expires <= tick then
+                player.pactRequests[id] = nil
+                player.pactEvents[id] = nil
+            end
+        end
         if player.emoji and player.emoji.untilTick <= tick then
             player.emoji = nil
         end
@@ -144,6 +244,8 @@ end
 function Diplomacy.nukeLaunched(game, nuke, player, target)
     if player:isAlliedWith(target) then
         Diplomacy.betray(game, player, target)
+    elseif player:hasPact(target) then
+        Diplomacy.breakPact(game, player, target)
     end
 end
 
@@ -154,6 +256,12 @@ function Diplomacy.eliminated(game, player)
     end
     player.allies = {}
     player.allianceRequests = {}
+    for id in pairs(player.pacts) do
+        local other = game.players[id]
+        if other then other.pacts[player.id] = nil end
+    end
+    player.pacts = {}
+    player.pactRequests = {}
 end
 
 local function pair(game, intent)
@@ -168,6 +276,18 @@ Diplomacy.intents = {
     allianceReply = function(game, intent)
         local player, from = game.players[intent.player], game.players[intent.from]
         if player and from then Diplomacy.reply(game, player, from, intent.accept) end
+    end,
+    pactRequest = function(game, intent)
+        local a, b = pair(game, intent)
+        if a and b and a.alive then Diplomacy.requestPact(game, a, b) end
+    end,
+    pactReply = function(game, intent)
+        local player, from = game.players[intent.player], game.players[intent.from]
+        if player and from then Diplomacy.replyPact(game, player, from, intent.accept) end
+    end,
+    pactEnd = function(game, intent)
+        local a, b = pair(game, intent)
+        if a and b then Diplomacy.endPact(game, a, b) end
     end,
     allianceBreak = function(game, intent)
         local a, b = pair(game, intent)

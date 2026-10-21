@@ -21,6 +21,47 @@ local function considerRequests(game, player)
     return false
 end
 
+local function considerPacts(game, player)
+    for id in pairs(player.pactRequests) do
+        local from = game.players[id]
+        if from and from.alive then
+            local relation = player:relation(from)
+            local accept = relation >= -30
+                and from.traitorUntil <= game.tick
+                and (from.troops > player.troops * 0.6 or relation > 10)
+                and game.rng:random() < 0.8
+            game:pushIntent({ type = "pactReply", player = player.id, from = from.id, accept = accept })
+            return true
+        end
+    end
+    return false
+end
+
+local function seekPact(game, player, ctx)
+    if game.rng:random() > 0.1 then return false end
+    for _, other in ipairs(ctx.neighbors) do
+        if not other:isBot() and player:canAttack(other) and not other.pactRequests[player.id]
+            and other.troops > player.troops * 0.9 and player:relation(other) >= -20
+            and other.traitorUntil <= game.tick then
+            game:pushIntent({ type = "pactRequest", player = player.id, target = other.id })
+            return true
+        end
+    end
+    return false
+end
+
+local function maybeEndPact(game, player, ctx)
+    if game.rng:random() > 0.03 then return false end
+    for _, other in ipairs(ctx.neighbors) do
+        local pact = player.pacts[other.id]
+        if pact and not pact.endsTick and other.troops < player.troops * 0.4 then
+            game:pushIntent({ type = "pactEnd", player = player.id, target = other.id })
+            return true
+        end
+    end
+    return false
+end
+
 local function seekAlliance(game, player, ctx)
     if Diplomacy.allianceCount(player) >= Config.maxAllies or game.rng:random() > 0.12 then return false end
     for _, other in ipairs(ctx.neighbors) do
@@ -81,9 +122,12 @@ end
 function Diplomat.behavior(game, player, ctx)
     react(game, player)
     if considerRequests(game, player) then return false end
+    if considerPacts(game, player) then return false end
     if maybeBetray(game, player, ctx) then return true end
+    if maybeEndPact(game, player, ctx) then return false end
     if supportAllies(game, player) then return false end
-    seekAlliance(game, player, ctx)
+    if seekAlliance(game, player, ctx) then return false end
+    seekPact(game, player, ctx)
     return false
 end
 

@@ -38,7 +38,7 @@ end
 function Nation.chooseTarget(game, player, neighbors)
     local best, bestScore
     for _, other in ipairs(neighbors) do
-        if not player:isAlliedWith(other) then
+        if player:canAttack(other) then
             local score = Nation.targetScore(game, player, other)
             if not bestScore or score > bestScore then
                 best, bestScore = other, score
@@ -67,7 +67,7 @@ function Nation.decide(game, player)
     local neighbors, neutral = Attack.neighbors(game, player)
     local isolated = not neutral
     for _, other in ipairs(neighbors) do
-        if not player:isAlliedWith(other) then isolated = false end
+        if player:canAttack(other) then isolated = false end
     end
     local ctx = { neighbors = neighbors, neutral = neutral, isolated = isolated }
     for _, behavior in ipairs(Nation.behaviors) do

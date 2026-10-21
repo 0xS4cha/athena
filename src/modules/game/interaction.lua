@@ -26,6 +26,10 @@ function Interaction.click(game, tile)
         game:addEvent("You cannot attack your ally " .. target.name .. ".")
         return
     end
+    if target and human:hasPact(target) then
+        game:addEvent("You have a non-aggression pact with " .. target.name .. ".")
+        return
+    end
     if Attack.sharesBorder(game, human, targetId) then
         game:pushIntent({ type = "attack", player = human.id, target = targetId, ratio = human.attackRatio })
         return
@@ -84,7 +88,7 @@ Interaction.sections[#Interaction.sections + 1] = function(game, tile, items)
     local map = game.map
     if map:isWater(tile) or map.owner[tile] == human.id then return end
     local target = game:playerAt(tile)
-    if target and human:isAlliedWith(target) then return end
+    if target and not human:canAttack(target) then return end
     local name = target and target.name or "Wilderness"
     if Attack.sharesBorder(game, human, map.owner[tile]) then
         items[#items + 1] = {
@@ -164,6 +168,7 @@ Interaction.sections[#Interaction.sections + 1] = function(game, tile, items)
             action = function() game:pushIntent({ type = "allianceBreak", player = human.id, target = target.id }) end
         }
     elseif not target:isBot() then
+        Interaction.pactItem(game, target, items)
         local pending = target.allianceRequests[human.id] ~= nil
         local incoming = human.allianceRequests[target.id] ~= nil
         items[#items + 1] = {
@@ -224,6 +229,42 @@ Interaction.sections[#Interaction.sections + 1] = function(game, tile, items)
         sublabelColor = { 0.45, 0.75, 1, 1 },
         action = function()
             game:pushIntent({ type = "warship", player = human.id, tile = tile })
+        end
+    }
+end
+
+function Interaction.pactItem(game, target, items)
+    local human = game.human
+    local pact = human.pacts[target.id]
+    if pact then
+        local ending = pact.endsTick ~= nil
+        local left = (pact.endsTick or pact.expires) - game.tick
+        items[#items + 1] = {
+            label = ending and "Pact Ending" or "End Pact",
+            icon = "Key.png",
+            color = { 1, 0.75, 0.3, 1 },
+            disabled = ending,
+            sublabel = Format.time(math.max(0, left), Config.tickRate),
+            sublabelColor = { 0.55, 0.6, 0.7, 1 },
+            action = function() game:pushIntent({ type = "pactEnd", player = human.id, target = target.id }) end
+        }
+        return
+    end
+    local pending = target.pactRequests[human.id] ~= nil
+    local incoming = human.pactRequests[target.id] ~= nil
+    items[#items + 1] = {
+        label = incoming and "Accept Pact" or "Propose Pact",
+        icon = "Key.png",
+        color = { 0.55, 0.75, 1, 1 },
+        disabled = pending,
+        sublabel = pending and "Pending" or "Non-aggression",
+        sublabelColor = { 0.55, 0.6, 0.7, 1 },
+        action = function()
+            if incoming then
+                game:pushIntent({ type = "pactReply", player = human.id, from = target.id, accept = true })
+            else
+                game:pushIntent({ type = "pactRequest", player = human.id, target = target.id })
+            end
         end
     }
 end

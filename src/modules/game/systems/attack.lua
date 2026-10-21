@@ -212,7 +212,7 @@ function Attack.stepAttack(game, attack)
         Attack.finish(game, attack)
         return
     end
-    if target and (not target.alive or attacker:isAlliedWith(target)) then
+    if target and (not target.alive or not attacker:canAttack(target)) then
         Attack.finish(game, attack)
         return
     end
@@ -325,7 +325,7 @@ Attack.intents = {
         local targetId = intent.target or 0
         local target = targetId ~= 0 and game.players[targetId] or nil
         if target == attacker then return end
-        if target and (not target.alive or attacker:isAlliedWith(target)) then return end
+        if target and (not target.alive or not attacker:canAttack(target)) then return end
         local troops = intent.troops or attacker.troops * (intent.ratio or attacker.attackRatio)
         Attack.launch(game, attacker, targetId, troops)
     end,

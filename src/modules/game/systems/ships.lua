@@ -12,7 +12,7 @@ function Ships.init(game)
 end
 
 function Ships.isHostile(a, b)
-    return a ~= b and not a:isAlliedWith(b)
+    return a:canAttack(b)
 end
 
 function Ships.waterNear(game, tile)
@@ -107,7 +107,7 @@ function Ships.canSendBoat(game, player, tile)
     local destination = Ships.landingTile(game, player, tile)
     if not destination then return false, "No landing" end
     local target = game:playerAt(destination)
-    if target and player:isAlliedWith(target) then return false, "Allied" end
+    if target and not player:canAttack(target) then return false, player:hasPact(target) and "Pact" or "Allied" end
     local source = Ships.launchTile(game, player, destination)
     if not source then return false, "No sea route" end
     return true, nil, source, destination
@@ -121,7 +121,7 @@ function Ships.updateTransport(game, unit)
     local ownerId = map.owner[tile]
     local target = ownerId ~= 0 and game.players[ownerId] or nil
     player.troops = player.troops + unit.troops
-    if ownerId ~= player.id and player.alive and not (target and player:isAlliedWith(target)) then
+    if ownerId ~= player.id and player.alive and player:canAttack(target) then
         game:setOwner(tile, player.id)
         Attack.launch(game, player, ownerId, unit.troops)
     end

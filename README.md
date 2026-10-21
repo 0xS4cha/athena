@@ -74,6 +74,7 @@ love .
   - Nuked land loses its owner and gets fallout, which slowly decays and doubles conquest costs.
 - **Diplomacy** (right-click on another nation):
   - Request or accept an alliance; alliances expire after 5 minutes.
+  - Propose a non-aggression pact: neither side can attack the other by land or sea for 10 minutes. Ending a pact gives 30 s of notice and no penalty; nuking a pact partner breaks it and marks you as a traitor.
   - Break an alliance, which marks you as a traitor and halves your defense for 30 s.
   - Embargo, donate troops or gold to allies, mark a player as a target for your allies, send emojis.
 - **Victory**: control 80% of the land, or be the last nation standing.

@@ -29,6 +29,9 @@ function Player:init(id, name, kind, color, flag)
     self.allies = {}
     self.allianceRequests = {}
     self.requestEvents = {}
+    self.pacts = {}
+    self.pactRequests = {}
+    self.pactEvents = {}
     self.embargo = {}
     self.relations = {}
     self.traitorUntil = -1
@@ -77,6 +80,14 @@ end
 
 function Player:isAlliedWith(other)
     return other ~= nil and other ~= self and self.allies[other.id] ~= nil
+end
+
+function Player:hasPact(other)
+    return other ~= nil and other ~= self and self.pacts[other.id] ~= nil
+end
+
+function Player:canAttack(other)
+    return other == nil or (other ~= self and not self:isAlliedWith(other) and not self:hasPact(other))
 end
 
 function Player:isFriendly(other)

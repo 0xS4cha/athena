@@ -44,6 +44,8 @@ function Info.draw(hud)
             parts[#parts + 1] = "You"
         elseif owner:isAlliedWith(human) then
             parts[#parts + 1] = "Ally"
+        elseif owner:hasPact(human) then
+            parts[#parts + 1] = "Pact"
         end
         if owner.traitorUntil > game.tick then
             parts[#parts + 1] = "Traitor"

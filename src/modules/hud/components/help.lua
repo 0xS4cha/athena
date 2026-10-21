@@ -12,7 +12,8 @@ local LINES = {
     { "Space", "Start the game after choosing a spawn" },
     { "P", "Pause" },
     { "+ / -", "Change game speed" },
-    { "1 2 3 4 5", "Toggle terrain, territories, units, names, supply" },
+    { "1 - 5", "Toggle terrain, territories, units, names, supply" },
+    { "6", "Threat map" },
     { "H", "Show or hide this help" },
     { "Escape", "Settings" }
 }

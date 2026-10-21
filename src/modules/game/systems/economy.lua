@@ -64,7 +64,7 @@ function Economy.stacked(count, per)
 end
 
 function Economy.upkeep(game, player)
-    return Economy.built(game, player, "barracks") * Config.barracksUpkeep
+    return Economy.built(game, player, "barracks") * Config.barracksUpkeep + Economy.built(game, player, "radar") * Config.radarUpkeep
 end
 
 function Economy.training(game, player)
@@ -82,6 +82,7 @@ function Economy.updatePlayer(game, player)
     end
     local upkeep = Economy.upkeep(game, player)
     local paid = upkeep > 0 and player.gold >= upkeep
+    player.upkeepPaid = upkeep == 0 or paid
     local recruit = 1
     if growth > 0 then
         recruit = recruit + Economy.stacked(Economy.built(game, player, "farm"), Config.farmGrowth)

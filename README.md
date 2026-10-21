@@ -59,7 +59,7 @@ love .
 - **Capital**: your spawn becomes your capital (+population, defense bonus around it). If it falls, you lose 15% of your troops and your growth and income are halved for 60 s, then a new capital is founded.
 - **Supply lines**: attacks get more expensive the farther they are from your capital, cities, military ports and finished rail tracks (up to x3). Toggle the Supply layer with `5` to see your supply range. Hovering a tile shows the multiplier.
 - **Naval blockade**: an enemy warship within 18 tiles of a port blockades it. A blockaded trade port stops trading, a blockaded military port cannot launch invasions or build warships. Right-click > Send Warship Here dispatches your nearest warship to a place.
-- **Hidden intel**: structures are drawn as small pixel buildings on the map, readable only when zoomed in. Enemy structures and ships are visible only within 35 tiles of your territory or 55 tiles of your warships, so warships double as scouts.
+- **Hidden intel**: structures are drawn as small pixel buildings on the map, readable only when zoomed in. Enemy structures, ships and nukes are visible only within 35 tiles of your or your allies' territory or 55 tiles of your warships. Missile silos and SAM launchers stay hidden unless a radar sweeps them.
 - **Buildings** (right-click > Build), paid in gold with escalating costs:
   - City: raises your maximum population.
   - Trade Port: sends trade ships to nearby trade ports, so both sides earn gold. It is also a rail station.
@@ -68,6 +68,7 @@ love .
   - Farm: only on plains. Raises your maximum population and speeds up growth (diminishing with each extra farm), with no upkeep.
   - Mine: only on mountains or deserts. Produces a steady flow of gold, 50% more on mountains, so the biomes that are hardest to conquer finally pay off.
   - Barracks: speeds up population growth, trains your armies (each barracks lowers conquest costs, up to -25%) and extends your supply lines. It costs gold upkeep every tick; without the gold to pay, the bonuses stop.
+  - Radar: sweeps a 110-tile radius (165 on a mountain) and leaves fading echoes of every enemy structure, ship and nuke its beam passes over. It is the only way to spot enemy missile silos and SAM launchers. Radars share their picture with your allies, are visible to enemy radars from twice their range, cost gold upkeep and are destroyed when captured.
   - Defense Post: raises the cost of attacking nearby tiles.
   - Missile Silo: launches nukes.
   - SAM Launcher: intercepts nukes aimed inside its range.

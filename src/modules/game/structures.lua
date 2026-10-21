@@ -70,6 +70,16 @@ Structures.art = {
         },
         fps = 2
     },
+    radar = {
+        frames = {
+            { "GGg..", "..Gg.", "..G..", ".LCD.", "LLCDD" },
+            { ".GGg.", ".g.g.", "..G..", ".LCD.", "LLCDD" },
+            { "..gGG", ".gG..", "..G..", ".LCD.", "LLCDD" },
+            { ".gGG.", ".g.g.", "..G..", ".LCD.", "LLCDD" }
+        },
+        fps = 3,
+        beacon = { 2, 2 }
+    },
     defensePost = {
         frames = { { "L.L.L", "LLLLD", "LCCCD", "LCcCD", "MMMMD" } }
     },
@@ -95,12 +105,13 @@ Structures.badges = {
     barracks = { "x.x", "x.x", "xxx" },
     mine = { "x.x", ".x.", "x.x" },
     farm = { "xxx", "...", "xxx" },
+    radar = { ".x.", "x.x", ".x." },
     defensePost = { "xxx", "xxx", ".x." },
     silo = { ".x.", "xxx", "x.x" },
     sam = { "x.x", ".x.", "xxx" }
 }
 
-local KINDS = { "capital", "city", "tradePort", "militaryPort", "factory", "barracks", "mine", "farm", "defensePost", "silo", "sam" }
+local KINDS = { "capital", "city", "tradePort", "militaryPort", "factory", "barracks", "mine", "farm", "radar", "defensePost", "silo", "sam" }
 
 local atlas, quads, rowOf = nil, {}, {}
 

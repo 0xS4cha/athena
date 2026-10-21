@@ -7,6 +7,8 @@ local Supply = require("src.modules.game.systems.supply")
 local Attack = require("src.modules.game.systems.attack")
 local Structures = require("src.modules.game.structures")
 local Pixel = require("src.modules.hud.pixel")
+local Vision = require("src.modules.game.systems.vision")
+local Units = require("src.modules.game.systems.units")
 
 local Overlay = {}
 
@@ -78,48 +80,19 @@ end
 Overlay.structureZoomStart = 1.6
 Overlay.structureZoomFull = 3.5
 
-local ALWAYS_VISIBLE = { nuke = true }
-
-local function nearTerritory(game, player, x, y, range)
-    local map = game.map
-    local own = map.owner
-    local id = player.id
-    x, y = math.floor(x), math.floor(y)
-    for dy = -range, range, 3 do
-        local ty = y + dy
-        if ty >= 0 and ty < map.height then
-            for dx = -range, range, 3 do
-                local tx = x + dx
-                if tx >= 0 and tx < map.width and own[ty * map.width + tx] == id then
-                    return true
-                end
-            end
-        end
-    end
-    return false
-end
-
-local function nearWarship(game, player, unit)
-    local r2 = Config.warshipVision * Config.warshipVision
-    for _, ship in ipairs(game.ships or {}) do
-        if ship.kind == "warship" and ship.owner == player and not ship.dead
-            and (ship.x - unit.x) ^ 2 + (ship.y - unit.y) ^ 2 <= r2 then
-            return true
-        end
-    end
-    return false
-end
+local RADAR_GREEN = { 0.45, 1, 0.55 }
 
 function Overlay.isVisible(game, unit)
     local human = game.human
-    if ALWAYS_VISIBLE[unit.kind] or unit.owner:isFriendly(human) or not human.alive then
+    if not human.alive or unit.owner:isFriendly(human) then
         return true
     end
-    if unit.visionTick and game.tick - unit.visionTick < Config.visionRefreshTicks then
+    local interval = Units.isBuilding(unit.kind) and Config.visionRefreshTicks or 4
+    if unit.visionTick and game.tick - unit.visionTick < interval then
         return unit.visible
     end
     unit.visionTick = game.tick
-    unit.visible = nearTerritory(game, human, unit.x, unit.y, Config.visionRange) or nearWarship(game, human, unit)
+    unit.visible = Vision.live(game, human, unit)
     return unit.visible
 end
 
@@ -169,14 +142,16 @@ local function underAttack(game, player)
     return value
 end
 
-function Overlay.pixelCircle(camera, cx, cy, radius, color, alpha, rotation)
-    local count = math.max(16, floor(2 * math.pi * radius / 2.5))
+function Overlay.pixelCircle(camera, cx, cy, radius, color, alpha, rotation, dense)
+    local count = math.max(16, floor(2 * math.pi * radius / (dense and 1 or 2.5)))
     local size = math.max(2, floor(camera.scale))
     love.graphics.setColor(color[1], color[2], color[3], alpha)
-    for k = 0, count - 1, 2 do
+    for k = 0, count - 1, dense and 1 or 2 do
+        if dense and k % 4 == 3 then goto continue end
         local a = k / count * math.pi * 2 + (rotation or 0)
         local sx, sy = camera:toScreen(floor(cx + math.cos(a) * radius), floor(cy + math.sin(a) * radius))
         love.graphics.rectangle("fill", sx, sy, size, size)
+        ::continue::
     end
 end
 
@@ -269,7 +244,7 @@ local function drawAnimations(game, camera, unit, def, ox, oy, alpha, time)
             love.graphics.rectangle("fill", x, y, size, size)
         end
     end
-    if def.beacon and (time * 1.5 + unit.id * 0.3) % 1 < 0.35 then
+    if def.beacon and unit.owner.upkeepPaid ~= false and (time * 1.5 + unit.id * 0.3) % 1 < 0.35 then
         local x, y = ox + (def.beacon[1] + 1) * scale, oy + (def.beacon[2] + 1) * scale
         love.graphics.setColor(1, 0.95, 0.6, alpha * 0.35)
         love.graphics.rectangle("fill", x - scale, y - scale, scale * 3, scale * 3)
@@ -307,7 +282,8 @@ function Overlay.drawBuilding(game, camera, unit)
     local half = floor(Structures.SIZE / 2)
     local ox, oy = camera:toScreen(floor(unit.x) - half, floor(unit.y) - half)
     local time = love.timer.getTime()
-    local frame = Structures.frame(unit.kind, time + unit.id * 0.37)
+    local offline = unit.kind == "radar" and unit.buildLeft == 0 and not Vision.online(unit)
+    local frame = offline and 1 or Structures.frame(unit.kind, time + unit.id * 0.37)
     local owner = unit.owner.color
     local footprint = Structures.SIZE * scale
     local cell = Structures.CELL
@@ -335,8 +311,75 @@ function Overlay.drawBuilding(game, camera, unit)
         Structures.layer(unit.kind, frame, "silhouette", ox, oy, scale, WHITE, detail * (1 - age / FLASH_TICKS))
     end
     drawCooldown(game, camera, unit, detail)
-    if unit.blockaded then
+    if unit.blockaded or offline then
         Pixel.corners(ox, oy, footprint, footprint, BLOCKADE, detail * (0.55 + 0.45 * math.sin(time * 6)))
+    end
+end
+
+function Overlay.drawRadarSweeps(game, camera)
+    local human = game.human
+    if not human.alive or game.options.spectator then return end
+    local radars = Vision.radars(game, human)
+    if #radars == 0 then return end
+    local now = game.tick + game.accumulator * Config.tickRate
+    local size = math.max(2, floor(camera.scale))
+    for _, radar in ipairs(radars) do
+        local range = Vision.radarRange(game, radar)
+        local cx, cy = camera:toScreen(radar.x, radar.y)
+        local radius = range * camera.scale
+        love.graphics.setColor(RADAR_GREEN[1], RADAR_GREEN[2], RADAR_GREEN[3], 0.07)
+        love.graphics.circle("fill", cx, cy, radius)
+        local beam = Vision.beam(radar, now)
+        for slice = 0, 11 do
+            love.graphics.setColor(RADAR_GREEN[1], RADAR_GREEN[2], RADAR_GREEN[3], 0.32 * (1 - slice / 12))
+            love.graphics.arc("fill", "pie", cx, cy, radius, beam - (slice + 1) * 0.05, beam - slice * 0.05, 4)
+        end
+        Overlay.pixelCircle(camera, radar.x + 1, radar.y + 1, range, { 0.03, 0.05, 0.08 }, 0.6, 0, true)
+        Overlay.pixelCircle(camera, radar.x, radar.y, range, RADAR_GREEN, 0.85, 0, true)
+        local cos, sin = math.cos(beam), math.sin(beam)
+        for r = 1, range do
+            local sx, sy = camera:toScreen(floor(radar.x + cos * r), floor(radar.y + sin * r))
+            love.graphics.setColor(0.03, 0.05, 0.08, 0.5)
+            love.graphics.rectangle("fill", sx + 1, sy + 1, size, size)
+            love.graphics.setColor(RADAR_GREEN[1], RADAR_GREEN[2], RADAR_GREEN[3], 0.95)
+            love.graphics.rectangle("fill", sx, sy, size, size)
+        end
+    end
+end
+
+function Overlay.drawEchoes(game, camera)
+    local human = game.human
+    if not human.alive or game.options.spectator then return end
+    local detail = Overlay.structureAlpha(camera)
+    local now = game.tick + game.accumulator * Config.tickRate
+    local scale = camera.scale
+    local half = floor(Structures.SIZE / 2)
+    for unit, echo in pairs(game.echoes) do
+        local age = now - echo.tick
+        if age < 8 then
+            Overlay.pixelCircle(camera, echo.x, echo.y, 2 + age * 1.2, RADAR_GREEN, 0.8 * (1 - age / 8))
+        end
+        if unit.dead or not Overlay.isVisible(game, unit) then
+            local fade = math.max(0, 1 - age / Config.radarGhostTicks)
+            if Units.isBuilding(unit.kind) then
+                if detail > 0 and Structures.has(unit.kind) then
+                    local ox, oy = camera:toScreen(floor(echo.x) - half, floor(echo.y) - half)
+                    Structures.draw(unit.kind, ox, oy, scale, unit.owner.color, detail * (0.2 + 0.45 * fade))
+                    Structures.layer(unit.kind, 1, "silhouette", ox, oy, scale, RADAR_GREEN, detail * 0.35 * fade)
+                end
+                if detail < 1 and scale >= BADGE_MIN_SCALE then
+                    Overlay.drawBadge({ kind = unit.kind, owner = unit.owner, x = echo.x, y = echo.y, buildLeft = 0 }, camera, (1 - detail) * (0.3 + 0.6 * fade))
+                end
+            else
+                local color = unit.kind == "nuke" and { 1, 0.3, 0.25 } or RADAR_GREEN
+                local sx, sy = camera:toScreen(echo.x, echo.y)
+                local blip = math.max(3, floor(scale * 1.5))
+                love.graphics.setColor(color[1], color[2], color[3], 0.25 * fade)
+                love.graphics.rectangle("fill", floor(sx - blip * 1.5), floor(sy - blip * 1.5), blip * 3, blip * 3)
+                love.graphics.setColor(color[1], color[2], color[3], 0.9 * fade)
+                love.graphics.rectangle("fill", floor(sx - blip / 2), floor(sy - blip / 2), blip, blip)
+            end
+        end
     end
 end
 
@@ -349,7 +392,7 @@ function Overlay.drawHoveredStructure(game, camera)
     if not unit or not Structures.has(unit.kind) then return end
     local def = Config.units[unit.kind]
     local time = love.timer.getTime()
-    local range = def.range or def.radius
+    local range = unit.kind == "radar" and Vision.radarRange(game, unit) or def.range or def.radius
     if range then
         Overlay.pixelCircle(camera, unit.x, unit.y, range, lighten(unit.owner.color, 0.35), detail * 0.8, time * 0.15)
     end
@@ -799,7 +842,9 @@ function Overlay.draw(game, camera)
     end
     if layers.units then
         Overlay.drawRails(game, camera)
+        Overlay.drawRadarSweeps(game, camera)
         Overlay.drawUnits(game, camera, W, H)
+        Overlay.drawEchoes(game, camera)
         Overlay.drawHoveredStructure(game, camera)
     end
     Overlay.drawExplosions(game, camera)

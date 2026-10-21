@@ -104,6 +104,16 @@ Builder.wishes = {
         end)
     end,
     function(game, player, ctx)
+        if game.tick < 2500 or player.income < 80 or player:unitCount("radar") >= 1 + math.floor(player.tiles / 60000) then return end
+        local hostile = false
+        for _, other in ipairs(ctx.neighbors) do
+            if player:canAttack(other) and not other:isBot() then hostile = true end
+        end
+        if not hostile then return end
+        local tile = randomOwnTile(game, player, function(i) return game.map:terrainType(i) == "mountain" and Units.isSpaced(game, i) end)
+        return "radar", tile or randomOwnTile(game, player, function(i) return Units.isSpaced(game, i) end)
+    end,
+    function(game, player, ctx)
         if player:unitCount("barracks") >= 1 + math.floor(player.tiles / 25000) or player.income < 40 then return end
         for _, other in ipairs(ctx.neighbors) do
             if player:canAttack(other) and not other:isBot() and other.troops > player.troops * 0.8 then

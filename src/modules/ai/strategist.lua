@@ -1,6 +1,7 @@
 local Config = require("src.config.game")
 local Units = require("src.modules.game.systems.units")
 local Nukes = require("src.modules.game.systems.nukes")
+local Vision = require("src.modules.game.systems.vision")
 
 local Strategist = {}
 
@@ -30,17 +31,34 @@ local function chooseVictim(game, player, ctx)
     return nil
 end
 
-local function targetTile(game, victim)
-    if victim.capital and not victim.capital.dead and game.rng:random() < 0.5 then
-        return victim.capital.tile
+local function known(game, player, unit)
+    return not Config.aiNukeFog or Vision.knows(game, player, unit.x, unit.y, unit.kind)
+end
+
+local function targetTile(game, player, victim)
+    local rng = game.rng
+    local capital = victim.capital
+    if capital and not capital.dead and rng:random() < 0.5 and known(game, player, capital) then
+        return capital.tile
     end
-    local cities = Units.list(game, victim, "city")
+    local cities = {}
+    for _, city in ipairs(Units.list(game, victim, "city")) do
+        if not city.dead and known(game, player, city) then
+            cities[#cities + 1] = city
+        end
+    end
     if #cities > 0 then
-        return cities[game.rng:random(#cities)].tile
+        return cities[rng:random(#cities)].tile
     end
     local x, y = victim:center()
+    if Config.aiNukeFog and not Vision.knows(game, player, x, y) then
+        x = x + (rng:random() * 2 - 1) * Config.blindScatter
+        y = y + (rng:random() * 2 - 1) * Config.blindScatter
+    end
     return game.map:findNear(x, y, 30, function(i) return game.map.owner[i] == victim.id end)
 end
+
+Strategist.targetTile = targetTile
 
 function Strategist.behavior(game, player, ctx)
     if game.tick < MIN_TICK or game.options.difficulty == "easy" then return false end
@@ -78,7 +96,7 @@ function Strategist.behavior(game, player, ctx)
 
     local victim = chooseVictim(game, player, ctx)
     if not victim then return false end
-    local tile = targetTile(game, victim)
+    local tile = targetTile(game, player, victim)
     if not tile then return false end
     local reserve = 500000
     for _, kind in ipairs({ "mirv", "hydrogen", "atom" }) do

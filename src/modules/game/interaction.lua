@@ -45,6 +45,7 @@ function Interaction.unitItem(game, kind, tile)
     return {
         label = def.label,
         icon = def.icon,
+        sprite = kind,
         sublabel = ok and Format.number(Units.cost(game, human, kind)) or reason,
         sublabelColor = not ok and { 0.95, 0.35, 0.3, 1 } or nil,
         disabled = not ok,

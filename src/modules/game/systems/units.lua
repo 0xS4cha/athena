@@ -122,6 +122,7 @@ end
 
 function Units.complete(game, unit)
     unit.buildLeft = 0
+    unit.completedTick = game.tick
     if unit.kind == "city" then
         unit.owner.cities = unit.owner.cities + 1
     end
@@ -164,6 +165,7 @@ function Units.transfer(game, unit, player)
         player.cities = player.cities + 1
     end
     unit.owner = player
+    unit.capturedTick = game.tick
     game.defenseVersion = game.defenseVersion + 1
     game:notify(previous, string.format("%s captured your %s.", player.name, Config.units[unit.kind].label), { color = { 0.95, 0.5, 0.3, 1 } })
     game:notify(player, string.format("You captured a %s from %s.", Config.units[unit.kind].label, previous.name), { color = { 0.3, 0.85, 0.45, 1 } })

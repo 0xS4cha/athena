@@ -4,6 +4,7 @@ local Style = require("src.modules.hud.style")
 local Interaction = require("src.modules.game.interaction")
 local Pixel = require("src.modules.hud.pixel")
 local Fx = require("src.modules.hud.fx")
+local Structures = require("src.modules.game.structures")
 
 local ContextMenu = Class()
 
@@ -123,7 +124,9 @@ function ContextMenu:draw()
             love.graphics.rectangle("fill", ix + u * 2, itemY + u + 1, u, self.itemHeight - 2 - u * 2)
         end
         local shift = math.floor(hot * 2) * u
-        if item.icon then
+        local game = self.hud:game()
+        local drawn = item.sprite and game and Structures.icon(item.sprite, ix + 9 + shift, itemY + math.floor((self.itemHeight - 22) / 2), 22, game.human.color, (item.disabled and 0.4 or 1) * Pixel.alpha)
+        if item.icon and not drawn then
             Pixel.icon(item.icon, ix + 12 + shift, itemY + math.floor((self.itemHeight - 16) / 2), 16, item.disabled and 0.35 or 1)
         end
         local color

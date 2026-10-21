@@ -4,6 +4,9 @@ local Config = require("src.config.game")
 local Icons = require("src.modules.hud.icons")
 local Rails = require("src.modules.game.systems.rails")
 local Supply = require("src.modules.game.systems.supply")
+local Attack = require("src.modules.game.systems.attack")
+local Structures = require("src.modules.game.structures")
+local Pixel = require("src.modules.hud.pixel")
 
 local Overlay = {}
 
@@ -75,25 +78,6 @@ end
 Overlay.structureZoomStart = 1.6
 Overlay.structureZoomFull = 3.5
 
-local STRUCTURE_COLORS = {
-    d = { 0.14, 0.14, 0.17 },
-    l = { 0.86, 0.85, 0.8 },
-    r = { 0.78, 0.22, 0.16 },
-    y = { 0.95, 0.78, 0.3 },
-    g = { 0.45, 0.47, 0.5 }
-}
-
-Overlay.structures = {
-    capital = { "y.y.y", "yyyyy", "yrcry", "yyyyy", ".ddd." },
-    city = { "rr.rr", "ll.ll", ".....", "rr.rr", "ll.ll" },
-    tradePort = { "yy.yy", "yy.yy", "ggggg", "g.g.g", "g.g.g" },
-    militaryPort = { "..d..", ".ddd.", "..d..", "d.d.d", ".ddd." },
-    factory = { "d...d", "d...d", "ddddd", "dlcld", "ddddd" },
-    defensePost = { "d.d.d", "ddddd", "dcccd", "dcccd", "ddddd" },
-    silo = { ".ddd.", "dlrld", "dlrld", "dlrld", ".ddd." },
-    sam = { "r...r", ".r.r.", "..d..", ".ddd.", "ddddd" }
-}
-
 local ALWAYS_VISIBLE = { nuke = true }
 
 local function nearTerritory(game, player, x, y, range)
@@ -159,39 +143,221 @@ function Overlay.structureAlpha(camera)
     return math.max(0, math.min(1, (camera.scale - Overlay.structureZoomStart) / (Overlay.structureZoomFull - Overlay.structureZoomStart)))
 end
 
-function Overlay.drawBuilding(game, camera, unit)
-    local alpha = Overlay.structureAlpha(camera)
-    if alpha <= 0 then return end
-    local pattern = Overlay.structures[unit.kind]
-    if not pattern then return end
+local floor = math.floor
+local BADGE_MIN_SCALE = 0.7
+local FLASH_TICKS = 12
+local WINDOW_LIGHT = { 1, 0.86, 0.42 }
+local SMOKE = { 0.42, 0.42, 0.47 }
+local BLOCKADE = { 0.95, 0.2, 0.15, 1 }
+local WHITE = { 1, 1, 1 }
+
+local function lighten(c, t)
+    return { c[1] + (1 - c[1]) * t, c[2] + (1 - c[2]) * t, c[3] + (1 - c[3]) * t }
+end
+
+local function underAttack(game, player)
+    local cache = game.overlayThreats
+    if not cache or cache.tick ~= game.tick then
+        cache = { tick = game.tick }
+        game.overlayThreats = cache
+    end
+    local value = cache[player.id]
+    if value == nil then
+        value = #Attack.incoming(game, player) > 0
+        cache[player.id] = value
+    end
+    return value
+end
+
+function Overlay.pixelCircle(camera, cx, cy, radius, color, alpha, rotation)
+    local count = math.max(16, floor(2 * math.pi * radius / 2.5))
+    local size = math.max(2, floor(camera.scale))
+    love.graphics.setColor(color[1], color[2], color[3], alpha)
+    for k = 0, count - 1, 2 do
+        local a = k / count * math.pi * 2 + (rotation or 0)
+        local sx, sy = camera:toScreen(floor(cx + math.cos(a) * radius), floor(cy + math.sin(a) * radius))
+        love.graphics.rectangle("fill", sx, sy, size, size)
+    end
+end
+
+function Overlay.drawBadge(unit, camera, alpha)
+    local glyph = Structures.badges[unit.kind]
+    if not glyph then return end
+    local sx, sy = camera:toScreen(unit.x, unit.y)
+    local u = 2
+    local size = #glyph * u + 4
+    local x, y = floor(sx - size / 2), floor(sy - size / 2)
     if unit.buildLeft > 0 then
-        alpha = alpha * 0.45
+        alpha = alpha * 0.55
     end
+    local c = unit.owner.color
+    love.graphics.setColor(0.06, 0.05, 0.09, alpha)
+    love.graphics.rectangle("fill", x, y - 1, size, size + 2)
+    love.graphics.rectangle("fill", x - 1, y, size + 2, size)
+    love.graphics.setColor(c[1], c[2], c[3], alpha)
+    love.graphics.rectangle("fill", x + 1, y, size - 2, size)
+    love.graphics.rectangle("fill", x, y + 1, size, size - 2)
+    local bright = c[1] * 0.3 + c[2] * 0.59 + c[3] * 0.11 > 0.62
+    if bright then
+        love.graphics.setColor(0.06, 0.05, 0.09, alpha)
+    else
+        love.graphics.setColor(1, 1, 1, alpha)
+    end
+    for row = 1, #glyph do
+        for col = 1, #glyph[row] do
+            if glyph[row]:sub(col, col) == "x" then
+                love.graphics.rectangle("fill", x + 2 + (col - 1) * u, y + 2 + (row - 1) * u, u, u)
+            end
+        end
+    end
+end
+
+local function drawProgress(x, y, width, scale, progress, color, alpha)
+    local h = math.max(3, floor(scale * 0.8))
+    local cells = Structures.SIZE
+    love.graphics.setColor(0.06, 0.05, 0.09, alpha * 0.85)
+    love.graphics.rectangle("fill", x - 1, y - 1, width + 2, h + 2)
+    for k = 0, cells - 1 do
+        if (k + 0.5) / cells <= progress then
+            love.graphics.setColor(color[1], color[2], color[3], alpha)
+        else
+            love.graphics.setColor(0.2, 0.22, 0.3, alpha)
+        end
+        love.graphics.rectangle("fill", x + floor(k * width / cells), y, math.max(1, floor(width / cells) - 1), h)
+    end
+end
+
+local function drawCooldown(game, camera, unit, alpha)
+    local total = Config.units[unit.kind].cooldownTicks
+    if not total or unit.cooldown <= 0 then return end
+    local segments = 12
+    local filled = floor((1 - unit.cooldown / total) * segments)
+    local size = math.max(2, floor(camera.scale * 0.8))
+    local c = lighten(unit.owner.color, 0.3)
+    for k = 0, segments - 1 do
+        local a = k / segments * math.pi * 2 - math.pi / 2
+        local sx, sy = camera:toScreen(unit.x + math.cos(a) * 5, unit.y + math.sin(a) * 5)
+        if k < filled then
+            love.graphics.setColor(c[1], c[2], c[3], alpha)
+        else
+            love.graphics.setColor(0.06, 0.05, 0.09, alpha * 0.6)
+        end
+        love.graphics.rectangle("fill", floor(sx - size / 2), floor(sy - size / 2), size, size)
+    end
+end
+
+local function drawAnimations(game, camera, unit, def, ox, oy, alpha, time)
+    local scale = camera.scale
+    if def.windows and def.cells then
+        for k, cell in ipairs(def.cells) do
+            local slot = floor(time / 1.7 + k * 0.61 + unit.id * 0.37)
+            if (unit.id * 31 + k * 17 + slot * 13) % 5 < 3 then
+                love.graphics.setColor(WINDOW_LIGHT[1], WINDOW_LIGHT[2], WINDOW_LIGHT[3], alpha * 0.9)
+                love.graphics.rectangle("fill", ox + cell[1] * scale, oy + cell[2] * scale, scale, scale)
+            end
+        end
+    end
+    if def.smoke then
+        local bx = ox + (def.smoke[1] + 1) * scale
+        local by = oy + (def.smoke[2] + 1) * scale
+        for p = 0, 2 do
+            local phase = (time * 0.5 + p / 3 + unit.id * 0.13) % 1
+            local size = math.max(1, floor(scale * (0.9 + phase * 0.8)))
+            local x = bx + floor((phase * 1.4 + math.sin(time * 2 + p) * 0.3) * scale)
+            local y = by - floor((0.5 + phase * 3.5) * scale)
+            love.graphics.setColor(SMOKE[1], SMOKE[2], SMOKE[3], alpha * 0.8 * (1 - phase))
+            love.graphics.rectangle("fill", x, y, size, size)
+        end
+    end
+    if def.beacon and (time * 1.5 + unit.id * 0.3) % 1 < 0.35 then
+        local x, y = ox + (def.beacon[1] + 1) * scale, oy + (def.beacon[2] + 1) * scale
+        love.graphics.setColor(1, 0.95, 0.6, alpha * 0.35)
+        love.graphics.rectangle("fill", x - scale, y - scale, scale * 3, scale * 3)
+        love.graphics.setColor(1, 0.95, 0.6, alpha)
+        love.graphics.rectangle("fill", x, y, scale, scale)
+    end
+    if def.light and unit.cooldown == 0 and (time * 2) % 1 < 0.5 then
+        local x, y = ox + (def.light[1] + 1) * scale, oy + (def.light[2] + 1) * scale
+        love.graphics.setColor(1, 0.25, 0.2, alpha * 0.4)
+        love.graphics.rectangle("fill", x - scale, y - scale, scale * 3, scale * 3)
+        love.graphics.setColor(1, 0.4, 0.3, alpha)
+        love.graphics.rectangle("fill", x, y, scale, scale)
+    end
+    if def.shine then
+        local col = floor(((time + unit.id * 0.5) % 3) / 0.5 * Structures.SIZE / 2)
+        if col >= 1 and col <= 5 then
+            love.graphics.setColor(1, 1, 1, alpha * 0.6)
+            love.graphics.rectangle("fill", ox + col * scale, oy + 2 * scale, scale, scale)
+        end
+    end
+    if unit.kind == "defensePost" and underAttack(game, unit.owner) then
+        local phase = (time * 0.8) % 1
+        Overlay.pixelCircle(camera, unit.x, unit.y, 4 + phase * 10, lighten(unit.owner.color, 0.4), alpha * (1 - phase))
+    end
+end
+
+function Overlay.drawBuilding(game, camera, unit)
+    local detail = Overlay.structureAlpha(camera)
+    if detail < 1 and camera.scale >= BADGE_MIN_SCALE and unit.kind ~= "capital" then
+        Overlay.drawBadge(unit, camera, (1 - detail) * 0.9)
+    end
+    if detail <= 0 or not Structures.has(unit.kind) then return end
+    local def = Structures.art[unit.kind]
+    local scale = camera.scale
+    local half = floor(Structures.SIZE / 2)
+    local ox, oy = camera:toScreen(floor(unit.x) - half, floor(unit.y) - half)
+    local time = love.timer.getTime()
+    local frame = Structures.frame(unit.kind, time + unit.id * 0.37)
     local owner = unit.owner.color
-    local size = camera.scale
-    local half = math.floor(#pattern / 2)
-    local tx, ty = math.floor(unit.x), math.floor(unit.y)
-    if unit.blockaded and math.floor(love.timer.getTime() * 3) % 2 == 0 then
-        love.graphics.setColor(0.95, 0.2, 0.15, alpha)
-        for k = -half - 1, half + 1 do
-            for _, p in ipairs({ { k, -half - 1 }, { k, half + 1 }, { -half - 1, k }, { half + 1, k } }) do
-                local sx, sy = camera:toScreen(tx + p[1], ty + p[2])
-                love.graphics.rectangle("fill", sx, sy, size, size)
-            end
+    local footprint = Structures.SIZE * scale
+    local cell = Structures.CELL
+
+    if unit.buildLeft > 0 then
+        local progress = 1 - unit.buildLeft / math.max(1, unit.buildTotal or 1)
+        local rows = floor(progress * cell + 0.5)
+        Structures.draw(unit.kind, ox, oy, scale, owner, detail * 0.28, { frame = frame })
+        if rows > 0 then
+            Structures.draw(unit.kind, ox, oy, scale, owner, detail, { frame = frame, rows = rows })
+            local edge = lighten(owner, 0.5)
+            love.graphics.setColor(edge[1], edge[2], edge[3], detail * (0.6 + 0.4 * math.sin(time * 8)))
+            love.graphics.rectangle("fill", ox, oy + (cell - rows) * scale, footprint, math.max(1, floor(scale * 0.4)))
         end
+        drawProgress(ox, oy + cell * scale + 2, footprint, scale, progress, lighten(owner, 0.25), detail)
+        return
     end
-    for row = 1, #pattern do
-        local line = pattern[row]
-        for col = 1, #line do
-            local ch = line:sub(col, col)
-            if ch ~= "." then
-                local color = ch == "c" and owner or STRUCTURE_COLORS[ch]
-                love.graphics.setColor(color[1], color[2], color[3], alpha)
-                local sx, sy = camera:toScreen(tx + col - 1 - half, ty + row - 1 - half)
-                love.graphics.rectangle("fill", sx, sy, size, size)
-            end
-        end
+
+    Structures.draw(unit.kind, ox, oy, scale, owner, detail, { frame = frame })
+    drawAnimations(game, camera, unit, def, ox, oy, detail, time)
+    local now = game.tick + game.accumulator * Config.tickRate
+    local stamp = math.max(unit.completedTick or -1000, unit.capturedTick or -1000)
+    local age = now - stamp
+    if age >= 0 and age < FLASH_TICKS then
+        Structures.layer(unit.kind, frame, "silhouette", ox, oy, scale, WHITE, detail * (1 - age / FLASH_TICKS))
     end
+    drawCooldown(game, camera, unit, detail)
+    if unit.blockaded then
+        Pixel.corners(ox, oy, footprint, footprint, BLOCKADE, detail * (0.55 + 0.45 * math.sin(time * 6)))
+    end
+end
+
+function Overlay.drawHoveredStructure(game, camera)
+    local detail = Overlay.structureAlpha(camera)
+    if detail <= 0 or game.options.spectator then return end
+    local mx, my = love.mouse.getPosition()
+    local tile = game.map:tileAt(camera:toWorld(mx, my))
+    local unit = tile and Overlay.structureAt(game, tile)
+    if not unit or not Structures.has(unit.kind) then return end
+    local def = Config.units[unit.kind]
+    local time = love.timer.getTime()
+    local range = def.range or def.radius
+    if range then
+        Overlay.pixelCircle(camera, unit.x, unit.y, range, lighten(unit.owner.color, 0.35), detail * 0.8, time * 0.15)
+    end
+    local half = floor(Structures.SIZE / 2)
+    local ox, oy = camera:toScreen(floor(unit.x) - half, floor(unit.y) - half)
+    local footprint = Structures.SIZE * camera.scale
+    local pad = math.max(2, floor(camera.scale * 0.5 + math.sin(time * 5) * 1.5))
+    Pixel.corners(ox - pad, oy - pad, footprint + pad * 2, footprint + pad * 2, Style.colors.gold, detail)
 end
 
 local RAIL_DARK = { 0.24, 0.2, 0.17 }
@@ -633,6 +799,7 @@ function Overlay.draw(game, camera)
     if layers.units then
         Overlay.drawRails(game, camera)
         Overlay.drawUnits(game, camera, W, H)
+        Overlay.drawHoveredStructure(game, camera)
     end
     Overlay.drawExplosions(game, camera)
     if layers.names and layers.political then

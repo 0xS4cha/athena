@@ -68,7 +68,6 @@ function Nukes.launch(game, player, kind, tile)
     local target = game:playerAt(tile)
     if target then
         target:changeRelation(player, -100)
-        game:notify(target, string.format("%s launched a %s at you!", player.name, def.label), { color = { 1, 0.3, 0.2, 1 }, duration = 300 })
         game:emit("nukeLaunched", unit, player, target)
     end
     game:notify(player, def.label .. " launched.", { color = { 1, 0.6, 0.3, 1 } })

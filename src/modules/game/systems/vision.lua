@@ -11,6 +11,7 @@ Vision.hidden = { silo = true, sam = true }
 function Vision.init(game)
     game.echoes = {}
     game.radarCache = {}
+    game.nukeAlerts = {}
 end
 
 function Vision.radarRange(game, unit)
@@ -206,11 +207,38 @@ local function sweep(game, player)
     end
 end
 
+function Vision.threatens(game, player, nuke)
+    local owner = game.map.owner[nuke.target]
+    local target = owner ~= 0 and game.players[owner] or nil
+    return target ~= nil and target:isFriendly(player) and not nuke.owner:isFriendly(player)
+end
+
+local function detectNukes(game, player)
+    local alerts = game.nukeAlerts
+    for k = #alerts, 1, -1 do
+        if alerts[k].dead then
+            table.remove(alerts, k)
+        end
+    end
+    for _, unit in ipairs(game.units) do
+        if unit.kind == "nuke" and not unit.dead and not unit.alertTick and unit.nukeKind ~= "warhead"
+            and Vision.threatens(game, player, unit)
+            and (Vision.inRadar(game, player, unit.x, unit.y) or Vision.passive(game, player, unit.x, unit.y)) then
+            unit.alertTick = game.tick
+            alerts[#alerts + 1] = unit
+            local def = Config.nukes[unit.nukeKind]
+            local seconds = math.max(0, unit.duration - unit.elapsed) / Config.tickRate
+            game:notify(player, string.format("%s incoming from %s! Impact in %.1fs.", def.label, unit.owner.name, seconds), { color = { 1, 0.3, 0.2, 1 }, duration = 200 })
+        end
+    end
+end
+
 function Vision.step(game)
     if game.phase ~= "playing" then return end
     local human = game.human
     if not human.alive then return end
     sweep(game, human)
+    detectNukes(game, human)
     for unit, echo in pairs(game.echoes) do
         if game.tick - echo.tick > Config.radarGhostTicks then
             game.echoes[unit] = nil

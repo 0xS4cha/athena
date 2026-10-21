@@ -383,6 +383,36 @@ function Overlay.drawEchoes(game, camera)
     end
 end
 
+function Overlay.drawNukeAlerts(game, camera)
+    local alerts = game.nukeAlerts
+    if not alerts or #alerts == 0 then return end
+    local time = love.timer.getTime()
+    local pulse = 0.55 + 0.45 * math.sin(time * 10)
+    local size = math.max(2, floor(camera.scale))
+    for _, nuke in ipairs(alerts) do
+        if not nuke.dead then
+            local def = Config.nukes[nuke.nukeKind]
+            local radius = def.outer or 12
+            Overlay.pixelCircle(camera, nuke.toX, nuke.toY, radius, { 1, 0.25, 0.2 }, pulse, time * 0.6, true)
+            Overlay.pixelCircle(camera, nuke.toX, nuke.toY, (def.inner or 6), { 1, 0.6, 0.3 }, pulse * 0.8, -time * 0.9)
+            love.graphics.setColor(1, 0.3, 0.25, 0.8)
+            for k = -3, 3 do
+                local hx, hy = camera:toScreen(floor(nuke.toX) + k, floor(nuke.toY))
+                local vx, vy = camera:toScreen(floor(nuke.toX), floor(nuke.toY) + k)
+                love.graphics.rectangle("fill", hx, hy, size, size)
+                love.graphics.rectangle("fill", vx, vy, size, size)
+            end
+            local dx, dy = nuke.toX - nuke.x, nuke.toY - nuke.y
+            local length = math.sqrt(dx * dx + dy * dy)
+            love.graphics.setColor(1, 0.3, 0.25, 0.55)
+            for d = 0, length, 3 do
+                local sx, sy = camera:toScreen(floor(nuke.x + dx * d / length), floor(nuke.y + dy * d / length))
+                love.graphics.rectangle("fill", sx, sy, size, size)
+            end
+        end
+    end
+end
+
 function Overlay.drawHoveredStructure(game, camera)
     local detail = Overlay.structureAlpha(camera)
     if detail <= 0 or game.options.spectator then return end
@@ -845,6 +875,7 @@ function Overlay.draw(game, camera)
         Overlay.drawRadarSweeps(game, camera)
         Overlay.drawUnits(game, camera, W, H)
         Overlay.drawEchoes(game, camera)
+        Overlay.drawNukeAlerts(game, camera)
         Overlay.drawHoveredStructure(game, camera)
     end
     Overlay.drawExplosions(game, camera)

@@ -72,6 +72,7 @@ love .
   - Defense Post: raises the cost of attacking nearby tiles.
   - Missile Silo: launches nukes.
   - SAM Launcher: intercepts nukes aimed inside its range.
+  - Nuke warning: you only learn about a nuke aimed at you or your allies once it is detected, either by a radar (yours or an ally's) or when it enters your vision. A radar covering the enemy silo warns you at launch. The warning shows a countdown, the blast zone and the missile's path.
   - Warship: built at a military port; patrols, sinks transports, captures trade ships, and fights other warships.
 - **Nukes** (right-click > Launch Nuke):
   - Atom Bomb, Hydrogen Bomb, and MIRV (splits into many warheads over the target nation).

@@ -80,9 +80,41 @@ function Banner.draw(hud)
         Pixel.shadowText(sub, (W - font:getWidth(sub)) / 2, H * 0.3 + h / 2 + 4, 16, Style.colors.text, Fx.clamp((splash - 0.6) * 3, 0, 1))
         Pixel.alpha = 1
     end
+    local y = 66
     if game.paused then
         local on = time % 1.2 < 0.8
-        centered("PAUSED  -  press P to resume", 66, 16, on and Style.colors.gold or Style.colors.muted, { corners = true, accent = Style.colors.gold })
+        y = centered("PAUSED  -  press P to resume", y, 16, on and Style.colors.gold or Style.colors.muted, { corners = true, accent = Style.colors.gold })
+    end
+    Banner.drawNukeAlerts(game, y, time)
+end
+
+function Banner.drawNukeAlerts(game, y, time)
+    local live = {}
+    for _, nuke in ipairs(game.nukeAlerts or {}) do
+        if not nuke.dead then
+            live[#live + 1] = nuke
+        end
+    end
+    if #live == 0 then return end
+    local u = Pixel.unit
+    local W = love.graphics.getWidth()
+    local rows = math.min(3, #live)
+    local w, h = 360, 40 + rows * 22
+    local x = math.floor((W - w) / 2)
+    local blink = time % 0.6 < 0.35
+    Style.box(x, y, w, h, { corners = true, accent = Style.colors.bad })
+    Pixel.color(Style.colors.bad, blink and 1 or 0.35)
+    Pixel.block(x + u * 2, y + u * 2, w - u * 4, 28, u)
+    Pixel.icon("Skull.png", x + 14, y + 10, 16)
+    Pixel.text("NUKE INCOMING", x + 38, y + 8, 16, blink and Pixel.colors.ink or Style.colors.text)
+    for k = 1, rows do
+        local nuke = live[k]
+        local ry = y + 38 + (k - 1) * 22
+        local left = math.max(0, nuke.duration - nuke.elapsed) / Config.tickRate
+        local label = string.format("%s  -  %s", Config.nukes[nuke.nukeKind].label, nuke.owner.name)
+        Pixel.text(label, x + 16, ry, 12, Style.colors.text)
+        local count = string.format("%.1fs", left)
+        Pixel.text(count, x + w - 16 - Style.font(14):getWidth(count), ry - 2, 14, Style.colors.bad)
     end
 end
 

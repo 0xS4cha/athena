@@ -3,6 +3,7 @@ local Format = require("src.core.format")
 local Config = require("src.config.game")
 local Attack = require("src.modules.game.systems.attack")
 local Pixel = require("src.modules.hud.pixel")
+local Loans = require("src.modules.game.systems.loans")
 
 local Control = { id = "control", title = "EMPIRE", panel = true }
 
@@ -54,16 +55,66 @@ local function attackRows(hud)
     return rows
 end
 
+local function loanRows(hud)
+    local game = hud:game()
+    return Loans.involving(game, game.human)
+end
+
+local function sectionHeight(count)
+    return count > 0 and count * ROW + 12 or 0
+end
+
 function Control.extraHeight(hud)
-    local n = #attackRows(hud)
-    return n > 0 and n * ROW + 12 or 0
+    return sectionHeight(#attackRows(hud)) + sectionHeight(#loanRows(hud))
 end
 
 local function rolling(id, value)
     return Format.number(Pixel.ease("control:" .. id, value, 7))
 end
 
+local function drawLoans(hud, x, y, w)
+    local game = hud:game()
+    local human = game.human
+    local u = Pixel.unit
+    local rows = loanRows(hud)
+    if #rows == 0 then return end
+    Pixel.color(Pixel.colors.edge, 0.3)
+    love.graphics.rectangle("fill", x + u * 3, y, w - u * 6, u)
+    for k, loan in ipairs(rows) do
+        local ry = y + 8 + (k - 1) * ROW
+        local owing = loan.borrower == human
+        local other = owing and loan.lender or loan.borrower
+        local color = owing and Style.colors.bad or Style.colors.good
+        Pixel.icon("Coin.png", x + PAD, ry + 3, 15)
+        local label = (owing and "Owe " or "Lent ") .. other.name
+        local font = Style.font(11)
+        while font:getWidth(label) > 112 and #label > 4 do
+            label = label:sub(1, -2)
+        end
+        Pixel.text(label, x + PAD + 20, ry + 3, 11, color)
+        local left = Format.number(Loans.remaining(loan)) .. "  " .. Format.time(math.max(0, loan.deadline - game.tick), Config.tickRate)
+        local right = owing and 72 or 0
+        Pixel.text(left, x + w - PAD - right - font:getWidth(left) - 6, ry + 3, 11, Style.colors.muted)
+        Pixel.meter("loan:" .. loan.id, x + PAD + 20, ry + 15, 112, 9, loan.paid / loan.due, Style.colors.gold)
+        if owing then
+            Style.button(x + w - PAD - 66, ry, 66, 21, "Repay", { id = "repay:" .. loan.id, size = 11, color = Style.colors.gold, disabled = human.gold < 1 })
+        end
+    end
+end
+
+local function pressLoans(hud, mx, my, x, y, w)
+    local game = hud:game()
+    for k, loan in ipairs(loanRows(hud)) do
+        if loan.borrower == game.human and Style.inside(mx, my, x + w - PAD - 66, y + 8 + (k - 1) * ROW, 66, 21) then
+            game:pushIntent({ type = "loanRepay", player = game.human.id, target = loan.lender.id })
+            return true
+        end
+    end
+    return false
+end
+
 function Control.drawExtra(hud, x, y, w)
+    drawLoans(hud, x, y + sectionHeight(#attackRows(hud)), w)
     local u = Pixel.unit
     local rows = attackRows(hud)
     if #rows == 0 then return end
@@ -89,6 +140,7 @@ function Control.drawExtra(hud, x, y, w)
 end
 
 function Control.pressExtra(hud, mx, my, x, y, w)
+    if pressLoans(hud, mx, my, x, y + sectionHeight(#attackRows(hud)), w) then return end
     local game = hud:game()
     for k, row in ipairs(attackRows(hud)) do
         if row.outgoing and Style.inside(mx, my, x + w - PAD - 66, y + 8 + (k - 1) * ROW, 66, 21) then

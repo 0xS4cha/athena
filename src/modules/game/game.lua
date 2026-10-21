@@ -16,6 +16,7 @@ local Systems = {
     require("src.modules.game.systems.rails"),
     require("src.modules.game.systems.nukes"),
     require("src.modules.game.systems.diplomacy"),
+    require("src.modules.game.systems.loans"),
     require("src.modules.game.systems.ai"),
     require("src.modules.game.systems.victory")
 }

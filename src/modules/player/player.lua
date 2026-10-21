@@ -32,6 +32,8 @@ function Player:init(id, name, kind, color, flag)
     self.pacts = {}
     self.pactRequests = {}
     self.pactEvents = {}
+    self.loanRequests = {}
+    self.loanOffers = {}
     self.embargo = {}
     self.relations = {}
     self.traitorUntil = -1

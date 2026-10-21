@@ -55,7 +55,7 @@ function Events.position(_, w, h, W, H)
 end
 
 local function actionRect(x, w, rowY, rowH, index, count)
-    local bw = 84
+    local bw = math.min(84, math.floor((w - PAD * 2 - (count - 1) * 6) / count))
     local bx = x + w - PAD - (count - index + 1) * (bw + 6) + 6
     return bx, rowY + rowH - ACTION - 2, bw, ACTION - 4
 end

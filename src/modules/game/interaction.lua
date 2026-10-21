@@ -2,6 +2,7 @@ local Attack = require("src.modules.game.systems.attack")
 local Units = require("src.modules.game.systems.units")
 local Ships = require("src.modules.game.systems.ships")
 local Nukes = require("src.modules.game.systems.nukes")
+local Loans = require("src.modules.game.systems.loans")
 local Config = require("src.config.game")
 local Format = require("src.core.format")
 
@@ -186,6 +187,9 @@ Interaction.sections[#Interaction.sections + 1] = function(game, tile, items)
             end
         }
     end
+    if not target:isBot() then
+        Interaction.loanItems(game, target, items)
+    end
     local embargoed = human.embargo[target.id] ~= nil
     items[#items + 1] = {
         label = embargoed and "Lift Embargo" or "Embargo",
@@ -265,6 +269,51 @@ function Interaction.pactItem(game, target, items)
             else
                 game:pushIntent({ type = "pactRequest", player = human.id, target = target.id })
             end
+        end
+    }
+end
+
+function Interaction.loanItems(game, target, items)
+    local human = game.human
+    local owed = Loans.between(game, target, human)
+    if owed then
+        local left = Loans.remaining(owed)
+        items[#items + 1] = {
+            label = "Repay Loan",
+            icon = "Cash2.png",
+            color = { 1, 0.82, 0.25, 1 },
+            disabled = human.gold < 1,
+            sublabel = Format.number(math.min(left, human.gold)) .. " / " .. Format.number(left),
+            action = function() game:pushIntent({ type = "loanRepay", player = human.id, target = target.id }) end
+        }
+        return
+    end
+    local lent = Loans.between(game, human, target)
+    if lent then
+        items[#items + 1] = {
+            label = "Owes You",
+            icon = "Cash2.png",
+            disabled = true,
+            sublabel = Format.number(Loans.remaining(lent)) .. "  " .. Format.time(math.max(0, lent.deadline - game.tick), Config.tickRate)
+        }
+    end
+    items[#items + 1] = {
+        label = "Request Loan",
+        icon = "Cash.png",
+        submenu = function()
+            local list = {}
+            for _, amount in ipairs(Config.loanAmounts) do
+                local ok, reason = Loans.canRequest(game, human, target, amount)
+                list[#list + 1] = {
+                    label = Format.number(amount) .. " gold",
+                    icon = "Coin.png",
+                    disabled = not ok,
+                    sublabel = ok and ("repay in " .. Format.time(Config.loanTicks, Config.tickRate)) or reason,
+                    sublabelColor = not ok and { 0.95, 0.35, 0.3, 1 } or { 0.55, 0.6, 0.7, 1 },
+                    action = function() game:pushIntent({ type = "loanRequest", player = human.id, target = target.id, amount = amount }) end
+                }
+            end
+            return "LOAN FROM " .. string.upper(target.name), list
         end
     }
 end

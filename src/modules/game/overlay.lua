@@ -10,6 +10,7 @@ local Pixel = require("src.modules.hud.pixel")
 local Vision = require("src.modules.game.systems.vision")
 local Units = require("src.modules.game.systems.units")
 local Threats = require("src.modules.game.threats")
+local Diplomap = require("src.modules.game.diplomap")
 
 local Overlay = {}
 
@@ -965,10 +966,21 @@ function Overlay.drawTroops(game, camera, W, H)
     end
 end
 
+function Overlay.drawDiplomacyLegend()
+    local entries = {}
+    for _, category in ipairs(Diplomap.categories) do
+        entries[#entries + 1] = { label = category.label, color = category.color }
+    end
+    Overlay.drawLegend("DIPLOMACY", entries)
+end
+
 function Overlay.draw(game, camera)
     love.graphics.push("all")
     local W, H = love.graphics.getDimensions()
     local layers = game.renderer.layers
+    if layers.diplomacy then
+        Diplomap.refresh(game)
+    end
     if layers.supply and game.phase == "playing" then
         Overlay.drawSupply(game, camera)
     end
@@ -997,6 +1009,8 @@ function Overlay.draw(game, camera)
     end
     if layers.threat then
         Overlay.drawThreatLegend(game)
+    elseif layers.diplomacy and layers.political then
+        Overlay.drawDiplomacyLegend()
     end
     love.graphics.pop()
 end

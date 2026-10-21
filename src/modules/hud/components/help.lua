@@ -13,7 +13,7 @@ local LINES = {
     { "P", "Pause" },
     { "+ / -", "Change game speed" },
     { "1 - 5", "Toggle terrain, territories, units, names, supply" },
-    { "6", "Threat map" },
+    { "6 / 7", "Threat map / diplomatic map" },
     { "H", "Show or hide this help" },
     { "Escape", "Settings" }
 }

@@ -11,7 +11,8 @@ local ITEMS = {
     { name = "Units",       layer = "units",     key = "3" },
     { name = "Names",       layer = "names",     key = "4" },
     { name = "Supply",      layer = "supply",    key = "5" },
-    { name = "Threats",     layer = "threat",    key = "6" }
+    { name = "Threats",     layer = "threat",    key = "6" },
+    { name = "Diplomacy",   layer = "diplomacy", key = "7" }
 }
 
 function Layers.size()

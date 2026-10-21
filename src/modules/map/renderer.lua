@@ -10,6 +10,25 @@ local floor = math.floor
 
 local Renderer = Class()
 
+local PALETTE_SIZE = 1024
+
+local PALETTE_SHADER = [[
+extern Image palette;
+extern number count;
+vec4 effect(vec4 color, Image tex, vec2 uv, vec2 screen) {
+    vec4 p = Texel(tex, uv);
+    if (p.a < 0.5) {
+        return vec4(0.0);
+    }
+    float id = floor(p.r * 255.0 + 0.5) + floor(p.g * 255.0 + 0.5) * 256.0;
+    vec4 c = Texel(palette, vec2((id + 0.5) / count, 0.5));
+    if (p.b > 0.5) {
+        return vec4(c.rgb * 0.7, 1.0) * color;
+    }
+    return c * color;
+}
+]]
+
 local function terrainColor(byte, latitude)
     local isLand = band(byte, 128) ~= 0
     local isShore = band(byte, 64) ~= 0
@@ -63,7 +82,7 @@ end
 function Renderer:init(game)
     self.game = game
     self.map = game.map
-    self.layers = { terrain = true, political = true, units = true, names = true, supply = false, threat = false }
+    self.layers = { terrain = true, political = true, units = true, names = true, supply = false, threat = false, diplomacy = false }
 
     local map = self.map
     local w, h = map.width, map.height
@@ -126,6 +145,56 @@ function Renderer:paintTile(i)
         end
     end
     self.dirty = true
+    if self.idPtr then
+        self:paintId(i)
+        self.idDirty = true
+    end
+end
+
+function Renderer:paintId(i)
+    local ptr = self.idPtr
+    local o = i * 4
+    local id = self.map.owner[i]
+    if id == 0 or id >= PALETTE_SIZE then
+        ptr[o + 3] = 0
+        return
+    end
+    ptr[o] = id % 256
+    ptr[o + 1] = floor(id / 256)
+    ptr[o + 2] = self.game.players[id].borders[i] and 255 or 0
+    ptr[o + 3] = 255
+end
+
+function Renderer:buildIds()
+    local map = self.map
+    self.idData = love.image.newImageData(map.width, map.height)
+    local ptr = ffi.cast("uint8_t*", self.idData:getFFIPointer())
+    self.idPtr = ptr
+    local owner = map.owner
+    local players = self.game.players
+    for i = 0, map.size - 1 do
+        local id = owner[i]
+        if id ~= 0 and id < PALETTE_SIZE then
+            local o = i * 4
+            ptr[o] = id % 256
+            ptr[o + 1] = floor(id / 256)
+            ptr[o + 2] = players[id].borders[i] and 255 or 0
+            ptr[o + 3] = 255
+        end
+    end
+    self.idImage = love.graphics.newImage(self.idData)
+    self.idImage:setFilter("nearest", "nearest")
+    self.paletteData = love.image.newImageData(PALETTE_SIZE, 1)
+    self.paletteImage = love.graphics.newImage(self.paletteData)
+    self.paletteImage:setFilter("nearest", "nearest")
+    self.paletteShader = love.graphics.newShader(PALETTE_SHADER)
+    self.idDirty = false
+end
+
+function Renderer:setPaletteColor(id, r, g, b, a)
+    if not self.paletteData or id >= PALETTE_SIZE then return end
+    self.paletteData:setPixel(id, 0, r, g, b, a)
+    self.paletteDirty = true
 end
 
 function Renderer:repaintAll()
@@ -138,6 +207,9 @@ function Renderer:toggleLayer(name)
     if self.layers[name] ~= nil then
         self.layers[name] = not self.layers[name]
     end
+    if name == "diplomacy" and self.layers.diplomacy and not self.idData then
+        self:buildIds()
+    end
 end
 
 function Renderer:draw()
@@ -148,7 +220,23 @@ function Renderer:draw()
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.draw(self.layers.terrain and self.terrainImage or self.plainImage, 0, 0)
     if self.layers.political then
-        love.graphics.draw(self.territoryImage, 0, 0)
+        if self.layers.diplomacy and self.idImage then
+            if self.idDirty then
+                self.idImage:replacePixels(self.idData)
+                self.idDirty = false
+            end
+            if self.paletteDirty then
+                self.paletteImage:replacePixels(self.paletteData)
+                self.paletteDirty = false
+            end
+            love.graphics.setShader(self.paletteShader)
+            self.paletteShader:send("palette", self.paletteImage)
+            self.paletteShader:send("count", PALETTE_SIZE)
+            love.graphics.draw(self.idImage, 0, 0)
+            love.graphics.setShader()
+        else
+            love.graphics.draw(self.territoryImage, 0, 0)
+        end
     end
 end
 

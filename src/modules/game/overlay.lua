@@ -54,7 +54,7 @@ function Overlay.drawLabel(game, camera, player, W, H)
     local font = Style.font(size)
     local small = Style.font(math.max(6, size * 0.7))
     local name = player.name
-    local troops = Format.number(player.troops)
+    local troops = Vision.troopsText(game, game.human, player)
     local nameW = font:getWidth(name)
     local flagH = size >= 12 and player.flag and size * 0.75 or 0
     local flagW = flagH * 4 / 3

@@ -1,4 +1,6 @@
 local Config = require("src.config.game")
+local Format = require("src.core.format")
+local Attack = require("src.modules.game.systems.attack")
 
 local Vision = {}
 
@@ -117,6 +119,58 @@ function Vision.knows(game, player, x, y, kind)
         return true
     end
     return not Vision.hidden[kind] and Vision.passive(game, player, x, y)
+end
+
+local function computeObserved(game, viewer)
+    local set = {}
+    for _, observer in ipairs(observers(game, viewer)) do
+        set[observer.id] = true
+        for _, neighbor in ipairs(Attack.neighbors(game, observer)) do
+            set[neighbor.id] = true
+        end
+    end
+    for _, player in ipairs(game.players) do
+        if not set[player.id] and player.alive and player.tiles > 0 then
+            local x, y = player:center()
+            local capital = player.capital
+            if Vision.inRadar(game, viewer, x, y) or (capital and not capital.dead and Vision.inRadar(game, viewer, capital.x, capital.y)) then
+                set[player.id] = true
+            end
+        end
+    end
+    return set
+end
+
+function Vision.observes(game, viewer, player)
+    if not viewer.alive or game.options.spectator then return true end
+    local cache = game.observedCache
+    local bucket = math.floor(game.tick / Config.visionRefreshTicks)
+    if not cache or cache.bucket ~= bucket then
+        cache = { bucket = bucket }
+        game.observedCache = cache
+    end
+    local set = cache[viewer.id]
+    if not set then
+        set = computeObserved(game, viewer)
+        cache[viewer.id] = set
+    end
+    return set[player.id] == true
+end
+
+function Vision.estimate(game, player)
+    local bucket = math.floor(game.tick / Config.estimateTicks)
+    local noise = ((player.id * 92821 + bucket * 68917) % 1000) / 500 - 1
+    local value = player.troops * (1 + Config.estimateError * noise)
+    if value <= 0 then return 0 end
+    local magnitude = 10 ^ math.max(0, math.floor(math.log10(value)) - 1)
+    return math.floor(value / magnitude + 0.5) * magnitude
+end
+
+function Vision.troopsText(game, viewer, player)
+    if Vision.observes(game, viewer, player) then
+        return Format.number(player.troops)
+    end
+    return "~" .. Format.number(Vision.estimate(game, player))
 end
 
 function Vision.beam(radar, tick)

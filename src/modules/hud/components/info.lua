@@ -2,6 +2,7 @@ local GM = require("src.core.index")
 local Style = require("src.modules.hud.style")
 local Format = require("src.core.format")
 local Pixel = require("src.modules.hud.pixel")
+local Vision = require("src.modules.game.systems.vision")
 
 local Info = { id = "info" }
 
@@ -37,7 +38,7 @@ function Info.draw(hud)
     local owner = game:playerAt(tile)
     if owner then
         parts[#parts + 1] = owner.name
-        parts[#parts + 1] = Format.number(owner.troops) .. " troops"
+        parts[#parts + 1] = Vision.troopsText(game, game.human, owner) .. " troops"
         parts[#parts + 1] = Format.percent(owner.tiles / map.landCount)
         local human = game.human
         if owner == human then

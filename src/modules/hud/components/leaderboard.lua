@@ -1,6 +1,7 @@
 local Style = require("src.modules.hud.style")
 local Format = require("src.core.format")
 local Pixel = require("src.modules.hud.pixel")
+local Vision = require("src.modules.game.systems.vision")
 
 local Leaderboard = { id = "leaderboard", title = "LEADERBOARD", panel = true }
 
@@ -120,7 +121,7 @@ function Leaderboard.draw(hud, x, y, w)
         end
         Pixel.text(name, x + 62 + math.floor(hot * 2) * u, ry + 2, 11, color)
         Pixel.text(Format.percent(player.tiles / game.map.landCount), x + 196, ry + 2, 11, Style.colors.text)
-        Pixel.text(Format.number(player.troops), x + 242, ry + 2, 11, Style.colors.text)
+        Pixel.text(Vision.troopsText(game, game.human, player), x + 242, ry + 2, 11, Style.colors.text)
     end
 end
 

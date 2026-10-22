@@ -98,7 +98,7 @@ function Loans.request(game, borrower, lender, amount)
     game:notify(borrower, string.format("Loan of %s gold requested from %s.", Format.number(amount), lender.name), { color = INFO })
     if lender == game.human then
         local function reply(rate)
-            return function() game:pushIntent({ type = "loanReply", player = lender.id, from = borrower.id, rate = rate }) end
+            return function() game:submit({ type = "loanReply", player = lender.id, from = borrower.id, rate = rate }) end
         end
         local actions = { { label = "Lend", color = { 0.15, 0.6, 0.3, 0.9 }, run = reply(0) } }
         for _, rate in ipairs(Config.loanRates) do
@@ -162,8 +162,8 @@ function Loans.reply(game, lender, borrower, rate)
             color = GOLD,
             duration = Config.loanRequestTicks,
             actions = {
-                { label = "Accept", color = { 0.15, 0.6, 0.3, 0.9 }, run = function() game:pushIntent({ type = "loanAnswer", player = borrower.id, from = lender.id, accept = true }) end },
-                { label = "Decline", color = { 0.7, 0.2, 0.2, 0.9 }, run = function() game:pushIntent({ type = "loanAnswer", player = borrower.id, from = lender.id, accept = false }) end }
+                { label = "Accept", color = { 0.15, 0.6, 0.3, 0.9 }, run = function() game:submit({ type = "loanAnswer", player = borrower.id, from = lender.id, accept = true }) end },
+                { label = "Decline", color = { 0.7, 0.2, 0.2, 0.9 }, run = function() game:submit({ type = "loanAnswer", player = borrower.id, from = lender.id, accept = false }) end }
             }
         })
     end

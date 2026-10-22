@@ -31,18 +31,20 @@ local function buttons(hud)
     if state(hud) == "defeat" then
         list[#list + 1] = { label = "Keep Watching", icon = "Eye.png", action = function() hud.spectating = true end }
     end
-    list[#list + 1] = {
-        label = "Play Again",
-        icon = "Restart.png",
-        primary = true,
-        action = function()
-            local options = {}
-            for k, v in pairs(game.options) do options[k] = v end
-            options.seed = os.time()
-            hud.spectating = false
-            GM.Session:Start(options)
-        end
-    }
+    if not game.lockstep then
+        list[#list + 1] = {
+            label = "Play Again",
+            icon = "Restart.png",
+            primary = true,
+            action = function()
+                local options = {}
+                for k, v in pairs(game.options) do options[k] = v end
+                options.seed = os.time()
+                hud.spectating = false
+                GM.Session:Start(options)
+            end
+        }
+    end
     if GM.Menu then
         list[#list + 1] = {
             label = "Main Menu",

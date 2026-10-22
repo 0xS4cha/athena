@@ -124,4 +124,13 @@ function Economy.step(game)
     end
 end
 
+Economy.intents = {
+    troopRatio = function(game, intent)
+        local player = game.players[intent.player]
+        if player and type(intent.ratio) == "number" then
+            player.troopRatio = math.max(0, math.min(1, intent.ratio))
+        end
+    end
+}
+
 return Economy

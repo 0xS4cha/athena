@@ -42,7 +42,15 @@ function Game:init(options)
     self.speedIndex = 1
     self.paused = false
     self.renderer = Renderer(self)
-    self.human = self:addPlayer(self.options.playerName or "Player", "human", self.options.playerFlag)
+    self.lockstep = nil
+    local humans = self.options.humans or { { name = self.options.playerName or "Player", flag = self.options.playerFlag } }
+    local localSlot = self.options.localSlot or 1
+    for slot, human in ipairs(humans) do
+        local player = self:addPlayer(human.name or "Player", "human", human.flag, slot ~= localSlot and Palette.color(slot) or nil)
+        if slot == localSlot then
+            self.human = player
+        end
+    end
 
     for _, system in ipairs(Systems) do
         if system.intents then
@@ -57,9 +65,9 @@ function Game:init(options)
     self:emit("setup")
 end
 
-function Game:addPlayer(name, kind, flag)
+function Game:addPlayer(name, kind, flag, color)
     local id = #self.players + 1
-    local color = kind == "human" and Palette.human or Palette.color(id)
+    color = color or (kind == "human" and Palette.human or Palette.color(id))
     local player = Player(id, name, kind, color, flag)
     self.players[id] = player
     return player
@@ -186,6 +194,14 @@ function Game:pushIntent(intent)
     self.intents[#self.intents + 1] = intent
 end
 
+function Game:submit(intent)
+    if self.lockstep then
+        self.lockstep:submit(intent)
+    else
+        self:pushIntent(intent)
+    end
+end
+
 function Game:processIntents()
     local list = self.intents
     self.intents = {}
@@ -242,6 +258,24 @@ function Game:step()
     self.tick = self.tick + 1
 end
 
+function Game:checksum()
+    local mod = 2147483647
+    local h = self.tick % mod
+    local owner = self.map.owner
+    for i = 0, self.map.size - 1 do
+        h = (h * 31 + owner[i]) % mod
+    end
+    local floor = math.floor
+    for _, p in ipairs(self.players) do
+        h = (h * 31 + p.tiles) % mod
+        h = (h * 31 + floor(p.troops) % mod) % mod
+        h = (h * 31 + floor(p.workers) % mod) % mod
+        h = (h * 31 + floor(p.gold) % mod) % mod
+    end
+    h = (h * 31 + #(self.units or {})) % mod
+    return h
+end
+
 function Game:difficulty()
     return Config.difficulties[self.options.difficulty or "medium"] or Config.difficulties.medium
 end
@@ -284,6 +318,10 @@ function Game:changeSpeed(delta)
 end
 
 function Game:update(dt)
+    if self.lockstep then
+        self.lockstep:update(dt)
+        return
+    end
     if self.paused or self.phase == "ended" then
         self.accumulator = 0
         return

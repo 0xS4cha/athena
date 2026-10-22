@@ -358,7 +358,7 @@ end
 function Ships.patrolTarget(game, warship)
     local map = game.map
     local def = Config.units.warship
-    if not warship.stationed and warship.owner ~= game.human and game.rng:random() < Config.aiBlockadeChance then
+    if not warship.stationed and not warship.owner:isHuman() and game.rng:random() < Config.aiBlockadeChance then
         local port = Ships.blockadeTarget(game, warship)
         local water = port and Ships.station(game, warship, port.tile)
         if water then

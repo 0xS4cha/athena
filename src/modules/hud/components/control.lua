@@ -21,7 +21,7 @@ local function sliders(hud)
             label = "Troops / Workers",
             value = human.troopRatio,
             color = Style.colors.troops,
-            set = function(v) human.troopRatio = v end,
+            set = function(v) hud:game():submit({ type = "troopRatio", player = human.id, ratio = v }) end,
             text = string.format("%d%% / %d%%", math.floor(human.troopRatio * 100 + 0.5), 100 - math.floor(human.troopRatio * 100 + 0.5))
         },
         {
@@ -106,7 +106,7 @@ local function pressLoans(hud, mx, my, x, y, w)
     local game = hud:game()
     for k, loan in ipairs(loanRows(hud)) do
         if loan.borrower == game.human and Style.inside(mx, my, x + w - PAD - 66, y + 8 + (k - 1) * ROW, 66, 21) then
-            game:pushIntent({ type = "loanRepay", player = game.human.id, target = loan.lender.id })
+            game:submit({ type = "loanRepay", player = game.human.id, target = loan.lender.id })
             return true
         end
     end
@@ -144,7 +144,7 @@ function Control.pressExtra(hud, mx, my, x, y, w)
     local game = hud:game()
     for k, row in ipairs(attackRows(hud)) do
         if row.outgoing and Style.inside(mx, my, x + w - PAD - 66, y + 8 + (k - 1) * ROW, 66, 21) then
-            game:pushIntent({ type = "retreat", player = game.human.id, attack = row.attack.id })
+            game:submit({ type = "retreat", player = game.human.id, attack = row.attack.id })
             return
         end
     end

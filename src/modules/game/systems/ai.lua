@@ -6,21 +6,24 @@ local AI = {}
 local function brainFor(game, player)
     if player:isBot() then
         return Bot
-    elseif player:isNation() or (player:isHuman() and game.options.autoplay) then
+    elseif player:isNation() or (player:isHuman() and (game.options.autoplay or player.disconnected)) then
         return Nation
     end
     return nil
 end
 
+local function assign(game, player)
+    local brain = brainFor(game, player)
+    if brain then
+        player.brain = brain
+        brain.setup(game, player)
+        player.nextDecision = game.tick + game.rng:random(1, game:difficulty().decisionTicks * 2)
+    end
+end
+
 function AI.started(game)
-    local base = game:difficulty().decisionTicks
     for _, player in ipairs(game.players) do
-        local brain = brainFor(game, player)
-        if brain then
-            player.brain = brain
-            brain.setup(game, player)
-            player.nextDecision = game.tick + game.rng:random(1, base * 2)
-        end
+        assign(game, player)
     end
 end
 
@@ -41,5 +44,28 @@ function AI.attackLaunched(game, attack)
         attack.target.lastAttacker = attack.attacker.id
     end
 end
+
+AI.intents = {
+    disconnect = function(game, intent)
+        local player = game.players[intent.player]
+        if not player or not player:isHuman() or player.disconnected then return end
+        player.disconnected = true
+        if player.alive then
+            game:addEvent(player.name .. " left the game. The AI takes over.", { color = { 0.95, 0.6, 0.3, 1 } })
+        end
+        if game.phase ~= "spawn" and not player.brain then
+            assign(game, player)
+        end
+    end,
+    reconnect = function(game, intent)
+        local player = game.players[intent.player]
+        if not player or not player.disconnected then return end
+        player.disconnected = false
+        player.brain = nil
+        if player.alive then
+            game:addEvent(player.name .. " is back in command.", { color = { 0.3, 0.85, 0.45, 1 } })
+        end
+    end
+}
 
 return AI

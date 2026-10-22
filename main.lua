@@ -39,6 +39,10 @@ function love.load(args)
     parser:add_argument("frames", { default = nil, type = "value" })
     parser:add_argument("layer", { default = nil, type = "value" })
     parser:add_argument("focus", { default = nil, type = "value" })
+    parser:add_argument("connect", { default = nil, type = "value" })
+    parser:add_argument("room", { default = nil, type = "value" })
+    parser:add_argument("players", { default = 1, type = "value" })
+    parser:add_argument("name", { default = nil, type = "value" })
     flags = parser:parse(args)
     GM.Flags = flags
 
@@ -115,7 +119,7 @@ function love.load(args)
         return
     end
 
-    if flags.autostart or not GM.Menu then
+    if flags.autostart and not flags.connect or not GM.Menu then
         GM.Session:Start(options)
     else
         GM.Menu:Open()
@@ -128,6 +132,14 @@ function love.update(dt)
     if flags.frames then
         frames = frames + 1
         if frames >= flags.frames then
+            if flags.screenshot then
+                local canvas = love.graphics.newCanvas()
+                love.graphics.setCanvas(canvas)
+                love.graphics.clear(0.08, 0.08, 0.10)
+                love.draw()
+                love.graphics.setCanvas()
+                canvas:newImageData():encode("png", flags.screenshot)
+            end
             love.event.quit()
         end
     end

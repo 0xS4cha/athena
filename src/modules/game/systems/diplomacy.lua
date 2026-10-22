@@ -69,8 +69,8 @@ function Diplomacy.request(game, from, to)
             color = INFO,
             duration = Config.allianceRequestTicks,
             actions = {
-                { label = "Accept", color = { 0.15, 0.6, 0.3, 0.9 }, run = function() game:pushIntent({ type = "allianceReply", player = to.id, from = from.id, accept = true }) end },
-                { label = "Reject", color = { 0.7, 0.2, 0.2, 0.9 }, run = function() game:pushIntent({ type = "allianceReply", player = to.id, from = from.id, accept = false }) end }
+                { label = "Accept", color = { 0.15, 0.6, 0.3, 0.9 }, run = function() game:submit({ type = "allianceReply", player = to.id, from = from.id, accept = true }) end },
+                { label = "Reject", color = { 0.7, 0.2, 0.2, 0.9 }, run = function() game:submit({ type = "allianceReply", player = to.id, from = from.id, accept = false }) end }
             }
         })
         to.requestEvents[from.id] = event
@@ -133,8 +133,8 @@ function Diplomacy.requestPact(game, from, to)
             color = INFO,
             duration = Config.pactRequestTicks,
             actions = {
-                { label = "Accept", color = { 0.15, 0.6, 0.3, 0.9 }, run = function() game:pushIntent({ type = "pactReply", player = to.id, from = from.id, accept = true }) end },
-                { label = "Reject", color = { 0.7, 0.2, 0.2, 0.9 }, run = function() game:pushIntent({ type = "pactReply", player = to.id, from = from.id, accept = false }) end }
+                { label = "Accept", color = { 0.15, 0.6, 0.3, 0.9 }, run = function() game:submit({ type = "pactReply", player = to.id, from = from.id, accept = true }) end },
+                { label = "Reject", color = { 0.7, 0.2, 0.2, 0.9 }, run = function() game:submit({ type = "pactReply", player = to.id, from = from.id, accept = false }) end }
             }
         })
     end

@@ -20,6 +20,13 @@ local function centered(text, y, size, color, options)
     return y + h + 8, x, w, h
 end
 
+local function drawNetwork(game, y, time)
+    local status = game.lockstep and game.lockstep:status()
+    if not status then return y end
+    local on = time % 1.2 < 0.8
+    return centered(status, y, 16, on and Style.colors.gold or Style.colors.muted, { corners = true, accent = Style.colors.gold })
+end
+
 local function drawSpawn(game, time)
     local u = Pixel.unit
     local seconds = math.ceil(game.spawnTicksLeft / Config.tickRate)
@@ -62,6 +69,7 @@ function Banner.draw(hud)
     if game.phase == "spawn" then
         hud.splashAt = nil
         drawSpawn(game, time)
+        drawNetwork(game, 230, time)
         return
     end
     if game.phase == "playing" and game.human.spawned and not hud.splashAt then
@@ -85,6 +93,7 @@ function Banner.draw(hud)
         local on = time % 1.2 < 0.8
         y = centered("PAUSED  -  press P to resume", y, 16, on and Style.colors.gold or Style.colors.muted, { corners = true, accent = Style.colors.gold })
     end
+    y = drawNetwork(game, y, time)
     Banner.drawNukeAlerts(game, y, time)
 end
 
@@ -121,7 +130,7 @@ end
 function Banner.keyPressed(hud, key)
     local game = hud:game()
     if key == "space" and game.phase == "spawn" then
-        game:pushIntent({ type = "start", player = game.human.id })
+        game:submit({ type = "start", player = game.human.id })
         return true
     end
     return false

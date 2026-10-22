@@ -12,7 +12,7 @@ GM.Menu = {}
 GM.Modules:Register("Menu", 90)
 
 local CONFIG_FILE = "menu_config.txt"
-local SETTING_KEYS = { "map", "bots", "nations", "difficulty", "name", "fullscreen", "vsync", "background", "battleSpeed", "particles" }
+local SETTING_KEYS = { "map", "bots", "nations", "difficulty", "name", "server", "fullscreen", "vsync", "background", "battleSpeed", "particles" }
 local SWITCH_IN = 0.6
 local SWITCH_OUT = 0.22
 local WIPE_SECONDS = 0.65
@@ -40,6 +40,7 @@ function GM.Menu:Initialize()
         nations = true,
         difficulty = "medium",
         name = "Player",
+        server = "localhost:6789",
         fullscreen = false,
         vsync = false,
         background = true,
@@ -418,6 +419,10 @@ function GM.Menu:Think(dt)
         self.previous = nil
     end
     self.dim = Fx.approach(self.dim, self:dimTarget(), 6, dt)
+    local screen = Screens[self.screen]
+    if screen.update then
+        screen.update(self, dt)
+    end
     if self.settings.background then
         self.background:update(dt, self.screen ~= "play" and not self.wipe)
     end

@@ -59,6 +59,7 @@ end
 function Clock.mousePressed(hud, mx, my, button, x, y)
     if button ~= 1 then return end
     local game = hud:game()
+    if game.lockstep then return end
     local pause, speeds = layout(x, y)
     if Style.inside(mx, my, pause.x, pause.y, pause.w, pause.h) then
         game.paused = not game.paused

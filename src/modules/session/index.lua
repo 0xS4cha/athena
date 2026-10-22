@@ -17,6 +17,9 @@ end
 function GM.Session:Start(options)
     self:Stop()
     local game = Game(options)
+    if options.lockstep then
+        options.lockstep:attach(game)
+    end
     local map = game.map
     local W, H = love.graphics.getDimensions()
     local camera = Camera()
@@ -35,6 +38,9 @@ function GM.Session:Start(options)
 end
 
 function GM.Session:Stop()
+    if self.Game and self.Game.lockstep then
+        self.Game.lockstep:detach()
+    end
     self.Game = nil
     self.Camera = nil
     GM.Camera = nil
@@ -69,7 +75,7 @@ end
 
 function GM.Session:KeyPressed(key)
     local game = self.Game
-    if not game then return end
+    if not game or game.lockstep then return end
     if key == "p" then
         game.paused = not game.paused
     elseif key == "=" or key == "kp+" then

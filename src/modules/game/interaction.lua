@@ -12,7 +12,7 @@ function Interaction.click(game, tile)
     local human = game.human
     local map = game.map
     if game.phase == "spawn" then
-        game:pushIntent({ type = "spawn", player = human.id, tile = tile })
+        game:submit({ type = "spawn", player = human.id, tile = tile })
         return
     end
     if game.phase ~= "playing" or not human.alive or map:isWater(tile) then
@@ -32,12 +32,12 @@ function Interaction.click(game, tile)
         return
     end
     if Attack.sharesBorder(game, human, targetId) then
-        game:pushIntent({ type = "attack", player = human.id, target = targetId, ratio = human.attackRatio })
+        game:submit({ type = "attack", player = human.id, target = targetId, ratio = human.attackRatio })
         return
     end
     local ok, reason = Ships.canSendBoat(game, human, tile)
     if ok then
-        game:pushIntent({ type = "boat", player = human.id, tile = tile, ratio = human.attackRatio })
+        game:submit({ type = "boat", player = human.id, tile = tile, ratio = human.attackRatio })
         return
     end
     game:addEvent("Cannot reach " .. (target and target.name or "this land") .. ": " .. reason .. ".")
@@ -55,7 +55,7 @@ function Interaction.unitItem(game, kind, tile)
         sublabelColor = not ok and { 0.95, 0.35, 0.3, 1 } or nil,
         disabled = not ok,
         action = function()
-            game:pushIntent({ type = "build", player = human.id, unit = kind, tile = tile })
+            game:submit({ type = "build", player = human.id, unit = kind, tile = tile })
         end
     }
 end
@@ -98,7 +98,7 @@ Interaction.sections[#Interaction.sections + 1] = function(game, tile, items)
             sublabel = Format.number(human.troops * human.attackRatio),
             sublabelColor = { 0.95, 0.35, 0.3, 1 },
             action = function()
-                game:pushIntent({ type = "attack", player = human.id, target = map.owner[tile], ratio = human.attackRatio })
+                game:submit({ type = "attack", player = human.id, target = map.owner[tile], ratio = human.attackRatio })
             end
         }
     end
@@ -110,7 +110,7 @@ Interaction.sections[#Interaction.sections + 1] = function(game, tile, items)
         sublabelColor = ok and { 0.45, 0.75, 1, 1 } or { 0.95, 0.35, 0.3, 1 },
         disabled = not ok,
         action = function()
-            game:pushIntent({ type = "boat", player = human.id, tile = tile, ratio = human.attackRatio })
+            game:submit({ type = "boat", player = human.id, tile = tile, ratio = human.attackRatio })
         end
     }
 end
@@ -155,19 +155,19 @@ Interaction.sections[#Interaction.sections + 1] = function(game, tile, items)
             icon = "Team.png",
             sublabel = Format.number(human.troops * human.attackRatio),
             sublabelColor = { 0.45, 0.75, 1, 1 },
-            action = function() game:pushIntent({ type = "donate", player = human.id, target = target.id, kind = "troops" }) end
+            action = function() game:submit({ type = "donate", player = human.id, target = target.id, kind = "troops" }) end
         }
         items[#items + 1] = {
             label = "Donate Gold",
             icon = "Coin.png",
             sublabel = Format.number(human.gold * human.attackRatio),
-            action = function() game:pushIntent({ type = "donate", player = human.id, target = target.id, kind = "gold" }) end
+            action = function() game:submit({ type = "donate", player = human.id, target = target.id, kind = "gold" }) end
         }
         items[#items + 1] = {
             label = "Break Alliance",
             icon = "Unlocked.png",
             color = BAD,
-            action = function() game:pushIntent({ type = "allianceBreak", player = human.id, target = target.id }) end
+            action = function() game:submit({ type = "allianceBreak", player = human.id, target = target.id }) end
         }
     elseif not target:isBot() then
         Interaction.pactItem(game, target, items)
@@ -181,9 +181,9 @@ Interaction.sections[#Interaction.sections + 1] = function(game, tile, items)
             sublabel = pending and "Pending" or nil,
             action = function()
                 if incoming then
-                    game:pushIntent({ type = "allianceReply", player = human.id, from = target.id, accept = true })
+                    game:submit({ type = "allianceReply", player = human.id, from = target.id, accept = true })
                 else
-                    game:pushIntent({ type = "allianceRequest", player = human.id, target = target.id })
+                    game:submit({ type = "allianceRequest", player = human.id, target = target.id })
                 end
             end
         }
@@ -195,13 +195,13 @@ Interaction.sections[#Interaction.sections + 1] = function(game, tile, items)
     items[#items + 1] = {
         label = embargoed and "Lift Embargo" or "Embargo",
         icon = "Locked.png",
-        action = function() game:pushIntent({ type = "embargo", player = human.id, target = target.id, enabled = not embargoed }) end
+        action = function() game:submit({ type = "embargo", player = human.id, target = target.id, enabled = not embargoed }) end
     }
     local targeted = human.target == target.id
     items[#items + 1] = {
         label = targeted and "Clear Target" or "Mark As Target",
         icon = "MagnifyingGlass.png",
-        action = function() game:pushIntent({ type = "setTarget", player = human.id, target = not targeted and target.id or nil }) end
+        action = function() game:submit({ type = "setTarget", player = human.id, target = not targeted and target.id or nil }) end
     }
     items[#items + 1] = {
         label = "Send Emoji",
@@ -212,7 +212,7 @@ Interaction.sections[#Interaction.sections + 1] = function(game, tile, items)
                 list[#list + 1] = {
                     label = icon:gsub("%.png$", ""),
                     icon = icon,
-                    action = function() game:pushIntent({ type = "emoji", player = human.id, target = target.id, icon = icon }) end
+                    action = function() game:submit({ type = "emoji", player = human.id, target = target.id, icon = icon }) end
                 }
             end
             return "EMOJI", list
@@ -233,7 +233,7 @@ Interaction.sections[#Interaction.sections + 1] = function(game, tile, items)
         sublabel = human:unitCount("warship") .. " ships",
         sublabelColor = { 0.45, 0.75, 1, 1 },
         action = function()
-            game:pushIntent({ type = "warship", player = human.id, tile = tile })
+            game:submit({ type = "warship", player = human.id, tile = tile })
         end
     }
 end
@@ -251,7 +251,7 @@ function Interaction.pactItem(game, target, items)
             disabled = ending,
             sublabel = Format.time(math.max(0, left), Config.tickRate),
             sublabelColor = { 0.55, 0.6, 0.7, 1 },
-            action = function() game:pushIntent({ type = "pactEnd", player = human.id, target = target.id }) end
+            action = function() game:submit({ type = "pactEnd", player = human.id, target = target.id }) end
         }
         return
     end
@@ -266,9 +266,9 @@ function Interaction.pactItem(game, target, items)
         sublabelColor = { 0.55, 0.6, 0.7, 1 },
         action = function()
             if incoming then
-                game:pushIntent({ type = "pactReply", player = human.id, from = target.id, accept = true })
+                game:submit({ type = "pactReply", player = human.id, from = target.id, accept = true })
             else
-                game:pushIntent({ type = "pactRequest", player = human.id, target = target.id })
+                game:submit({ type = "pactRequest", player = human.id, target = target.id })
             end
         end
     }
@@ -285,7 +285,7 @@ function Interaction.loanItems(game, target, items)
             color = { 1, 0.82, 0.25, 1 },
             disabled = human.gold < 1,
             sublabel = Format.number(math.min(left, human.gold)) .. " / " .. Format.number(left),
-            action = function() game:pushIntent({ type = "loanRepay", player = human.id, target = target.id }) end
+            action = function() game:submit({ type = "loanRepay", player = human.id, target = target.id }) end
         }
         return
     end
@@ -311,7 +311,7 @@ function Interaction.loanItems(game, target, items)
                     disabled = not ok,
                     sublabel = ok and ("repay in " .. Format.time(Config.loanTicks, Config.tickRate)) or reason,
                     sublabelColor = not ok and { 0.95, 0.35, 0.3, 1 } or { 0.55, 0.6, 0.7, 1 },
-                    action = function() game:pushIntent({ type = "loanRequest", player = human.id, target = target.id, amount = amount }) end
+                    action = function() game:submit({ type = "loanRequest", player = human.id, target = target.id, amount = amount }) end
                 }
             end
             return "LOAN FROM " .. string.upper(target.name), list
@@ -336,7 +336,7 @@ function Interaction.fireAim(game, tile)
         game:addEvent("Cannot launch: " .. reason .. ".", { color = { 0.95, 0.35, 0.3, 1 } })
         return true
     end
-    game:pushIntent({ type = "nuke", player = human.id, kind = aim.kind, tile = tile })
+    game:submit({ type = "nuke", player = human.id, kind = aim.kind, tile = tile })
     game.nukeAim = nil
     return true
 end

@@ -103,13 +103,14 @@ function Spawn.setup(game)
 end
 
 function Spawn.finish(game)
-    local human = game.human
-    if not human.spawned then
-        local tile = not game.options.spectator and Spawn.randomTile(game)
-        if tile then
-            Spawn.place(game, human, tile)
-        else
-            human.alive = false
+    for _, human in ipairs(game.players) do
+        if human:isHuman() and not human.spawned then
+            local tile = not (human == game.human and game.options.spectator) and Spawn.randomTile(game)
+            if tile then
+                Spawn.place(game, human, tile)
+            else
+                human.alive = false
+            end
         end
     end
     game.phase = "playing"
@@ -134,9 +135,11 @@ Spawn.intents = {
         end
     end,
     start = function(game)
-        if game.phase == "spawn" and game.human.spawned then
-            game.spawnTicksLeft = 0
+        if game.phase ~= "spawn" then return end
+        for _, player in ipairs(game.players) do
+            if player:isHuman() and not player.spawned and not player.disconnected then return end
         end
+        game.spawnTicksLeft = 0
     end
 }
 

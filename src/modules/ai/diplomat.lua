@@ -164,7 +164,7 @@ end
 
 local function react(game, player)
     local attacker = player.lastAttacker and game.players[player.lastAttacker]
-    if attacker and attacker == game.human and game.rng:random() < 0.15 then
+    if attacker and attacker:isHuman() and game.rng:random() < 0.15 then
         game:pushIntent({ type = "emoji", player = player.id, target = attacker.id, icon = "Skull.png" })
     end
     player.lastAttacker = nil

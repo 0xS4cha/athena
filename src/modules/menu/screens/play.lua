@@ -152,7 +152,7 @@ local function drawStar(x, y, color)
     love.graphics.rectangle("fill", x + u, y + u, u * 3, u * 3)
 end
 
-local function drawList(menu, l, e)
+function Play.drawList(menu, l, e)
     local u = UI.unit
     local mx, my = love.mouse.getPosition()
     local rows = l.rows
@@ -200,9 +200,10 @@ local function drawList(menu, l, e)
     end
 end
 
-local function drawPreview(menu, l, e)
-    local map = menu:current()
+function Play.drawPreview(menu, l, e, map, nations)
+    map = map or menu:current()
     if not map then return end
+    if nations == nil then nations = menu.settings.nations end
     local u = UI.unit
     local area = l.preview
     local image = menu:preview(map)
@@ -232,7 +233,7 @@ local function drawPreview(menu, l, e)
 
     menu.markers = {}
     local m = map.manifest
-    if menu.settings.nations and reveal > 0.6 then
+    if nations and reveal > 0.6 then
         local sx, sy = iw / m.map.width, ih / m.map.height
         local mx, my = love.mouse.getPosition()
         local hovered
@@ -271,6 +272,27 @@ local function drawPreview(menu, l, e)
     end
 end
 
+function Play.drawChips(l, map, nations, bots)
+    if not map then return end
+    local u = UI.unit
+    local m = map.manifest
+    local nationCount = #(m.nations or {})
+    local opponents = (nations and nationCount or 0) + bots
+    local chips = {
+        { string.upper(map.name), "Home.png", UI.colors.gold },
+        { string.format("%d x %d", m.map.width, m.map.height), "Monitor.png" },
+        { Format.number(m.map.num_land_tiles or 0) .. " land", "Flower.png" },
+        { string.format("%d nations", nationCount), "Team.png" },
+        { string.format("%d rivals", opponents), "Skull.png", opponents == 0 and UI.colors.bad or nil }
+    }
+    local cx = l.panel.x + 24
+    local cy = l.panel.y + l.panel.h - CONTROLS_H - 18
+    for _, chip in ipairs(chips) do
+        local w = UI.chip(cx, cy, chip[1], chip[2], chip[3])
+        cx = cx + w + u * 3
+    end
+end
+
 function Play.draw(menu, elements, p)
     local l = Play.layout()
     local u = UI.unit
@@ -297,7 +319,7 @@ function Play.draw(menu, elements, p)
     })
     love.graphics.push()
     love.graphics.translate(dx, 0)
-    drawList(menu, l, e)
+    Play.drawList(menu, l, e)
     love.graphics.pop()
 
     e = menu:stagger(p, 3)
@@ -306,25 +328,8 @@ function Play.draw(menu, elements, p)
     love.graphics.push()
     love.graphics.translate(0, dy)
     UI.panel(l.panel.x, l.panel.y, l.panel.w, l.panel.h, { accent = UI.colors.gold, cornerAlpha = 0.5 })
-    drawPreview(menu, l, e)
-    if map then
-        local m = map.manifest
-        local nationCount = #(m.nations or {})
-        local opponents = (s.nations and nationCount or 0) + s.bots
-        local chips = {
-            { string.upper(map.name), "Home.png", UI.colors.gold },
-            { string.format("%d x %d", m.map.width, m.map.height), "Monitor.png" },
-            { Format.number(m.map.num_land_tiles or 0) .. " land", "Flower.png" },
-            { string.format("%d nations", nationCount), "Team.png" },
-            { string.format("%d rivals", opponents), "Skull.png", opponents == 0 and UI.colors.bad or nil }
-        }
-        local cx = l.panel.x + 24
-        local cy = l.panel.y + l.panel.h - CONTROLS_H - 18
-        for _, chip in ipairs(chips) do
-            local w = UI.chip(cx, cy, chip[1], chip[2], chip[3])
-            cx = cx + w + u * 3
-        end
-    end
+    Play.drawPreview(menu, l, e)
+    Play.drawChips(l, map, s.nations, s.bots)
     love.graphics.pop()
 
     e = menu:stagger(p, 4)

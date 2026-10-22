@@ -5,6 +5,7 @@ local ArgParser = require("src.core.args")
 local Threads = require("src.core.thread")
 local Config = require("src.config.game")
 
+
 local flags
 local frames = 0
 local defaultErrorHandler = love.errorhandler

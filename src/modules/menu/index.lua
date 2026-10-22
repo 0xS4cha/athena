@@ -21,6 +21,7 @@ local EMBERS = 70
 local Screens = {
     root = require("src.modules.menu.screens.root"),
     play = require("src.modules.menu.screens.play"),
+    multiplayer = require("src.modules.menu.screens.multiplayer"),
     settings = require("src.modules.menu.screens.settings"),
     howto = require("src.modules.menu.screens.howto")
 }

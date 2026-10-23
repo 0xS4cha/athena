@@ -1,1 +1,7 @@
 .env
+build
+dist
+love-build
+athena
+athena_server
+appimagetool.AppImage

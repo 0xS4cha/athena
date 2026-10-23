@@ -7,11 +7,21 @@ local Loans = require("src.modules.game.systems.loans")
 
 local Control = { id = "control", title = "EMPIRE", panel = true }
 
-local WIDTH = 340
+local WIDTH = 360
 local PAD = 15
-local BODY = 322
 local MAX_ROWS = 5
 local ROW = 24
+local TILE_H = 58
+local TILE_GAP = 6
+local TILES_H = TILE_H * 2 + TILE_GAP
+local SLIDERS_Y = 10 + TILES_H + 40
+local BIOMES_Y = SLIDERS_Y + 64
+local BODY = BIOMES_Y + 42
+local FLASH_SECONDS = 0.7
+local FLASH_CHANGE = 0.04
+local FULL_POPULATION = 0.98
+
+local flashes = {}
 
 local function sliders(hud)
     local human = hud:game().human
@@ -159,37 +169,111 @@ function Control.position(_, w, h, W, H)
 end
 
 local function sliderY(y, k)
-    return y + Style.headerHeight + 150 + (k - 1) * 44
+    return y + Style.headerHeight + SLIDERS_Y + (k - 1) * 44
+end
+
+local function rateText(value)
+    local perSecond = value * Config.tickRate
+    if math.abs(perSecond) < 0.5 then return "+0/s" end
+    return (perSecond < 0 and "-" or "+") .. Format.number(math.abs(perSecond)) .. "/s"
+end
+
+local function track(id, value)
+    local flash = flashes[id]
+    if not flash then
+        flashes[id] = { value = value, time = -10, up = true }
+        return 0, true
+    end
+    local change = value - flash.value
+    if math.abs(change) > math.max(1, math.abs(flash.value)) * FLASH_CHANGE then
+        flash.time = love.timer.getTime()
+        flash.up = change > 0
+    end
+    flash.value = value
+    return math.max(0, 1 - (love.timer.getTime() - flash.time) / FLASH_SECONDS), flash.up
+end
+
+local function drawTile(tile, x, y, w, h)
+    local u = Pixel.unit
+    local now = love.timer.getTime()
+    local flash, up = track(tile.id, tile.value)
+    Pixel.color(Pixel.colors.ink, 0.9)
+    Pixel.block(x, y, w, h, u)
+    Pixel.color(Pixel.colors.raised)
+    Pixel.block(x + u, y + u, w - u * 2, h - u * 2, u)
+    if flash > 0 then
+        Pixel.color(up and Style.colors.good or Style.colors.bad, 0.35 * flash)
+        Pixel.block(x + u, y + u, w - u * 2, h - u * 2, u)
+    end
+    Pixel.color(tile.color)
+    love.graphics.rectangle("fill", x + u, y + u * 2, u, h - u * 4)
+    if tile.alert then
+        Pixel.corners(x, y, w, h, tile.alertColor, 0.5 + 0.5 * math.sin(now * 7))
+    end
+    Pixel.icon(tile.icon, x + u * 4, y + 6, 14)
+    Pixel.text(tile.label, x + u * 4 + 19, y + 5, 10, Style.colors.muted)
+    local small = Style.font(10)
+    if tile.rate then
+        Pixel.text(tile.rate, x + w - u * 4 - small:getWidth(tile.rate), y + 5, 10, tile.rateColor or Style.colors.muted)
+    end
+    local big = Style.font(19)
+    local valueText = Format.number(Pixel.ease("control:" .. tile.id, tile.value, 7))
+    Pixel.text(valueText, x + u * 4, y + 20, 19, tile.color)
+    if tile.suffix then
+        Pixel.text(tile.suffix, x + u * 4 + big:getWidth(valueText) + 4, y + 28, 10, Style.colors.muted)
+    end
+    if tile.fill then
+        Pixel.meter("control:tile:" .. tile.id, x + u * 3, y + h - u * 5, w - u * 6, u * 3, tile.fill, tile.fillColor or tile.color)
+    end
+end
+
+local function tiles(hud)
+    local game = hud:game()
+    local human = game.human
+    local population = human.troops + human.workers
+    local fill = population / math.max(1, human.maxPopulation)
+    local full = fill >= FULL_POPULATION
+    local attacked = #Attack.incoming(game, human) > 0
+    local crippled = human.capitalLostUntil and human.capitalLostUntil > game.tick
+    local unpaid = not human.upkeepPaid
+    local GOOD, BAD = Style.colors.good, Style.colors.bad
+    local function sign(value) return value < 0 and BAD or GOOD end
+    return {
+        {
+            id = "population", label = crippled and "POP - HALVED" or "POPULATION", icon = "Team.png", color = Style.colors.troops,
+            value = population, suffix = "/ " .. Format.number(human.maxPopulation),
+            rate = full and "FULL" or rateText(human.growth), rateColor = full and Style.colors.gold or sign(human.growth),
+            fill = fill, fillColor = full and Style.colors.gold or Style.colors.troops,
+            alert = full or crippled, alertColor = crippled and BAD or Style.colors.gold
+        },
+        {
+            id = "gold", label = unpaid and "GOLD - UNPAID" or "GOLD", icon = "Coin.png", color = Style.colors.gold,
+            value = human.gold, rate = rateText(human.income), rateColor = sign(human.income),
+            alert = unpaid, alertColor = BAD
+        },
+        {
+            id = "army", label = attacked and "ARMY - ATTACKED" or "ARMY", icon = "Skull.png", color = BAD,
+            value = human.troops, rate = rateText(human.growth * human.troopRatio), rateColor = sign(human.growth),
+            fill = human.troops / math.max(1, population), alert = attacked, alertColor = BAD
+        },
+        {
+            id = "workers", label = "WORKERS", icon = "Hammer.png", color = GOOD,
+            value = human.workers, rate = rateText(human.growth * (1 - human.troopRatio)), rateColor = sign(human.growth),
+            fill = human.workers / math.max(1, population)
+        }
+    }
 end
 
 function Control.draw(hud, x, y, w)
     local human = hud:game().human
-    local rate = Config.tickRate
-    local u = Pixel.unit
     local font = Style.font(12)
     local top = y + Style.headerHeight + 10
 
-    local rows = {
-        { "Population", rolling("population", human.troops + human.workers) .. " / " .. Format.number(human.maxPopulation), string.format("%+d/s", math.floor(human.growth * rate)), Style.colors.troops, "Team.png" },
-        { "Army", rolling("army", human.troops), nil, Style.colors.bad, "Skull.png" },
-        { "Workers", rolling("workers", human.workers), nil, Style.colors.good, "Hammer.png" },
-        { "Gold", rolling("gold", human.gold), (human.income < 0 and "-" or "+") .. Format.number(math.abs(human.income * rate)) .. "/s", Style.colors.gold, "Coin.png" }
-    }
-    for k, row in ipairs(rows) do
-        local ry = top + (k - 1) * 22
-        Pixel.icon(row[5], x + PAD, ry + 1, 15)
-        Pixel.text(row[1], x + PAD + 22, ry, 12, Style.colors.muted)
-        Pixel.text(row[2], x + 112, ry, 12, row[4])
-        if row[3] then
-            Pixel.text(row[3], x + w - PAD - font:getWidth(row[3]), ry, 12, Style.colors.muted)
-        end
+    local tw = math.floor((w - PAD * 2 - TILE_GAP) / 2)
+    for k, tile in ipairs(tiles(hud)) do
+        local col, row = (k - 1) % 2, math.floor((k - 1) / 2)
+        drawTile(tile, x + PAD + col * (tw + TILE_GAP), top + row * (TILE_H + TILE_GAP), tw, TILE_H)
     end
-
-    local fill = (human.troops + human.workers) / math.max(1, human.maxPopulation)
-    Pixel.meter("control:pop", x + PAD, top + 92, w - PAD * 2, 12, fill, Style.colors.troops)
-    local split = math.floor(x + PAD + (w - PAD * 2) * fill * human.troopRatio)
-    Pixel.color(Pixel.colors.ink, 0.9)
-    love.graphics.rectangle("fill", split, top + 89, u, 18)
 
     for k, s in ipairs(sliders(hud)) do
         local sy = sliderY(y, k)
@@ -198,19 +282,18 @@ function Control.draw(hud, x, y, w)
         Style.slider(x + PAD, sy, w - PAD * 2, s.value, s.color, hud.slider and hud.slider.id == s.id)
     end
 
-    local by = y + Style.headerHeight + 222
-    Pixel.text("Biome Adaptation", x + PAD, by, 12, Style.colors.text)
-    local cw = math.floor((w - PAD * 2) / 2)
+    local by = y + Style.headerHeight + BIOMES_Y
+    Pixel.text("Biome Adaptation", x + PAD, by, 11, Style.colors.muted)
+    local count = #Config.biomeOrder
+    local cw = math.floor((w - PAD * 2) / count)
     for k, name in ipairs(Config.biomeOrder) do
         local biome = Config.biomes[name]
-        local col, row = (k - 1) % 2, math.floor((k - 1) / 2)
-        local bx = x + PAD + col * cw
-        local ry = by + 20 + row * 24
+        local bx = x + PAD + (k - 1) * cw
         local value = human:familiarity(biome.id)
-        Pixel.text(biome.label, bx, ry, 10, Style.colors.muted)
         local text = string.format("%d%%", math.floor(value * 100))
-        Pixel.text(text, bx + cw - 12 - Style.font(10):getWidth(text), ry, 10, Style.colors.muted)
-        Pixel.meter("control:biome:" .. name, bx, ry + 14, cw - 12, 10, value, biome.color)
+        Pixel.text(biome.label, bx, by + 16, 10, Style.colors.muted)
+        Pixel.text(text, bx + cw - 8 - Style.font(10):getWidth(text), by + 16, 10, value >= 1 and Style.colors.text or Style.colors.muted)
+        Pixel.meter("control:biome:" .. name, bx, by + 30, cw - 8, 8, value, biome.color)
     end
 
     Control.drawExtra(hud, x, y + Style.headerHeight + BODY, w)

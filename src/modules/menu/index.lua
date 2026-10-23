@@ -297,6 +297,20 @@ function GM.Menu:start()
     GM.Multiplayer:PlaySolo(settings, name)
 end
 
+function GM.Menu:startTutorial()
+    if self.wipe then return end
+    self.launchError = nil
+    self.wipe = { phase = "cover", start = love.timer.getTime(), label = "Tutorial" }
+    local s = self.settings
+    GM.Multiplayer:PlaySolo({
+        map = Config.tutorialMap,
+        bots = 10,
+        nations = false,
+        difficulty = "easy",
+        tutorial = true
+    }, s.name ~= "" and s.name or "Player")
+end
+
 function GM.Menu:Launch(label, action)
     local wipe = self.wipe
     if wipe and wipe.phase == "cover" then

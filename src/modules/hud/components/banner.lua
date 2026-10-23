@@ -55,7 +55,7 @@ local function drawSpawn(game, time)
     love.graphics.scale(pulse, pulse)
     Pixel.shadowText(label, -big:getWidth(label) / 2, -big:getHeight() / 2, 20, seconds <= 3 and Style.colors.bad or Style.colors.gold)
     love.graphics.pop()
-    local total = Config.spawnSeconds * Config.tickRate
+    local total = game.spawnTicksTotal or Config.spawnSeconds * Config.tickRate
     Pixel.meter("banner:spawn", x + u * 4, y + h - u * 6, w - u * 8, u * 3, game.spawnTicksLeft / total, color, { instant = true })
     centered("Press H for controls", y + h + 10, 12, Style.colors.muted)
     local bob = math.floor(math.sin(time * 5) + 0.5) * u

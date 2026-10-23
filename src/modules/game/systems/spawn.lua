@@ -70,12 +70,16 @@ function Spawn.place(game, player, tile)
     player.spawned = true
     player.troops = Config.startTroops
     player.workers = Config.startWorkers
+    if game.options.tutorial and player:isHuman() then
+        player.gold = Config.tutorialGold
+    end
     return true
 end
 
 function Spawn.setup(game)
     game.phase = "spawn"
-    game.spawnTicksLeft = Config.spawnSeconds * Config.tickRate
+    game.spawnTicksTotal = (game.options.tutorial and Config.tutorialSpawnSeconds or Config.spawnSeconds) * Config.tickRate
+    game.spawnTicksLeft = game.spawnTicksTotal
     local map = game.map
 
     if game.options.nations ~= false then

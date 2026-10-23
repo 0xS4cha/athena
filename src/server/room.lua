@@ -31,7 +31,8 @@ local function sanitize(settings)
         bots = math.max(0, math.min(400, math.floor(bots))),
         nations = settings.nations ~= false,
         difficulty = DIFFICULTIES[settings.difficulty] and settings.difficulty or "medium",
-        autoplay = settings.autoplay == true
+        autoplay = settings.autoplay == true,
+        tutorial = settings.tutorial == true
     }
 end
 
@@ -315,6 +316,7 @@ function Room:Start(client)
         nations = self.settings.nations,
         difficulty = self.settings.difficulty,
         autoplay = self.settings.autoplay,
+        tutorial = self.settings.tutorial,
         seed = self.seed,
         humans = self:players(),
         headless = true,

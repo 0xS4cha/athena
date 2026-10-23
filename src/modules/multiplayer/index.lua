@@ -217,7 +217,8 @@ function GM.Multiplayer:PlaySolo(settings, name)
         nations = settings.nations,
         difficulty = settings.difficulty,
         autoplay = settings.autoplay,
-        name = "Solo",
+        tutorial = settings.tutorial,
+        name = settings.tutorial and "Tutorial" or "Solo",
         autostart = true
     }
     self.error = nil
@@ -448,6 +449,7 @@ function GM.Multiplayer:startGame(data)
             nations = settings.nations,
             difficulty = settings.difficulty,
             autoplay = settings.autoplay,
+            tutorial = settings.tutorial,
             seed = data.seed,
             humans = data.players,
             localSlot = data.slot,

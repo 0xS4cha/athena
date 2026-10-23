@@ -50,6 +50,8 @@ love .
 
 ## Gameplay
 
+New to the game? Press **Tutorial** in the main menu: it starts a solo game on Iceland against a few easy tribes, with a longer spawn phase and enough gold for a first city. A panel walks you through nine steps (spawning, starting, expanding, balancing troops and workers, sizing attacks, building a city, attacking a tribe and reading the map layers); each step completes on its own as soon as you do it, and can be skipped.
+
 - **Spawn phase**: click anywhere on land to choose your starting location, then press `Space` or wait for the countdown.
 - **Population**: your maximum population grows with your territory and your cities. Growth is fastest when you are far from the cap.
 - **Troops / Workers**: the slider splits your population. Troops attack and defend; workers produce gold.

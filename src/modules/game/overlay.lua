@@ -494,6 +494,34 @@ function Overlay.drawNukePreview(game, camera)
     end
 end
 
+function Overlay.drawBuildPreview(game, camera)
+    local mx, my = love.mouse.getPosition()
+    local preview = Interaction.buildPreview(game, game.map:tileAt(camera:toWorld(mx, my)))
+    if not preview then return end
+    local map = game.map
+    local scale = camera.scale
+    local time = love.timer.getTime()
+    local color = preview.ok and Style.colors.good or Style.colors.bad
+    local x, y = map:coords(preview.tile)
+    local r = Config.buildingSpacing
+    local zx, zy = camera:toScreen(x - r, y - r)
+    local zone = (r * 2 + 1) * scale
+    love.graphics.setColor(color[1], color[2], color[3], 0.12)
+    love.graphics.rectangle("fill", zx, zy, zone, zone)
+    Pixel.corners(zx, zy, zone, zone, color, 0.6 + 0.4 * math.sin(time * 6))
+    if preview.tile ~= preview.mouse then
+        local fx, fy = map:coords(preview.mouse)
+        dashedLine(camera, fx + 0.5, fy + 0.5, x + 0.5, y + 0.5, color, 0.7, 2)
+    end
+    local half = floor(Structures.SIZE / 2)
+    local ox, oy = camera:toScreen(x - half, y - half)
+    if Structures.has(preview.kind) then
+        Structures.draw(preview.kind, ox, oy, scale, game.human.color, 0.45 + 0.2 * math.sin(time * 4))
+    else
+        Pixel.icon(preview.def.icon, ox, oy, Structures.SIZE * scale, 0.7)
+    end
+end
+
 function Overlay.drawLegend(title, entries)
     local _, H = love.graphics.getDimensions()
     local u = Pixel.unit
@@ -1077,6 +1105,7 @@ function Overlay.draw(game, camera)
         Overlay.drawHoveredStructure(game, camera)
     end
     Overlay.drawExplosions(game, camera)
+    Overlay.drawBuildPreview(game, camera)
     if layers.threat then
         Overlay.drawThreats(game, camera, W, H)
     end

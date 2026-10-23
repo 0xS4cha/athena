@@ -319,13 +319,13 @@ function Interaction.loanItems(game, target, items)
     }
 end
 
-function Interaction.hotkey(game, action, tile)
+function Interaction.hotkey(game, action)
     local human = game.human
     if game.phase ~= "playing" or not human.alive then return end
-    local BAD = { color = { 0.95, 0.35, 0.3, 1 } }
     if action.group == "nuke" then
+        game.buildAim = nil
         if human:unitCount("silo") == 0 then
-            game:addEvent("Cannot launch " .. action.label .. ": Needs silo.", BAD)
+            game:addEvent("Cannot launch " .. action.label .. ": Needs silo.", { color = { 0.95, 0.35, 0.3, 1 } })
         elseif game.nukeAim and game.nukeAim.kind == action.kind then
             Interaction.cancelAim(game)
         else
@@ -333,13 +333,45 @@ function Interaction.hotkey(game, action, tile)
         end
         return
     end
-    if not tile then return end
-    local ok, reason = Units.check(game, human, action.kind, tile)
-    if not ok then
-        game:addEvent("Cannot build " .. action.label .. ": " .. reason .. ".", BAD)
-        return
+    game.nukeAim = nil
+    if game.buildAim and game.buildAim.kind == action.kind then
+        game.buildAim = nil
+    else
+        game.buildAim = { kind = action.kind }
     end
-    game:submit({ type = "build", player = human.id, unit = action.kind, tile = tile })
+end
+
+function Interaction.buildPreview(game, tile)
+    local aim = game.buildAim
+    if not aim or not tile or game.phase ~= "playing" or not game.human.alive then return nil end
+    local human = game.human
+    local ok, reason, target = Units.check(game, human, aim.kind, tile)
+    return {
+        kind = aim.kind,
+        def = Config.units[aim.kind],
+        ok = ok,
+        reason = reason,
+        tile = target or tile,
+        mouse = tile,
+        cost = Units.cost(game, human, aim.kind)
+    }
+end
+
+function Interaction.placeBuild(game, tile)
+    local aim = game.buildAim
+    if not aim then return false end
+    local human = game.human
+    local def = Config.units[aim.kind]
+    local ok, reason = Units.check(game, human, aim.kind, tile)
+    if not ok then
+        game:addEvent("Cannot build " .. def.label .. ": " .. reason .. ".", { color = { 0.95, 0.35, 0.3, 1 } })
+        return true
+    end
+    game:submit({ type = "build", player = human.id, unit = aim.kind, tile = tile })
+    if not love.keyboard.isDown("lshift", "rshift") then
+        game.buildAim = nil
+    end
+    return true
 end
 
 function Interaction.startAim(game, kind)

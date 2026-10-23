@@ -209,8 +209,9 @@ end
 function ContextMenu:mouseReleased(x, y, button)
     if button ~= 2 then return end
     local current = self.hud:game()
-    if current and current.nukeAim then
+    if current and (current.nukeAim or current.buildAim) then
         current.nukeAim = nil
+        current.buildAim = nil
         return
     end
     local dx = x - self.pressedX

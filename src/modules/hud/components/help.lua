@@ -14,7 +14,7 @@ local LINES = {
     { "+ / -", "Change game speed" },
     { "1 - 5", "Toggle terrain, territories, units, names, supply" },
     { "6 / 7", "Threat map / diplomatic map" },
-    { "Hotkeys", "Build or aim a nuke at the cursor (Settings > Key bindings)" },
+    { "Hotkeys", "Place a building or aim a nuke (Settings > Key bindings)" },
     { "H", "Show or hide this help" },
     { "Escape", "Settings" }
 }

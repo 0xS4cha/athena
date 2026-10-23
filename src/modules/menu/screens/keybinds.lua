@@ -100,7 +100,7 @@ function Screen.draw(menu, elements, p)
     local back = elements[1]
     UI.button("back", back.x, back.y, back.w, back.h, "BACK", { hot = menu.focus == "back", icon = "Enter2.png", align = "left", size = 14, hint = "ESC" })
     UI.shadowText("KEY BINDINGS", back.x + back.w + 36, 36, 26, UI.colors.text)
-    local hint = menu.binding and "Press a key. Backspace clears, Escape cancels." or "Click an action, then press a key. Works on the tile under the cursor."
+    local hint = menu.binding and "Press a key. Backspace clears, Escape cancels." or "Click an action, then press a key. In game, left click places, right click cancels."
     UI.text(menu.bindMessage or hint, back.x + back.w + 38, 76, 12, menu.bindMessage and UI.colors.gold or UI.colors.muted)
 
     for k, group in ipairs(GROUPS) do

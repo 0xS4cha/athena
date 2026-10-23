@@ -260,8 +260,9 @@ end
 function Hud:KeyPressed(key)
     local game = self:game()
     if not game then return end
-    if key == "escape" and game.nukeAim then
+    if key == "escape" and (game.nukeAim or game.buildAim) then
         game.nukeAim = nil
+        game.buildAim = nil
         return
     end
     if key == "escape" then

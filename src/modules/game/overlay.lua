@@ -522,28 +522,13 @@ function Overlay.drawBuildPreview(game, camera)
     end
 end
 
-local function nearestBorder(player, tile, map)
-    local tx, ty = map:coords(tile)
-    local best, bestD
-    for b in pairs(player.borders) do
-        local bx, by = map:coords(b)
-        local d = (bx - tx) * (bx - tx) + (by - ty) * (by - ty)
-        if not bestD or d < bestD or (d == bestD and b < best) then
-            best, bestD = b, d
-        end
-    end
-    return best
-end
-
 local function pendingOrigin(game, entry)
     local preview = entry.preview
     if preview.origin ~= nil then return preview.origin or nil end
     local human = game.human
     local intent = entry.intent
     local origin
-    if intent.type == "attack" then
-        origin = nearestBorder(human, preview.tile, game.map)
-    elseif intent.type == "boat" then
+    if intent.type == "boat" then
         local port = Units.nearestPort(game, human, preview.tile, "militaryPort")
         origin = port and port.tile
     elseif intent.type == "nuke" then
@@ -571,8 +556,8 @@ function Overlay.drawPending(game, camera)
             local origin = pendingOrigin(game, entry)
             local tx, ty = map:coords(preview.tile)
             tx, ty = tx + 0.5, ty + 0.5
-            if intent.type == "attack" or intent.type == "boat" or intent.type == "nuke" then
-                local color = intent.type == "attack" and Style.colors.bad or intent.type == "boat" and Style.colors.troops or { 1, 0.35, 0.2 }
+            if intent.type == "boat" or intent.type == "nuke" then
+                local color = intent.type == "boat" and Style.colors.troops or { 1, 0.35, 0.2 }
                 if origin then
                     local ox, oy = map:coords(origin)
                     dashedLine(camera, ox + 0.5, oy + 0.5, tx, ty, color, 0.85 * pulse, intent.type == "nuke" and 3 or 2)

@@ -24,6 +24,10 @@ jobs:
       run: |
         xvfb-run love . --ci --autoplay --ticks 3000 --seed 1
 
+    - name: Verify the networked game through the local server
+      run: |
+        xvfb-run love . --autostart --autoplay --frames 3000
+
     - name: Lua Diagnostics (LuaLS)
       uses: mrcjkb/lua-typecheck-action@v0
       with:

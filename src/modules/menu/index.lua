@@ -281,23 +281,32 @@ function GM.Menu:start()
     if not map or self.wipe then return end
     self.settings.map = map.path
     self:saveSettings()
-    self.wipe = {
-        phase = "cover",
-        start = love.timer.getTime(),
-        label = map.name,
-        action = function()
-            self.background:stop()
-            local s = self.settings
-            GM.Session:Start({
-                map = s.map,
-                bots = s.bots,
-                nations = s.nations,
-                difficulty = s.difficulty,
-                playerName = s.name ~= "" and s.name or "Player",
-                seed = os.time()
-            })
-        end
-    }
+    self.launchError = nil
+    self.wipe = { phase = "cover", start = love.timer.getTime(), label = map.name }
+    local s = self.settings
+    GM.Multiplayer:PlaySolo({
+        map = s.map,
+        bots = s.bots,
+        nations = s.nations,
+        difficulty = s.difficulty
+    }, s.name ~= "" and s.name or "Player")
+end
+
+function GM.Menu:Launch(label, action)
+    local wipe = self.wipe
+    if wipe and wipe.phase == "cover" then
+        wipe.action = action
+        wipe.label = wipe.label or label
+        return
+    end
+    self.wipe = { phase = "cover", start = love.timer.getTime(), label = label, action = action }
+end
+
+function GM.Menu:CancelLaunch(reason)
+    self.launchError = reason
+    if self.wipe and self.wipe.phase == "cover" then
+        self.wipe = { phase = "reveal", start = love.timer.getTime() }
+    end
 end
 
 function GM.Menu:updateWipe()
@@ -309,6 +318,7 @@ function GM.Menu:updateWipe()
             wipe.held = true
             return
         end
+        if not wipe.action then return end
         wipe.action()
         self.wipe = { phase = "reveal", start = love.timer.getTime() }
     else

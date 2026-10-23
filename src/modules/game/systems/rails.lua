@@ -1,5 +1,7 @@
 local Config = require("src.config.game")
 
+local function sq(v) return v * v end
+
 local Rails = {}
 
 local STATIONS = { city = true, tradePort = true }
@@ -31,7 +33,7 @@ end
 
 function Rails.connect(game, factory, station)
     if exists(game, factory, station) then return end
-    local distance = math.sqrt((factory.x - station.x) ^ 2 + (factory.y - station.y) ^ 2)
+    local distance = math.sqrt(sq(factory.x - station.x) + sq(factory.y - station.y))
     if distance > Config.railRadius or distance < 2 then return end
     local tiles = game.pathfinder:land(factory.tile, station.tile, factory.owner.id, Config.railMaxNodes)
     if not tiles or #tiles > Config.railRadius * 2 then return end

@@ -31,7 +31,7 @@ local function buttons(hud)
     if state(hud) == "defeat" then
         list[#list + 1] = { label = "Keep Watching", icon = "Eye.png", action = function() hud.spectating = true end }
     end
-    if not game.lockstep then
+    if not game.lockstep or game.lockstep:canControl() then
         list[#list + 1] = {
             label = "Play Again",
             icon = "Restart.png",
@@ -39,9 +39,17 @@ local function buttons(hud)
             action = function()
                 local options = {}
                 for k, v in pairs(game.options) do options[k] = v end
-                options.seed = os.time()
                 hud.spectating = false
-                GM.Session:Start(options)
+                if game.lockstep then
+                    local name = game.human and game.human.name
+                    GM.Session:Stop()
+                    GM.Menu:Open()
+                    GM.Menu:Launch(game.map.name, nil)
+                    GM.Multiplayer:PlaySolo(options, name)
+                else
+                    options.seed = os.time()
+                    GM.Session:Start(options)
+                end
             end
         }
     end

@@ -4,10 +4,9 @@ local Supply = {}
 
 local CELL = 8
 
-function Supply.points(game, player)
-    if player.supplyTick and game.tick - player.supplyTick < Config.supplyRefreshTicks then
-        return player.supplyPoints
-    end
+local EMPTY = {}
+
+function Supply.refresh(game, player)
     local points = {}
     for _, unit in ipairs(game.units) do
         if Config.supplySources[unit.kind] and unit.owner == player and unit.buildLeft == 0 and not unit.dead then
@@ -28,7 +27,27 @@ function Supply.points(game, player)
     player.supplyPoints = points
     player.supplyTick = game.tick
     player.supplyCache = {}
-    return points
+end
+
+function Supply.points(game, player)
+    return player.supplyPoints or EMPTY
+end
+
+function Supply.refreshAll(game)
+    for _, player in ipairs(game.players) do
+        if player.alive and player.spawned then
+            Supply.refresh(game, player)
+        end
+    end
+end
+
+function Supply.started(game)
+    Supply.refreshAll(game)
+end
+
+function Supply.step(game)
+    if game.phase ~= "playing" or game.tick % Config.supplyRefreshTicks ~= 0 then return end
+    Supply.refreshAll(game)
 end
 
 function Supply.distance(game, player, x, y)
@@ -52,9 +71,9 @@ end
 function Supply.multiplier(game, player, tile)
     local map = game.map
     local x, y = map:coords(tile)
-    Supply.points(game, player)
     local key = math.floor(y / CELL) * 65536 + math.floor(x / CELL)
     local cache = player.supplyCache
+    if not cache then return 1 end
     local value = cache[key]
     if not value then
         value = Supply.multiplierAt(game, player, (math.floor(x / CELL) + 0.5) * CELL, (math.floor(y / CELL) + 0.5) * CELL)

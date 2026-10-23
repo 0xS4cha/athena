@@ -5,29 +5,49 @@ local Renderer = require("src.modules.map.renderer")
 local Player = require("src.modules.player.player")
 local Palette = require("src.modules.player.palette")
 local Random = require("src.core.random")
+local Hash = require("src.core.hash")
 
-local Systems = {
-    require("src.modules.game.systems.spawn"),
-    require("src.modules.game.systems.economy"),
-    require("src.modules.game.systems.attack"),
-    require("src.modules.game.systems.units"),
-    require("src.modules.game.systems.capital"),
-    require("src.modules.game.systems.ships"),
-    require("src.modules.game.systems.rails"),
-    require("src.modules.game.systems.nukes"),
-    require("src.modules.game.systems.vision"),
-    require("src.modules.game.systems.diplomacy"),
-    require("src.modules.game.systems.loans"),
-    require("src.modules.game.systems.ai"),
-    require("src.modules.game.systems.victory")
+local SystemPaths = {
+    "src.modules.game.systems.spawn",
+    "src.modules.game.systems.economy",
+    "src.modules.game.systems.supply",
+    "src.modules.game.systems.attack",
+    "src.modules.game.systems.units",
+    "src.modules.game.systems.capital",
+    "src.modules.game.systems.ships",
+    "src.modules.game.systems.rails",
+    "src.modules.game.systems.nukes",
+    "src.modules.game.systems.vision",
+    "src.modules.game.systems.diplomacy",
+    "src.modules.game.systems.loans",
+    "src.modules.game.systems.ai",
+    "src.modules.game.systems.victory"
+}
+
+local Systems = {}
+for k, path in ipairs(SystemPaths) do
+    Systems[k] = require(path)
+end
+
+local HeadlessRenderer = {
+    layers = {},
+    paintTile = function() end,
+    repaintAll = function() end
 }
 
 local Game = Class()
+
+Game.SystemPaths = SystemPaths
 
 function Game:init(options)
     self.options = options or {}
     self.seed = self.options.seed or os.time()
     self.rng = Random.new(self.seed)
+    self.aiRng = Random.new(self.seed + 7919)
+    self.authority = self.options.authority ~= false
+    self.headless = self.options.headless == true
+    self.commandSink = nil
+    self.ownerHash = 0
     self.handlers = {}
     self.map = Map(self.options.map or Config.defaultMap)
     self.tick = 0
@@ -41,10 +61,10 @@ function Game:init(options)
     self.accumulator = 0
     self.speedIndex = 1
     self.paused = false
-    self.renderer = Renderer(self)
+    self.renderer = self.headless and HeadlessRenderer or Renderer(self)
     self.lockstep = nil
     local humans = self.options.humans or { { name = self.options.playerName or "Player", flag = self.options.playerFlag } }
-    local localSlot = self.options.localSlot or 1
+    local localSlot = self.options.localSlot or (not self.headless and 1 or nil)
     for slot, human in ipairs(humans) do
         local player = self:addPlayer(human.name or "Player", "human", human.flag, slot ~= localSlot and Palette.color(slot) or nil)
         if slot == localSlot then
@@ -129,6 +149,8 @@ function Game:setOwner(i, id)
     local x = i % w
     local y = (i - x) / w
     map.owner[i] = id
+    if old ~= 0 then self.ownerHash = Hash.toggle(self.ownerHash, i, old) end
+    if id ~= 0 then self.ownerHash = Hash.toggle(self.ownerHash, i, id) end
 
     local previous = old ~= 0 and self.players[old] or nil
     local biome = map.biome[i]
@@ -194,9 +216,17 @@ function Game:pushIntent(intent)
     self.intents[#self.intents + 1] = intent
 end
 
-function Game:submit(intent)
+function Game:submit(intent, preview)
     if self.lockstep then
-        self.lockstep:submit(intent)
+        self.lockstep:submit(intent, preview)
+    else
+        self:pushIntent(intent)
+    end
+end
+
+function Game:command(intent)
+    if self.commandSink then
+        self.commandSink(intent)
     else
         self:pushIntent(intent)
     end
@@ -266,20 +296,16 @@ function Game:step()
 end
 
 function Game:checksum()
-    local mod = 2147483647
-    local h = self.tick % mod
-    local owner = self.map.owner
-    for i = 0, self.map.size - 1 do
-        h = (h * 31 + owner[i]) % mod
-    end
     local floor = math.floor
+    local h = Hash.combine(self.ownerHash, self.tick)
     for _, p in ipairs(self.players) do
-        h = (h * 31 + p.tiles) % mod
-        h = (h * 31 + floor(p.troops) % mod) % mod
-        h = (h * 31 + floor(p.workers) % mod) % mod
-        h = (h * 31 + floor(p.gold) % mod) % mod
+        h = Hash.combine(h, p.tiles)
+        h = Hash.combine(h, floor(p.troops))
+        h = Hash.combine(h, floor(p.workers))
+        h = Hash.combine(h, floor(p.gold))
     end
-    h = (h * 31 + #(self.units or {})) % mod
+    h = Hash.combine(h, #(self.units or {}))
+    h = Hash.combine(h, #(self.attacks or {}))
     return h
 end
 
@@ -313,7 +339,9 @@ function Game:report()
         Logger:info("game", string.format("%-28s %-6s tiles=%-7d troops=%-9d workers=%-9d gold=%d", p.name, p.kind, p.tiles, p.troops, p.workers, p.gold))
     end
     local h = self.human
-    Logger:info("game", string.format("human tiles=%d troops=%d gold=%d alive=%s", h.tiles, h.troops, h.gold, tostring(h.alive)))
+    if h then
+        Logger:info("game", string.format("human tiles=%d troops=%d gold=%d alive=%s", h.tiles, h.troops, h.gold, tostring(h.alive)))
+    end
 end
 
 function Game:speed()

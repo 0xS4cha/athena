@@ -5,7 +5,7 @@ local Builder = {}
 
 local function randomOwnTile(game, player, predicate)
     local map = game.map
-    local rng = game.rng
+    local rng = game.aiRng
     local cx, cy = player:center()
     local spread = math.sqrt(player.tiles) * 0.6
     for _ = 1, 12 do
@@ -27,7 +27,7 @@ local function coastTile(game, player)
         end
     end
     if #candidates == 0 then return nil end
-    return candidates[game.rng:random(#candidates)]
+    return candidates[game.aiRng:random(#candidates)]
 end
 
 local function frontTile(game, player, enemy)
@@ -45,14 +45,14 @@ local function frontTile(game, player, enemy)
         if #candidates > 100 then break end
     end
     if #candidates == 0 then return nil end
-    return candidates[game.rng:random(#candidates)]
+    return candidates[game.aiRng:random(#candidates)]
 end
 
 function Builder.request(game, player, kind, tile)
     if not tile then return false end
     local ok = Units.check(game, player, kind, tile)
     if not ok then return false end
-    game:pushIntent({ type = "build", player = player.id, unit = kind, tile = tile })
+    game:command({ type = "build", player = player.id, unit = kind, tile = tile })
     return true
 end
 
@@ -83,7 +83,7 @@ Builder.wishes = {
     end,
     function(game, player)
         local ports = player:unitCount("militaryPort")
-        if ports > 0 and player:unitCount("warship") < ports + 1 and game.rng:random() < 0.3 then
+        if ports > 0 and player:unitCount("warship") < ports + 1 and game.aiRng:random() < 0.3 then
             local port = Units.nearestPort(game, player, player.spawnTile or 0, "militaryPort")
             if port then return "warship", port.tile end
         end
@@ -132,7 +132,7 @@ Builder.wishes = {
 }
 
 function Builder.behavior(game, player, ctx)
-    if game.rng:random() > 0.5 then return false end
+    if game.aiRng:random() > 0.5 then return false end
     for _, wish in ipairs(Builder.wishes) do
         local kind, tile = wish(game, player, ctx)
         if kind and tile and player.gold >= Units.cost(game, player, kind) then

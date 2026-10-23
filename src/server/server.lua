@@ -1,8 +1,8 @@
 local enet = require("enet")
 local Class = require("src.core.class")
-local Protocol = require("net.protocol")
-local Client = require("net.client")
-local Config = require("net.config")
+local Protocol = require("src.net.protocol")
+local Client = require("src.server.client")
+local Config = require("src.net.config")
 
 local Server = Class()
 
@@ -22,11 +22,13 @@ function Server:init(options)
 end
 
 function Server:Start()
-    self.host = enet.host_create(self.address .. ":" .. self.port, self.maxPeers, self.channels)
-    if not self.host then
-        error("Failed to bind " .. self.address .. ":" .. self.port)
+    local ok, host = pcall(enet.host_create, self.address .. ":" .. self.port, self.maxPeers, self.channels)
+    if not ok or not host then
+        return false, "Failed to bind " .. self.address .. ":" .. self.port
     end
+    self.host = host
     Logger:info("server", "Listening on " .. self.address .. ":" .. self.port)
+    return true
 end
 
 function Server:Stop()
@@ -54,28 +56,6 @@ function Server:Emit(kind, client, data)
         handler(client, data)
     end
     return true
-end
-
-function Server:Send(client, kind, data, channel, flag)
-    client:Send(kind, data, channel, flag)
-end
-
-function Server:Broadcast(kind, data, except, channel, flag)
-    local raw = Protocol.Encode(kind, data)
-    for _, client in pairs(self.clients) do
-        if client ~= except then
-            client.peer:send(raw, channel or 0, flag or "reliable")
-        end
-    end
-end
-
-function Server:Find(id)
-    for _, client in pairs(self.clients) do
-        if client.id == id then
-            return client
-        end
-    end
-    return nil
 end
 
 function Server:onConnect(peer)
@@ -128,10 +108,16 @@ function Server:Think(dt)
     self:Poll()
     self.accumulator = self.accumulator + dt
     local step = 1 / self.tickRate
+    local steps = 0
     while self.accumulator >= step do
         self.accumulator = self.accumulator - step
         self.tick = self.tick + 1
         self:Emit("tick", nil, self.tick)
+        steps = steps + 1
+        if steps >= Config.maxFramesPerTick then
+            self.accumulator = 0
+            break
+        end
     end
     self.host:flush()
 end

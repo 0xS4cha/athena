@@ -1,5 +1,8 @@
 local Config = require("src.config.game")
 local Format = require("src.core.format")
+local DMath = require("src.core.dmath")
+
+local function sq(v) return v * v end
 
 local Units = {}
 
@@ -19,7 +22,7 @@ function Units.cost(game, player, kind)
     local n = player:unitCount(kind)
     local cost = def.cost
     if def.scale == "double" then
-        cost = def.cost * 2 ^ n
+        cost = def.cost * DMath.pow(2, n)
     elseif def.scale == "linear" then
         cost = def.cost * (n + 1)
     end
@@ -66,7 +69,7 @@ function Units.nearestPort(game, player, tile, kind)
     kind = kind or "militaryPort"
     for _, unit in ipairs(game.units) do
         if unit.kind == kind and unit.owner == player and unit.buildLeft == 0 and not unit.dead and not unit.blockaded then
-            local d = (unit.x - x) ^ 2 + (unit.y - y) ^ 2
+            local d = sq(unit.x - x) + sq(unit.y - y)
             if not bestD or d < bestD then
                 best, bestD = unit, d
             end
@@ -193,7 +196,7 @@ function Units.defenseBonus(game, player, tile)
     local capital = player.capital
     if capital and not capital.dead then
         local cdef = Config.units.capital
-        if (capital.x - x) ^ 2 + (capital.y - y) ^ 2 <= cdef.radius * cdef.radius then
+        if sq(capital.x - x) + sq(capital.y - y) <= cdef.radius * cdef.radius then
             bonus = cdef.defense
         end
     end

@@ -522,6 +522,79 @@ function Overlay.drawBuildPreview(game, camera)
     end
 end
 
+local function nearestBorder(player, tile, map)
+    local tx, ty = map:coords(tile)
+    local best, bestD
+    for b in pairs(player.borders) do
+        local bx, by = map:coords(b)
+        local d = (bx - tx) * (bx - tx) + (by - ty) * (by - ty)
+        if not bestD or d < bestD or (d == bestD and b < best) then
+            best, bestD = b, d
+        end
+    end
+    return best
+end
+
+local function pendingOrigin(game, entry)
+    local preview = entry.preview
+    if preview.origin ~= nil then return preview.origin or nil end
+    local human = game.human
+    local intent = entry.intent
+    local origin
+    if intent.type == "attack" then
+        origin = nearestBorder(human, preview.tile, game.map)
+    elseif intent.type == "boat" then
+        local port = Units.nearestPort(game, human, preview.tile, "militaryPort")
+        origin = port and port.tile
+    elseif intent.type == "nuke" then
+        local silo = Nukes.readySilo(game, human, preview.tile)
+        origin = silo and silo.tile
+    elseif intent.type == "build" then
+        local ok, _, target = Units.check(game, human, intent.unit, preview.tile)
+        preview.target = ok and target or preview.tile
+    end
+    preview.origin = origin or false
+    return origin
+end
+
+function Overlay.drawPending(game, camera)
+    local lockstep = game.lockstep
+    if not lockstep or not game.human then return end
+    local map = game.map
+    local time = love.timer.getTime()
+    local pulse = 0.55 + 0.45 * math.sin(time * 10)
+    local scale = camera.scale
+    for _, entry in ipairs(lockstep:pendingList()) do
+        local intent = entry.intent
+        local preview = entry.preview
+        if preview and preview.tile then
+            local origin = pendingOrigin(game, entry)
+            local tx, ty = map:coords(preview.tile)
+            tx, ty = tx + 0.5, ty + 0.5
+            if intent.type == "attack" or intent.type == "boat" or intent.type == "nuke" then
+                local color = intent.type == "attack" and Style.colors.bad or intent.type == "boat" and Style.colors.troops or { 1, 0.35, 0.2 }
+                if origin then
+                    local ox, oy = map:coords(origin)
+                    dashedLine(camera, ox + 0.5, oy + 0.5, tx, ty, color, 0.85 * pulse, intent.type == "nuke" and 3 or 2)
+                end
+                Overlay.pixelCircle(camera, tx, ty, intent.type == "nuke" and 5 or 3, color, pulse, time * 2, true)
+            elseif intent.type == "build" then
+                local x, y = map:coords(preview.target or preview.tile)
+                local half = floor(Structures.SIZE / 2)
+                local ox, oy = camera:toScreen(x - half, y - half)
+                if Structures.has(intent.unit) then
+                    Structures.draw(intent.unit, ox, oy, scale, game.human.color, 0.3 + 0.2 * pulse)
+                else
+                    Pixel.icon(Config.units[intent.unit].icon, ox, oy, Structures.SIZE * scale, 0.5 * pulse)
+                end
+                Pixel.corners(ox, oy, Structures.SIZE * scale, Structures.SIZE * scale, Style.colors.gold, pulse)
+            elseif intent.type == "spawn" then
+                Overlay.pixelCircle(camera, tx, ty, Config.spawnRadius, Style.colors.gold, pulse, time, true)
+            end
+        end
+    end
+end
+
 function Overlay.drawLegend(title, entries)
     local _, H = love.graphics.getDimensions()
     local u = Pixel.unit
@@ -1106,6 +1179,7 @@ function Overlay.draw(game, camera)
     end
     Overlay.drawExplosions(game, camera)
     Overlay.drawBuildPreview(game, camera)
+    Overlay.drawPending(game, camera)
     if layers.threat then
         Overlay.drawThreats(game, camera, W, H)
     end

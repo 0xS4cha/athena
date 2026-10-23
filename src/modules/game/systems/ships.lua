@@ -4,6 +4,8 @@ local Units = require("src.modules.game.systems.units")
 local Attack = require("src.modules.game.systems.attack")
 local Pathfinding = require("src.modules.map.pathfinding")
 
+local function sq(v) return v * v end
+
 local Ships = {}
 
 function Ships.init(game)
@@ -55,8 +57,8 @@ function Ships.landingTile(game, player, tile)
     for b in pairs(game.players[ownerId].borders) do
         if map:isCoast(b) then
             local bx, by = map:coords(b)
-            local d = (bx - x) ^ 2 + (by - y) ^ 2
-            if not bestD or d < bestD then
+            local d = sq(bx - x) + sq(by - y)
+            if not bestD or d < bestD or (d == bestD and b < best) then
                 best, bestD = b, d
             end
         end
@@ -84,10 +86,10 @@ function Ships.launchTile(game, player, destination)
     local candidates = {}
     for _, port in ipairs(Ships.militaryPorts(game, player)) do
         if not port.blockaded then
-            candidates[#candidates + 1] = { tile = port.tile, d = (port.x - dx) ^ 2 + (port.y - dy) ^ 2 }
+            candidates[#candidates + 1] = { tile = port.tile, d = sq(port.x - dx) + sq(port.y - dy) }
         end
     end
-    table.sort(candidates, function(a, b) return a.d < b.d end)
+    table.sort(candidates, function(a, b) return a.d < b.d or (a.d == b.d and a.tile < b.tile) end)
     for _, candidate in ipairs(candidates) do
         if game.pathfinder:connected(candidate.tile, destination) then
             return candidate.tile
@@ -193,7 +195,7 @@ function Ships.blockader(game, port)
     local r2 = Config.blockadeRange * Config.blockadeRange
     for _, ship in ipairs(game.ships or {}) do
         if ship.kind == "warship" and not ship.dead and Ships.isHostile(ship.owner, port.owner)
-            and (ship.x - port.x) ^ 2 + (ship.y - port.y) ^ 2 <= r2 then
+            and sq(ship.x - port.x) + sq(ship.y - port.y) <= r2 then
             return ship
         end
     end
@@ -233,11 +235,11 @@ function Ships.updatePort(game, port)
                 if component[c] then shared = true end
             end
             if shared then
-                candidates[#candidates + 1] = { port = unit, d = (unit.x - port.x) ^ 2 + (unit.y - port.y) ^ 2 }
+                candidates[#candidates + 1] = { port = unit, d = sq(unit.x - port.x) + sq(unit.y - port.y) }
             end
         end
     end
-    table.sort(candidates, function(a, b) return a.d < b.d end)
+    table.sort(candidates, function(a, b) return a.d < b.d or (a.d == b.d and a.port.id < b.port.id) end)
     if #candidates > 0 then
         local target = candidates[game.rng:random(math.min(Config.tradePartners, #candidates))].port
         do
@@ -277,7 +279,7 @@ function Ships.nearestShip(game, warship, range)
     for _, unit in ipairs(game.ships or {}) do
         local p = priority[unit.kind]
         if p and unit ~= warship and not unit.dead and Ships.isHostile(warship.owner, unit.owner) then
-            local d = math.sqrt((unit.x - warship.x) ^ 2 + (unit.y - warship.y) ^ 2)
+            local d = math.sqrt(sq(unit.x - warship.x) + sq(unit.y - warship.y))
             if d <= range and (not bestPriority or p > bestPriority or (p == bestPriority and d < bestD)) then
                 best, bestD, bestPriority = unit, d, p
             end
@@ -346,7 +348,7 @@ function Ships.blockadeTarget(game, warship)
     local component = game.pathfinder.component[warship.tile]
     for _, unit in ipairs(game.units) do
         if PORTS[unit.kind] and not unit.dead and Ships.isHostile(warship.owner, unit.owner) and not unit.owner:isBot() then
-            local d = (unit.x - warship.x) ^ 2 + (unit.y - warship.y) ^ 2
+            local d = sq(unit.x - warship.x) + sq(unit.y - warship.y)
             if d <= r2 and (not bestD or d < bestD) and game.pathfinder:waterComponents(unit.tile)[component] then
                 best, bestD = unit, d
             end
@@ -389,7 +391,7 @@ function Ships.updateWarship(game, warship)
     end
     target = warship.target
     if target then
-        distance = math.sqrt((target.x - warship.x) ^ 2 + (target.y - warship.y) ^ 2)
+        distance = math.sqrt(sq(target.x - warship.x) + sq(target.y - warship.y))
         if distance > def.range * 1.5 or not Ships.isHostile(warship.owner, target.owner) then
             target = nil
             warship.target = nil
@@ -469,7 +471,7 @@ Ships.intents = {
         for _, ship in ipairs(game.ships or {}) do
             if ship.kind == "warship" and ship.owner == player and not ship.dead
                 and game.pathfinder:connected(ship.tile, intent.tile) then
-                local d = (ship.x - tx) ^ 2 + (ship.y - ty) ^ 2
+                local d = sq(ship.x - tx) + sq(ship.y - ty)
                 if not bestD or d < bestD then best, bestD = ship, d end
             end
         end

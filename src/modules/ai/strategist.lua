@@ -36,7 +36,7 @@ local function known(game, player, unit)
 end
 
 local function targetTile(game, player, victim)
-    local rng = game.rng
+    local rng = game.aiRng
     local capital = victim.capital
     if capital and not capital.dead and rng:random() < 0.5 and known(game, player, capital) then
         return capital.tile
@@ -62,7 +62,7 @@ Strategist.targetTile = targetTile
 
 function Strategist.behavior(game, player, ctx)
     if game.tick < MIN_TICK or game.options.difficulty == "easy" then return false end
-    local rng = game.rng
+    local rng = game.aiRng
     if rng:random() > 0.3 then return false end
 
     if player:unitCount("silo") == 0 then
@@ -73,7 +73,7 @@ function Strategist.behavior(game, player, ctx)
                 tile = game.map:findNear(x, y, 20, function(i) return game.map.owner[i] == player.id and Units.isSpaced(game, i) end)
             end
             if tile and Units.check(game, player, "silo", tile) then
-                game:pushIntent({ type = "build", player = player.id, unit = "silo", tile = tile })
+                game:command({ type = "build", player = player.id, unit = "silo", tile = tile })
                 return true
             end
         end
@@ -88,7 +88,7 @@ function Strategist.behavior(game, player, ctx)
                 return game.map.owner[i] == player.id and Units.isSpaced(game, i)
             end)
             if tile and Units.check(game, player, "sam", tile) then
-                game:pushIntent({ type = "build", player = player.id, unit = "sam", tile = tile })
+                game:command({ type = "build", player = player.id, unit = "sam", tile = tile })
                 return true
             end
         end
@@ -103,7 +103,7 @@ function Strategist.behavior(game, player, ctx)
         local def = Config.nukes[kind]
         local allowed = kind ~= "mirv" or victim.tiles / game.map.landCount > 0.3
         if allowed and player.gold > def.cost + reserve and Nukes.check(game, player, kind, tile) then
-            game:pushIntent({ type = "nuke", player = player.id, kind = kind, tile = tile })
+            game:command({ type = "nuke", player = player.id, kind = kind, tile = tile })
             return true
         end
     end

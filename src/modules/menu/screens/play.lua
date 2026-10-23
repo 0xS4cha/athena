@@ -364,6 +364,9 @@ function Play.draw(menu, elements, p)
 
     local start = find(elements, "start")
     UI.button("start", start.x, start.y, start.w, start.h, "START GAME", { hot = menu.focus == "start", primary = true, size = 20, icon = "Play.png", hint = "ENTER" })
+    if menu.launchError then
+        UI.text(menu.launchError, start.x, start.y + start.h + 8, 12, UI.colors.bad)
+    end
     love.graphics.pop()
     UI.alpha = 1
 end

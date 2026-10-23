@@ -12,8 +12,9 @@ RUN apt-get update \
 WORKDIR /app
 
 COPY server/ ./
-COPY src/core/ ./src/core/
+COPY src/ ./src/
 COPY libs/ ./libs/
+COPY assets/maps/ ./assets/maps/
 
 USER athena
 

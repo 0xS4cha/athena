@@ -2,6 +2,8 @@ local Config = require("src.config.game")
 local Format = require("src.core.format")
 local Attack = require("src.modules.game.systems.attack")
 
+local function sq(v) return v * v end
+
 local Vision = {}
 
 local TAU = math.pi * 2
@@ -48,7 +50,7 @@ end
 function Vision.inRadar(game, player, x, y, factor)
     for _, radar in ipairs(Vision.radars(game, player)) do
         local range = Vision.radarRange(game, radar) * (factor or 1)
-        if (radar.x - x) ^ 2 + (radar.y - y) ^ 2 <= range * range then
+        if sq(radar.x - x) + sq(radar.y - y) <= range * range then
             return true
         end
     end
@@ -78,7 +80,7 @@ function Vision.nearWarship(game, player, x, y)
     local r2 = Config.warshipVision * Config.warshipVision
     for _, ship in ipairs(game.ships or {}) do
         if ship.kind == "warship" and ship.owner == player and not ship.dead
-            and (ship.x - x) ^ 2 + (ship.y - y) ^ 2 <= r2 then
+            and sq(ship.x - x) + sq(ship.y - y) <= r2 then
             return true
         end
     end
@@ -236,7 +238,7 @@ end
 function Vision.step(game)
     if game.phase ~= "playing" then return end
     local human = game.human
-    if not human.alive then return end
+    if not human or not human.alive then return end
     sweep(game, human)
     detectNukes(game, human)
     for unit, echo in pairs(game.echoes) do

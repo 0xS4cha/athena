@@ -32,7 +32,9 @@ function Victory.step(game)
     local alive = 0
     local last
     local human = game.human
-    game.stats.peakTiles = math.max(game.stats.peakTiles, human.tiles)
+    if human then
+        game.stats.peakTiles = math.max(game.stats.peakTiles, human.tiles)
+    end
     for _, player in ipairs(game.players) do
         if player.alive and player.spawned then
             alive = alive + 1

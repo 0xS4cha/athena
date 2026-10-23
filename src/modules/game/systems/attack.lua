@@ -27,7 +27,8 @@ local function enqueue(game, attack, j)
     local adj = adjacency(map, j, attack.attacker.id)
     if adj == 0 then return end
     attack.queued[j] = true
-    local priority = floor((attack.wave + game.rng:random() * 2 - adj * 0.6 + 10) * 100)
+    local jitter = (j * 7919 + attack.wave * 104729 + attack.salt) % 1000003 / 1000003
+    local priority = floor((attack.wave + jitter * 2 - adj * 0.6 + 10) * 100)
     attack.queue:push(priority * TILE_SPACE + j)
 end
 
@@ -190,6 +191,7 @@ function Attack.launch(game, attacker, targetId, troops)
         queue = NumHeap.new(),
         queued = {},
         nb = {},
+        salt = game.rng:random(0, 1000002),
         wave = 0,
         startTick = game.tick
     }

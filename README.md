@@ -9,9 +9,9 @@ A real-time territory conquest game inspired by [OpenFront.io](https://openfront
 
 ## Description
 
-Athena is a single-player clone of OpenFront. You spawn on one of the 100+ bundled maps alongside AI nations and bots, then expand, trade, wage war, and launch nukes until one empire controls 80% of the land.
+Athena is a clone of OpenFront. You spawn on one of the 100+ bundled maps alongside AI nations, bots and other players, then expand, trade, wage war, and launch nukes until one empire controls 80% of the land.
 
-The simulation runs on a fixed 10 ticks-per-second loop with a seeded RNG. Every player action, human or AI, goes through an intent queue that is processed at the start of each tick. Tile data lives in LuaJIT FFI arrays (`uint8` terrain, `uint16` owner, `uint8` fallout), and the territory layer is a single `ImageData` patched pixel by pixel and uploaded once per frame.
+The game is multiplayer by default: a solo game starts a local server in a background thread and connects to it, like Minecraft. The simulation runs on a fixed 10 ticks-per-second loop with a seeded RNG. Every player action, human or AI, goes through an intent queue that is processed at the start of each tick. Tile data lives in LuaJIT FFI arrays (`uint8` terrain, `uint16` owner, `uint8` fallout), and the territory layer is a single `ImageData` patched pixel by pixel and uploaded once per frame.
 
 ```mermaid
 graph TD
@@ -88,6 +88,25 @@ love .
   - Request a loan (100K, 500K or 2M gold) from any nation. The lender can lend for free, demand 10% or 25% interest (the borrower then accepts or declines the terms), or refuse. Loans are repaid automatically in installments over 5 minutes, or early from the Empire panel. Whatever is still owed at the deadline is a default: the borrower is marked as a traitor and loses the lender's trust.
 - **Victory**: control 80% of the land, or be the last nation standing.
 
+## Networking
+
+Athena mixes an authoritative tick-lockstep with snapshots. The server owns the game: it runs the full simulation, the AI of every bot and nation, and validates every action.
+
+- **Tick frames**: every tick the server sends `frame { t, c, h }` to every client, even when nobody acted. `c` holds the validated commands of that tick (human intents and the AI decisions taken by the server), `h` a 32-bit state hash every 10 ticks. A client only advances its local simulation when it has the frame for its next tick.
+- **Intents**: clients send intents at any time with a sequence number. The server sanitizes them (types, ranges, ownership) and checks the game rules (enough gold, shared border, ready silo, free spawn tile...). A refused intent is answered with `reject { seq, reason }`, an accepted one comes back inside a frame.
+- **Optimistic UI**: the grid and the troop counters are never predicted. While an intent is in flight the client draws a ghost layer instead: dashed attack, boat and nuke lines, a blinking building on its future tile, and the troop slider at its new value. The ghost disappears when the command is applied from its frame.
+- **Determinism**: AI decisions only run on the server with their own RNG, so clients never need to agree on them. The simulation avoids libm transcendental functions (`src/core/dmath.lua`), breaks ties by tile or id, and never lets iteration order change the result (attack fronts use a hashed jitter instead of the RNG). The state hash combines an incremental XOR hash of the ownership grid with the integer resources of every player. A client whose hash differs asks for a resync.
+- **Catch-up**: the server keeps the last 256 frames. After a short disconnection the client rejoins with the last tick it has and replays the missing frames in a burst, several ticks per rendered frame. If it is too far behind (more than 100 ticks), desynchronized or restarted, the server sends a snapshot instead: the ownership and fallout grids in run-length encoding plus the full game state graph, zlib compressed (about 100 to 200 KB), followed by the frames since that snapshot. Snapshots are cached and rebuilt at most every 200 ticks.
+- **Solo controls**: pause and game speed are server commands, only accepted in games with a single human.
+
+### Dedicated server
+
+```bash
+love . --server --port 6789
+```
+
+The Docker image (`Dockerfile`) and `make standalone-server` package the same server with the simulation and the maps. Players connect from **Multiplayer** in the main menu.
+
 ## Pixel Art
 
 Everything on the map is drawn on the tile grid: buildings, rails, ships with their wake, troops marching to the front, combat flashes, nukes with smoke trails, fireballs, mushroom clouds and scorched craters. The interface uses the [Jersey 10](https://fonts.google.com/specimen/Jersey+10) pixel font (SIL Open Font License, see `assets/fonts/OFL.txt`).
@@ -118,7 +137,10 @@ Drag a panel by its header to move it. Positions are saved in `hud_config.txt`, 
 | `--nations on\|off` | Spawn the AI nations listed in the map manifest |
 | `--difficulty easy\|medium\|hard` | Nation AI difficulty |
 | `--seed 42` | RNG seed |
-| `--autostart` | Skip the menu |
+| `--autostart` | Skip the menu and start a solo game on the local server |
+| `--server` | Run a headless dedicated server instead of the game |
+| `--port 6789` | Port of the dedicated server |
+| `--connect host:port` | Connect to a server, create a room (or join `--room <id>`, `--room rejoin`) and start it once `--players` players are in |
 | `--autoplay` | The nation AI also plays for you |
 | `--ci` | Headless run: simulate `--ticks` ticks, render one frame, quit (exit code 1 on error) |
 | `--ticks 600` | Number of ticks simulated by `--ci` |
@@ -136,15 +158,18 @@ love . --ci --autoplay --ticks 6000 --seed 42 --screenshot shot.png
 ## Project Structure
 
 ```
-├─ main.lua                     # Love2D callbacks, CLI flags, CI mode
+├─ main.lua                     # Love2D callbacks, CLI flags, CI mode, --server switch
 ├─ conf.lua
+├─ server/                      # Entry point used to package the dedicated server
 ├─ assets/
 │  ├─ maps/<name>/              # manifest.json, map.bin, map4x.bin, map16x.bin
 │  ├─ flags/                    # Nation flags
 │  └─ Icons/                    # UI and unit icons
 └─ src/
    ├─ config/game.lua           # Every balance constant
-   ├─ core/                     # Class, camera, logger, args, env, format, xorshift RNG
+   ├─ core/                     # Class, camera, logger, args, env, format, xorshift RNG, hash, dmath
+   ├─ net/                      # Shared protocol: binary codec, intents validation, snapshots
+   ├─ server/                   # Authoritative server: rooms, host, dedicated runner, local thread
    └─ modules/
       ├─ index.lua              # Module loader and callback dispatch
       ├─ session/               # Starts and stops games, camera, world input
@@ -160,7 +185,8 @@ love . --ci --autoplay --ticks 6000 --seed 42 --screenshot shot.png
       │  ├─ overlay.lua         # Labels, buildings, ships, rails, nukes
       │  └─ systems/            # spawn, economy, attack, units, ships, rails,
       │                         # nukes, diplomacy, ai, victory
-      ├─ ai/                    # bot, nation, builder, navy, strategist, diplomat
+      ├─ ai/                    # bot, nation, builder, navy, strategist, diplomat (server only)
+      ├─ multiplayer/           # Connection, local server thread, client tick-lockstep
       └─ hud/                   # Style, context menu, panels
 ```
 

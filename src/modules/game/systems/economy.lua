@@ -1,9 +1,10 @@
 local Config = require("src.config.game")
+local DMath = require("src.core.dmath")
 
 local Economy = {}
 
 function Economy.maxPopulation(game, player)
-    local max = (player.tiles ^ Config.populationExponent) * Config.populationPerTile + Config.basePopulation
+    local max = DMath.pow(player.tiles, Config.populationExponent) * Config.populationPerTile + Config.basePopulation
     max = max + (player.cities or 0) * Config.cityPopulation
     max = max + Economy.built(game, player, "farm") * Config.farmPopulation
     if player.capital and not player.capital.dead then
@@ -60,7 +61,7 @@ end
 
 function Economy.stacked(count, per)
     if count <= 0 then return 0 end
-    return per * count ^ Config.buildingDiminishing
+    return per * DMath.pow(count, Config.buildingDiminishing)
 end
 
 function Economy.upkeep(game, player)
@@ -75,7 +76,7 @@ function Economy.updatePlayer(game, player)
     local max = Economy.maxPopulation(game, player)
     player.maxPopulation = max
     local total = player.troops + player.workers
-    local growth = (10 + math.max(0, total) ^ Config.growthExponent / 4) * (1 - total / max)
+    local growth = (10 + DMath.pow(math.max(0, total), Config.growthExponent) / 4) * (1 - total / max)
     local crippled = player.capitalLostUntil and player.capitalLostUntil > game.tick
     if crippled and growth > 0 then
         growth = growth * Config.capitalPenalty

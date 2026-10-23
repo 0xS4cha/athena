@@ -45,10 +45,11 @@ standalone: fclean build $(APPIMAGETOOL)
 
 standalone-server: $(APPIMAGETOOL)
 	@rm -rf $(BUILD_DIR)/$(SERVER_NAME) $(BUILD_DIR)/$(SERVER_NAME).AppDir
-	@mkdir -p $(BUILD_DIR)/$(SERVER_NAME)/src
+	@mkdir -p $(BUILD_DIR)/$(SERVER_NAME)/assets
 	@cp -r $(SERVER_DIR)/. $(BUILD_DIR)/$(SERVER_NAME)/
-	@cp -r src/core $(BUILD_DIR)/$(SERVER_NAME)/src/
+	@cp -r src $(BUILD_DIR)/$(SERVER_NAME)/
 	@cp -r libs $(BUILD_DIR)/$(SERVER_NAME)/
+	@cp -r assets/maps $(BUILD_DIR)/$(SERVER_NAME)/assets/
 	@cd $(BUILD_DIR)/$(SERVER_NAME) && zip -q -9 -r ../$(SERVER_NAME).love .
 	@cp -r $(BUILD_DIR)/$(PROJECT_NAME).AppDir $(BUILD_DIR)/$(SERVER_NAME).AppDir
 	@rm -f $(BUILD_DIR)/$(SERVER_NAME).AppDir/bin/$(APP_NAME)
@@ -64,6 +65,9 @@ standalone-server: $(APPIMAGETOOL)
 run:
 	@love .
 
+server:
+	@love . --server
+
 clean:
 	@rm -rf $(DIST_DIR) $(BUILD_DIR) $(BUILD_TOOL_DIR)
 	@rm -f $(APPIMAGETOOL)
@@ -75,4 +79,4 @@ fclean: clean
 dist: build
 	@cd $(DIST_DIR)/$(VERSION) && tar -czvf ../../$(PROJECT_NAME)-linux.tar.gz *
 
-.PHONY: all build run clean fclean dist standalone standalone-server
+.PHONY: all build run server clean fclean dist standalone standalone-server

@@ -9,7 +9,7 @@ local Nation = {}
 Nation.behaviors = { Diplomat.behavior, Strategist.behavior, Builder.behavior, Navy.behavior }
 
 function Nation.setup(game, player)
-    player.troopRatio = 0.55 + game.rng:random() * 0.15
+    game:command({ type = "troopRatio", player = player.id, ratio = 0.55 + game.aiRng:random() * 0.15 })
 end
 
 function Nation.targetScore(game, player, other)
@@ -49,16 +49,16 @@ function Nation.chooseTarget(game, player, neighbors)
 end
 
 function Nation.expandOrAttack(game, player, ctx)
-    local rng = game.rng
+    local rng = game.aiRng
     if player.troops < player.maxPopulation * 0.2 then return end
     if ctx.neutral then
-        game:pushIntent({ type = "attack", player = player.id, target = 0, ratio = 0.25 + rng:random() * 0.2 })
+        game:command({ type = "attack", player = player.id, target = 0, ratio = 0.25 + rng:random() * 0.2 })
         return true
     end
     local target, score = Nation.chooseTarget(game, player, ctx.neighbors)
     local saturated = player:population() > player.maxPopulation * 0.9
     if target and ((score > 1.1 and player.troops > player.maxPopulation * 0.45) or (saturated and score > 0.4)) then
-        game:pushIntent({ type = "attack", player = player.id, target = target.id, ratio = 0.3 + rng:random() * 0.2 })
+        game:command({ type = "attack", player = player.id, target = target.id, ratio = 0.3 + rng:random() * 0.2 })
         return true
     end
 end

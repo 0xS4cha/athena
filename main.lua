@@ -1,3 +1,10 @@
+for _, value in ipairs(arg or {}) do
+    if value == "--server" then
+        require("src.server.run")
+        return
+    end
+end
+
 local env = require("src.core.env")
 local modules = require("src.modules.index")
 local GM = require("src.core.index")
@@ -119,10 +126,10 @@ function love.load(args)
         return
     end
 
-    if flags.autostart and not flags.connect or not GM.Menu then
-        GM.Session:Start(options)
-    else
-        GM.Menu:Open()
+    GM.Menu:Open()
+    if flags.autostart and not flags.connect then
+        GM.Menu:Launch(options.map, nil)
+        GM.Multiplayer:PlaySolo(options, flags.name)
     end
 end
 
@@ -167,4 +174,10 @@ end
 
 function love.mousereleased(x, y, button, istouch, presses)
     GM:MouseReleased(x, y, button, istouch, presses)
+end
+
+function love.quit()
+    if GM.Multiplayer then
+        GM.Multiplayer:Shutdown()
+    end
 end

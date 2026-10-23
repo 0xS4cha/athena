@@ -17,22 +17,23 @@ local function assign(game, player)
     if brain then
         player.brain = brain
         brain.setup(game, player)
-        player.nextDecision = game.tick + game.rng:random(1, game:difficulty().decisionTicks * 2)
+        player.nextDecision = game.tick + game.aiRng:random(1, game:difficulty().decisionTicks * 2)
     end
 end
 
 function AI.started(game)
+    if not game.authority then return end
     for _, player in ipairs(game.players) do
         assign(game, player)
     end
 end
 
 function AI.step(game)
-    if game.phase ~= "playing" then return end
+    if game.phase ~= "playing" or not game.authority then return end
     local base = game:difficulty().decisionTicks
     for _, player in ipairs(game.players) do
         if player.brain and player.alive and game.tick >= player.nextDecision then
-            player.nextDecision = game.tick + base + game.rng:random(0, base)
+            player.nextDecision = game.tick + base + game.aiRng:random(0, base)
             player.brain.decide(game, player)
         end
     end
@@ -53,7 +54,7 @@ AI.intents = {
         if player.alive then
             game:addEvent(player.name .. " left the game. The AI takes over.", { color = { 0.95, 0.6, 0.3, 1 } })
         end
-        if game.phase ~= "spawn" and not player.brain then
+        if game.authority and game.phase ~= "spawn" and not player.brain then
             assign(game, player)
         end
     end,

@@ -3,6 +3,7 @@ local Camera = require("src.core.camera")
 local Game = require("src.modules.game.game")
 local Interaction = require("src.modules.game.interaction")
 local Overlay = require("src.modules.game.overlay")
+local Config = require("src.config.game")
 
 GM.Session = {}
 GM.State = "menu"
@@ -75,13 +76,21 @@ end
 
 function GM.Session:KeyPressed(key)
     local game = self.Game
-    if not game or game.lockstep then return end
-    if key == "p" then
+    if not game then return end
+    local delta = (key == "=" or key == "kp+") and 1 or (key == "-" or key == "kp-") and -1 or nil
+    if key ~= "p" and not delta then return end
+    local lockstep = game.lockstep
+    if lockstep then
+        if key == "p" then
+            lockstep:control(not game.paused, nil)
+        else
+            local speed = math.max(1, math.min(#Config.speeds, game.speedIndex + delta))
+            lockstep:control(nil, speed)
+        end
+    elseif key == "p" then
         game.paused = not game.paused
-    elseif key == "=" or key == "kp+" then
-        game:changeSpeed(1)
-    elseif key == "-" or key == "kp-" then
-        game:changeSpeed(-1)
+    else
+        game:changeSpeed(delta)
     end
 end
 

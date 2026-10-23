@@ -12,7 +12,7 @@ function Interaction.click(game, tile)
     local human = game.human
     local map = game.map
     if game.phase == "spawn" then
-        game:submit({ type = "spawn", player = human.id, tile = tile })
+        game:submit({ type = "spawn", player = human.id, tile = tile }, { tile = tile })
         return
     end
     if game.phase ~= "playing" or not human.alive or map:isWater(tile) then
@@ -32,12 +32,12 @@ function Interaction.click(game, tile)
         return
     end
     if Attack.sharesBorder(game, human, targetId) then
-        game:submit({ type = "attack", player = human.id, target = targetId, ratio = human.attackRatio })
+        game:submit({ type = "attack", player = human.id, target = targetId, ratio = human.attackRatio }, { tile = tile })
         return
     end
     local ok, reason = Ships.canSendBoat(game, human, tile)
     if ok then
-        game:submit({ type = "boat", player = human.id, tile = tile, ratio = human.attackRatio })
+        game:submit({ type = "boat", player = human.id, tile = tile, ratio = human.attackRatio }, { tile = tile })
         return
     end
     game:addEvent("Cannot reach " .. (target and target.name or "this land") .. ": " .. reason .. ".")
@@ -55,7 +55,7 @@ function Interaction.unitItem(game, kind, tile)
         sublabelColor = not ok and { 0.95, 0.35, 0.3, 1 } or nil,
         disabled = not ok,
         action = function()
-            game:submit({ type = "build", player = human.id, unit = kind, tile = tile })
+            game:submit({ type = "build", player = human.id, unit = kind, tile = tile }, { tile = tile })
         end
     }
 end
@@ -98,7 +98,7 @@ Interaction.sections[#Interaction.sections + 1] = function(game, tile, items)
             sublabel = Format.number(human.troops * human.attackRatio),
             sublabelColor = { 0.95, 0.35, 0.3, 1 },
             action = function()
-                game:submit({ type = "attack", player = human.id, target = map.owner[tile], ratio = human.attackRatio })
+                game:submit({ type = "attack", player = human.id, target = map.owner[tile], ratio = human.attackRatio }, { tile = tile })
             end
         }
     end
@@ -110,7 +110,7 @@ Interaction.sections[#Interaction.sections + 1] = function(game, tile, items)
         sublabelColor = ok and { 0.45, 0.75, 1, 1 } or { 0.95, 0.35, 0.3, 1 },
         disabled = not ok,
         action = function()
-            game:submit({ type = "boat", player = human.id, tile = tile, ratio = human.attackRatio })
+            game:submit({ type = "boat", player = human.id, tile = tile, ratio = human.attackRatio }, { tile = tile })
         end
     }
 end
@@ -367,7 +367,7 @@ function Interaction.placeBuild(game, tile)
         game:addEvent("Cannot build " .. def.label .. ": " .. reason .. ".", { color = { 0.95, 0.35, 0.3, 1 } })
         return true
     end
-    game:submit({ type = "build", player = human.id, unit = aim.kind, tile = tile })
+    game:submit({ type = "build", player = human.id, unit = aim.kind, tile = tile }, { tile = tile })
     if not love.keyboard.isDown("lshift", "rshift") then
         game.buildAim = nil
     end
@@ -391,7 +391,7 @@ function Interaction.fireAim(game, tile)
         game:addEvent("Cannot launch: " .. reason .. ".", { color = { 0.95, 0.35, 0.3, 1 } })
         return true
     end
-    game:submit({ type = "nuke", player = human.id, kind = aim.kind, tile = tile })
+    game:submit({ type = "nuke", player = human.id, kind = aim.kind, tile = tile }, { tile = tile })
     game.nukeAim = nil
     return true
 end

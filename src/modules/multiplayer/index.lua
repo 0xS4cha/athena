@@ -1,9 +1,10 @@
 local GM = require("src.core.index")
 local enet = require("enet")
 local json = require("libs.json")
-local Protocol = require("server.net.protocol")
-local NetConfig = require("server.net.config")
+local Protocol = require("src.net.protocol")
+local NetConfig = require("src.net.config")
 local Lockstep = require("src.modules.multiplayer.lockstep")
+local LocalServer = require("src.modules.multiplayer.localserver")
 
 GM.Multiplayer = {}
 
@@ -12,10 +13,8 @@ GM.Modules:Register("Multiplayer", 90)
 local ROOMS_REFRESH = 2
 local RECONNECT_DELAY = 3
 local MAX_RECONNECTS = 10
-local MAX_RESYNCS = 3
 local SESSION_FILE = "multiplayer_session.json"
 local BAD = { 0.95, 0.35, 0.3, 1 }
-local INFO = { 0.45, 0.75, 1, 1 }
 
 function GM.Multiplayer:Initialize()
     self.host = nil
@@ -32,11 +31,13 @@ function GM.Multiplayer:Initialize()
     self.error = nil
     self.handlers = {}
     self.session = self:loadSession()
-    self.resyncs = 0
     self.reconnecting = false
     self.reconnectAt = nil
     self.reconnects = 0
     self.rejoining = false
+    self.localServer = LocalServer()
+    self.isLocal = false
+    self.solo = nil
 
     self:On("welcome", function(data)
         self.id = data.id
@@ -45,6 +46,8 @@ function GM.Multiplayer:Initialize()
         if self.rejoining then
             self.rejoining = false
             self:Rejoin()
+        elseif self.solo then
+            self:CreateRoom(self.solo)
         end
         self:ListRooms()
     end)
@@ -56,6 +59,9 @@ function GM.Multiplayer:Initialize()
     self:On("error", function(data)
         self.error = data.message
         Logger:warn("multiplayer", tostring(data.message))
+        if self.solo then
+            self:abortSolo(tostring(data.message))
+        end
         if data.session == false then
             self:clearSession()
             if self.reconnecting then
@@ -64,19 +70,20 @@ function GM.Multiplayer:Initialize()
         end
     end)
     self:On("start", function(data) self:startGame(data) end)
-    self:On("turn", function(data)
+    self:On("resume", function(data) self:resumeGame(data) end)
+    self:On("frame", function(data)
         if self.lockstep then self.lockstep:receive(data) end
     end)
-    self:On("desync", function(data)
-        Logger:error("multiplayer", "Desync detected at tick " .. tostring(data.tick))
-        if not self.lockstep then return end
-        if self.resyncs < MAX_RESYNCS then
-            self.resyncs = self.resyncs + 1
-            self:notify("Desync detected at tick " .. tostring(data.tick) .. ". Resynchronizing...", INFO)
-            self:Send("resync")
-        else
-            self:notify("Desync detected again: your game no longer matches the other players.")
+    self:On("sync", function(data)
+        if self.lockstep and type(data.snapshot) == "string" then
+            self.lockstep:applySnapshot(data.tick, data.snapshot)
         end
+    end)
+    self:On("reject", function(data)
+        if self.lockstep then self.lockstep:reject(data) end
+    end)
+    self:On("control", function(data)
+        if self.lockstep then self.lockstep:applyControls(data) end
     end)
 
     self:setupAutoJoin(GM.Flags or {})
@@ -113,7 +120,9 @@ end
 
 function GM.Multiplayer:saveSession(session)
     self.session = session
-    love.filesystem.write(SESSION_FILE, json.encode(session))
+    if not session.isLocal then
+        love.filesystem.write(SESSION_FILE, json.encode(session))
+    end
 end
 
 function GM.Multiplayer:clearSession()
@@ -122,7 +131,7 @@ function GM.Multiplayer:clearSession()
 end
 
 function GM.Multiplayer:CanRejoin()
-    return self.session ~= nil and self.state == "online" and self.session.address == self.address
+    return self.session ~= nil and not self.session.isLocal and self.state == "online" and self.session.address == self.address
 end
 
 function GM.Multiplayer:On(kind, handler)
@@ -130,9 +139,10 @@ function GM.Multiplayer:On(kind, handler)
     table.insert(self.handlers[kind], handler)
 end
 
-function GM.Multiplayer:Connect(address, name)
+function GM.Multiplayer:Connect(address, name, isLocal)
     self:Disconnect()
     self.name = name or self.name
+    self.isLocal = isLocal == true
     self.address = address and address ~= "" and address or ("localhost:" .. NetConfig.port)
     if not self.address:find(":", 1, true) then
         self.address = self.address .. ":" .. NetConfig.port
@@ -162,6 +172,36 @@ function GM.Multiplayer:Disconnect()
     self.id = nil
     self.room = nil
     self.rooms = {}
+end
+
+function GM.Multiplayer:PlaySolo(settings, name)
+    self.solo = {
+        map = settings.map,
+        bots = settings.bots,
+        nations = settings.nations,
+        difficulty = settings.difficulty,
+        autoplay = settings.autoplay,
+        name = "Solo",
+        autostart = true
+    }
+    self.error = nil
+    self.lockstep = nil
+    self.localServer:Start(function(port)
+        if not self.solo then return end
+        self:Connect(NetConfig.localAddress .. ":" .. port, name, true)
+    end)
+end
+
+function GM.Multiplayer:abortSolo(reason)
+    self.solo = nil
+    self.error = reason
+    if GM.Menu and GM.Menu.CancelLaunch then
+        GM.Menu:CancelLaunch(reason)
+    end
+    if not self.lockstep then
+        self:Disconnect()
+        self.localServer:Stop()
+    end
 end
 
 function GM.Multiplayer:IsHost()
@@ -200,7 +240,9 @@ end
 
 function GM.Multiplayer:Rejoin()
     if not self.session then return false end
-    return self:Send("rejoin", { room = self.session.room, token = self.session.token })
+    local lockstep = self.lockstep
+    local lastTick = lockstep and lockstep.room == self.session.room and lockstep:lastContiguous() or nil
+    return self:Send("rejoin", { room = self.session.room, token = self.session.token, lastTick = lastTick })
 end
 
 function GM.Multiplayer:Configure(settings)
@@ -212,14 +254,30 @@ function GM.Multiplayer:LeaveRoom()
     return self:Send("leave")
 end
 
+function GM.Multiplayer:LeaveGame(lockstep)
+    if lockstep ~= self.lockstep then return end
+    self.lockstep = nil
+    self.reconnecting = false
+    self.reconnectAt = nil
+    if self.isLocal then
+        self:Disconnect()
+        self.localServer:Stop()
+        self.isLocal = false
+        self.session = nil
+    else
+        self:LeaveRoom()
+    end
+end
+
 function GM.Multiplayer:StartGame()
     return self:Send("start")
 end
 
 function GM.Multiplayer:Finished(lockstep)
     if lockstep ~= self.lockstep then return end
-    self:Send("finished")
-    self:clearSession()
+    if not self.isLocal then
+        self:clearSession()
+    end
 end
 
 function GM.Multiplayer:stopReconnecting(reason)
@@ -234,20 +292,17 @@ function GM.Multiplayer:startGame(data)
     if not settings.map or not love.filesystem.getInfo(settings.map .. "map.bin") then
         self.error = "Missing map " .. tostring(settings.map)
         self:LeaveRoom()
+        if self.solo then self:abortSolo(self.error) end
         return
     end
-    local session = self.session
-    if not (session and session.room == data.room and session.token == data.token) then
-        self.resyncs = 0
-    end
-    self:saveSession({ address = self.address, room = data.room, token = data.token, slot = data.slot })
+    self:saveSession({ address = self.address, room = data.room, token = data.token, slot = data.slot, isLocal = self.isLocal })
     self.reconnecting = false
     self.reconnectAt = nil
     self.reconnects = 0
     self.room = nil
+    self.solo = nil
 
-    local lockstep = Lockstep(self, data.hashTicks)
-    lockstep:load(data.history, data.tick)
+    local lockstep = Lockstep(self, { room = data.room, slot = data.slot, hashTicks = data.hashTicks, controls = data.controls })
     self.lockstep = lockstep
     local function launch()
         if self.lockstep ~= lockstep then return end
@@ -259,18 +314,36 @@ function GM.Multiplayer:startGame(data)
             bots = settings.bots,
             nations = settings.nations,
             difficulty = settings.difficulty,
+            autoplay = settings.autoplay,
             seed = data.seed,
             humans = data.players,
             localSlot = data.slot,
+            authority = false,
             lockstep = lockstep
         })
+        if type(data.snapshot) == "string" then
+            lockstep:applySnapshot(data.tick, data.snapshot)
+        end
     end
-    if GM.Menu and GM.Menu:active() and not GM.Menu.wipe then
-        local name = settings.map:match("([^/]+)/$") or ""
-        GM.Menu.wipe = { phase = "cover", start = love.timer.getTime(), label = name, action = launch }
+    if GM.Menu and GM.Menu:active() then
+        GM.Menu:Launch(settings.map:match("([^/]+)/$") or "", launch)
     else
         launch()
     end
+end
+
+function GM.Multiplayer:resumeGame(data)
+    local lockstep = self.lockstep
+    if not lockstep or lockstep.room ~= data.room or not lockstep.game then
+        self:Send("resync")
+        return
+    end
+    self.reconnecting = false
+    self.reconnectAt = nil
+    self.reconnects = 0
+    lockstep:applyControls(data.controls or lockstep.controls)
+    lockstep:resume(data.tick)
+    self:notify("Reconnected to the server.", { 0.3, 0.85, 0.45, 1 })
 end
 
 function GM.Multiplayer:dispatch(kind, data)
@@ -297,7 +370,15 @@ function GM.Multiplayer:onConnectionLost()
         self.error = wasOnline and "Connection to the server lost" or "Could not reach " .. tostring(address)
     end
     Logger:warn("multiplayer", self.error)
+    if self.solo then
+        self:abortSolo(self.error)
+        return
+    end
     if not self:inGame() or not self.session then return end
+    if self.isLocal and not self.localServer:Running() then
+        self:notify("The local game server stopped.")
+        return
+    end
     if self.reconnects < MAX_RECONNECTS then
         if not self.reconnecting then
             self:notify("Connection to the server lost. Reconnecting...")
@@ -311,6 +392,10 @@ function GM.Multiplayer:onConnectionLost()
 end
 
 function GM.Multiplayer:Think()
+    self.localServer:Update()
+    if self.solo and self.localServer.state == "failed" then
+        self:abortSolo(self.localServer.error or "The local game server failed to start")
+    end
     local now = love.timer.getTime()
     if not self.host then
         if self.reconnecting and not self:inGame() then
@@ -320,7 +405,7 @@ function GM.Multiplayer:Think()
         if self.reconnectAt and now >= self.reconnectAt and self.session then
             self.reconnectAt = nil
             self.rejoining = true
-            self:Connect(self.session.address, self.name)
+            self:Connect(self.session.address, self.name, self.session.isLocal)
         end
         return
     end
@@ -347,4 +432,9 @@ function GM.Multiplayer:Think()
         if not self.host then return end
         event = self.host:service(0)
     end
+end
+
+function GM.Multiplayer:Shutdown()
+    self:Disconnect()
+    self.localServer:Stop()
 end

@@ -59,14 +59,24 @@ end
 function Clock.mousePressed(hud, mx, my, button, x, y)
     if button ~= 1 then return end
     local game = hud:game()
-    if game.lockstep then return end
+    local lockstep = game.lockstep
+    if lockstep and not lockstep:canControl() then return end
     local pause, speeds = layout(x, y)
     if Style.inside(mx, my, pause.x, pause.y, pause.w, pause.h) then
-        game.paused = not game.paused
+        if lockstep then
+            lockstep:control(not game.paused, nil)
+        else
+            game.paused = not game.paused
+        end
     elseif Style.inside(mx, my, speeds.x, speeds.y, speeds.w, speeds.h) then
         local count = #Config.speeds
-        game.speedIndex = math.max(1, math.min(count, math.floor((mx - speeds.x) / (speeds.w / count)) + 1))
-        game.paused = false
+        local speed = math.max(1, math.min(count, math.floor((mx - speeds.x) / (speeds.w / count)) + 1))
+        if lockstep then
+            lockstep:control(false, speed)
+        else
+            game.speedIndex = speed
+            game.paused = false
+        end
     end
 end
 

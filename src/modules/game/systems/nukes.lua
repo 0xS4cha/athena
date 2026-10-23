@@ -2,6 +2,8 @@ local Config = require("src.config.game")
 local Units = require("src.modules.game.systems.units")
 local Vision = require("src.modules.game.systems.vision")
 
+local function sq(v) return v * v end
+
 local Nukes = {}
 
 function Nukes.init(game)
@@ -15,7 +17,7 @@ function Nukes.readySilo(game, player, tile)
     local best, bestD
     for _, unit in ipairs(game.units) do
         if unit.kind == "silo" and unit.owner == player and unit.buildLeft == 0 and unit.cooldown == 0 and not unit.dead then
-            local d = (unit.x - x) ^ 2 + (unit.y - y) ^ 2
+            local d = sq(unit.x - x) + sq(unit.y - y)
             if not bestD or d < bestD then
                 best, bestD = unit, d
             end
@@ -97,7 +99,7 @@ function Nukes.preview(game, player, kind, tile)
     end
     result.silo = silo
     if silo then
-        local distance = math.sqrt((cx - silo.x) ^ 2 + (cy - silo.y) ^ 2)
+        local distance = math.sqrt(sq(cx - silo.x) + sq(cy - silo.y))
         result.flight = math.max(15, math.floor(distance / def.speed)) / Config.tickRate
     end
     local function tally(i, chance)
@@ -144,7 +146,7 @@ function Nukes.preview(game, player, kind, tile)
         end)
         local r2 = def.outer * def.outer
         for _, unit in ipairs(game.units) do
-            if not unit.dead and unit.kind ~= "nuke" and Units.isBuilding(unit.kind) and (unit.x - cx) ^ 2 + (unit.y - cy) ^ 2 <= r2 and knownTo(game, player, unit) then
+            if not unit.dead and unit.kind ~= "nuke" and Units.isBuilding(unit.kind) and sq(unit.x - cx) + sq(unit.y - cy) <= r2 and knownTo(game, player, unit) then
                 if unit.owner:isFriendly(player) then
                     result.friendlyBuildings = result.friendlyBuildings + 1
                 else
@@ -157,7 +159,7 @@ function Nukes.preview(game, player, kind, tile)
     local range = Config.units.sam.range
     for _, unit in ipairs(game.units) do
         if unit.kind == "sam" and not unit.dead and unit.buildLeft == 0 and not unit.owner:isFriendly(player)
-            and (unit.x - cx) ^ 2 + (unit.y - cy) ^ 2 <= range * range and knownTo(game, player, unit) then
+            and sq(unit.x - cx) + sq(unit.y - cy) <= range * range and knownTo(game, player, unit) then
             result.sams[#result.sams + 1] = unit
         end
     end
@@ -171,7 +173,7 @@ function Nukes.spawn(game, player, kind, fromX, fromY, tile)
     local def = Config.nukes[kind]
     local tx, ty = map:coords(tile)
     tx, ty = tx + 0.5, ty + 0.5
-    local distance = math.sqrt((tx - fromX) ^ 2 + (ty - fromY) ^ 2)
+    local distance = math.sqrt(sq(tx - fromX) + sq(ty - fromY))
     local unit = Units.add(game, player, "nuke", tile, {
         nukeKind = kind,
         fromX = fromX,
@@ -210,8 +212,8 @@ function Nukes.interceptor(game, nuke)
     for _, unit in ipairs(game.units) do
         if unit.kind == "sam" and unit.buildLeft == 0 and unit.cooldown == 0 and not unit.dead
             and unit.owner ~= nuke.owner and not unit.owner:isAlliedWith(nuke.owner) then
-            local dn = (unit.x - nuke.x) ^ 2 + (unit.y - nuke.y) ^ 2
-            local dt = (unit.x - nuke.toX) ^ 2 + (unit.y - nuke.toY) ^ 2
+            local dn = sq(unit.x - nuke.x) + sq(unit.y - nuke.y)
+            local dt = sq(unit.x - nuke.toX) + sq(unit.y - nuke.toY)
             if dn <= r2 and dt <= r2 then
                 return unit
             end
@@ -305,7 +307,7 @@ function Nukes.detonate(game, attacker, cx, cy, def)
 
     local r2 = def.outer * def.outer
     for _, unit in ipairs(game.units) do
-        if not unit.dead and unit.kind ~= "nuke" and (unit.x - cx) ^ 2 + (unit.y - cy) ^ 2 <= r2 then
+        if not unit.dead and unit.kind ~= "nuke" and sq(unit.x - cx) + sq(unit.y - cy) <= r2 then
             Units.remove(game, unit)
         end
     end

@@ -24,15 +24,17 @@ local FULL_POPULATION = 0.98
 local flashes = {}
 
 local function sliders(hud)
-    local human = hud:game().human
+    local game = hud:game()
+    local human = game.human
+    local troopRatio = game.lockstep and game.lockstep:pendingField("troopRatio", "ratio") or human.troopRatio
     return {
         {
             id = "troops",
             label = "Troops / Workers",
-            value = human.troopRatio,
+            value = troopRatio,
             color = Style.colors.troops,
-            set = function(v) hud:game():submit({ type = "troopRatio", player = human.id, ratio = v }) end,
-            text = string.format("%d%% / %d%%", math.floor(human.troopRatio * 100 + 0.5), 100 - math.floor(human.troopRatio * 100 + 0.5))
+            set = function(v) game:submit({ type = "troopRatio", player = human.id, ratio = v }) end,
+            text = string.format("%d%% / %d%%", math.floor(troopRatio * 100 + 0.5), 100 - math.floor(troopRatio * 100 + 0.5))
         },
         {
             id = "attack",

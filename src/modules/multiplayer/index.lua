@@ -46,6 +46,7 @@ function GM.Multiplayer:Initialize()
     self.pendingJoin = nil
     self.pings = {}
     self.slotPings = {}
+    self.password = nil
 
     self:On("welcome", function(data)
         self.id = data.id
@@ -64,8 +65,12 @@ function GM.Multiplayer:Initialize()
     end)
     self:On("rooms", function(data) self.rooms = data.rooms or {} end)
     self:On("room", function(data)
+        local fresh = not self.room or self.room.id ~= data.id
         self.room = data
         self.error = nil
+        if fresh then
+            self:SendProfile()
+        end
         if self.solo and not self.solo.autostart then
             self.solo = nil
         end
@@ -97,6 +102,10 @@ function GM.Multiplayer:Initialize()
     end)
     self:On("reject", function(data)
         if self.lockstep then self.lockstep:reject(data) end
+    end)
+    self:On("kicked", function()
+        self.room = nil
+        self.error = "You were kicked from the room"
     end)
     self:On("pings", function(data)
         self.pings, self.slotPings = {}, {}
@@ -238,8 +247,9 @@ function GM.Multiplayer:HostLan(settings, name)
     end, true)
 end
 
-function GM.Multiplayer:JoinLan(game, name)
+function GM.Multiplayer:JoinLan(game, name, password)
     self.pendingJoin = game.room
+    self.password = password
     self:Connect(game.address, name)
 end
 
@@ -324,8 +334,40 @@ function GM.Multiplayer:CreateRoom(settings)
     return self:Send("create", settings)
 end
 
-function GM.Multiplayer:JoinRoom(id)
-    return self:Send("join", { id = id })
+function GM.Multiplayer:JoinRoom(id, password)
+    return self:Send("join", { id = id, password = password or self.password })
+end
+
+function GM.Multiplayer:SendProfile()
+    local settings = GM.Menu and GM.Menu.settings or {}
+    local color = (settings.color or 0) > 0 and settings.color or nil
+    local flag = settings.flag ~= "" and settings.flag or nil
+    return self:Send("profile", { color = color, flag = flag })
+end
+
+function GM.Multiplayer:SetReady(ready)
+    return self:Send("ready", { ready = ready })
+end
+
+function GM.Multiplayer:Kick(id)
+    return self:Send("kick", { id = id })
+end
+
+function GM.Multiplayer:Me()
+    for _, player in ipairs(self.room and self.room.players or {}) do
+        if player.id == self.id then return player end
+    end
+end
+
+function GM.Multiplayer:AllReady()
+    local count, ready = 0, 0
+    for _, player in ipairs(self.room and self.room.players or {}) do
+        if player.id ~= self.room.host then
+            count = count + 1
+            if player.ready then ready = ready + 1 end
+        end
+    end
+    return ready == count, ready, count
 end
 
 function GM.Multiplayer:Rejoin()

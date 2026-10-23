@@ -12,7 +12,7 @@ GM.Menu = {}
 GM.Modules:Register("Menu", 90)
 
 local CONFIG_FILE = "menu_config.txt"
-local SETTING_KEYS = { "map", "bots", "nations", "difficulty", "lan", "name", "server", "fullscreen", "vsync", "background", "battleSpeed", "particles", "advancedEvents" }
+local SETTING_KEYS = { "map", "bots", "nations", "difficulty", "lan", "name", "color", "flag", "server", "fullscreen", "vsync", "background", "battleSpeed", "particles", "advancedEvents" }
 local SWITCH_IN = 0.6
 local SWITCH_OUT = 0.22
 local WIPE_SECONDS = 0.65
@@ -42,6 +42,8 @@ function GM.Menu:Initialize()
         difficulty = "medium",
         lan = false,
         name = "Player",
+        color = 0,
+        flag = "",
         server = "localhost:6789",
         fullscreen = false,
         vsync = false,

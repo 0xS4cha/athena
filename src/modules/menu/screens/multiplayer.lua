@@ -3,6 +3,7 @@ local Style = require("src.modules.hud.style")
 local Fx = require("src.modules.hud.fx")
 local UI = require("src.modules.hud.pixel")
 local Play = require("src.modules.menu.screens.play")
+local Palette = require("src.modules.player.palette")
 
 local Multiplayer = { id = "multiplayer" }
 
@@ -14,7 +15,8 @@ local DIFFICULTIES = { "easy", "medium", "hard" }
 local DIFFICULTY_LABELS = { "Easy", "Medium", "Hard" }
 local FIELDS = {
     name = { limit = 24, pattern = "^[%w%s%-_%.']$" },
-    server = { limit = 64, pattern = "^[%w%.%-:]$" }
+    server = { limit = 64, pattern = "^[%w%.%-:]$" },
+    flag = { limit = 24, pattern = "^[%w%-]$" }
 }
 
 local function net()
@@ -73,6 +75,78 @@ local function fieldHandler(menu, field)
     end
 end
 
+local function passwordHandler(menu)
+    return function(_, text)
+        local value = menu.password or ""
+        if text then
+            if #value < 24 and text:match("^[%w%-_%.!@#%$%%%^&%*]$") then
+                menu.password = value .. text
+            end
+        else
+            menu.password = value:sub(1, -2)
+        end
+    end
+end
+
+local function colorFor(player, slot)
+    return player.color and Palette.choices[player.color] or Palette.color(slot)
+end
+
+local function chipLabel(mp, player)
+    local ping = mp.pings[player.id]
+    return player.name .. (player.id == mp.id and " (you)" or "") .. (ping and string.format("  %dms", ping) or "")
+end
+
+local function chipLayout(mp, x, y)
+    local u = UI.unit
+    local list = {}
+    local font = Style.font(11)
+    for k, player in ipairs(mp.room and mp.room.players or {}) do
+        local label = chipLabel(mp, player)
+        local icon = player.id == mp.room.host and "Trophy.png" or (player.ready and "Unlocked.png" or "Locked.png")
+        local h = font:getHeight() + u * 3
+        local w = font:getWidth(label) + u * 6 + (h - u * 4) + u * 2
+        list[#list + 1] = { player = player, slot = k, label = label, icon = icon, x = x, y = y, w = w, h = h }
+        x = x + w + (player.flag and 18 or 0) + u * 3
+    end
+    return list
+end
+
+local function cycleColor(menu)
+    local mp = net()
+    local taken = {}
+    for _, player in ipairs(mp.room.players or {}) do
+        if player.id ~= mp.id and player.color then taken[player.color] = true end
+    end
+    local color = menu.settings.color or 0
+    for _ = 1, #Palette.choices + 1 do
+        color = (color + 1) % (#Palette.choices + 1)
+        if color == 0 or not taken[color] then break end
+    end
+    menu.settings.color = color
+    menu:saveSettings()
+    mp:SendProfile()
+end
+
+local function clickPlayers(menu, x, y, mx)
+    local mp = net()
+    for _, chip in ipairs(chipLayout(mp, x, y)) do
+        if mx >= chip.x and mx < chip.x + chip.w then
+            if chip.player.id == mp.id then
+                cycleColor(menu)
+            elseif mp:IsHost() then
+                mp:Kick(chip.player.id)
+            end
+            return
+        end
+    end
+end
+
+local function toggleReady()
+    local me = net():Me()
+    if me then net():SetReady(not me.ready) end
+end
+
 local function searchHandler(menu)
     return function(_, text)
         if text then
@@ -105,13 +179,14 @@ end
 local function joinSelected(menu)
     local room = selectedRoom(menu)
     if room then
-        net():JoinRoom(room.id)
+        net():JoinRoom(room.id, menu.password)
     end
 end
 
 local function createRoom(menu)
     local settings = hostSettings(menu)
     settings.name = (menu.settings.name ~= "" and menu.settings.name or "Player") .. "'s game"
+    settings.password = menu.password
     menu.hostRoom = nil
     net():CreateRoom(settings)
 end
@@ -186,6 +261,21 @@ function Multiplayer.build(menu)
         })
         add({ id = "name", x = cx, y = cy + 22, w = half, h = 42, press = function() menu.editing = "name" end, text = fieldHandler(menu, "name") })
         add({ id = "server", x = cx + half + 24, y = cy + 22, w = cw - half - 24, h = 42, press = function() menu.editing = "server" end, text = fieldHandler(menu, "server") })
+        local count = #Palette.choices + 1
+        add({
+            id = "color", x = cx, y = cy + 106, w = half, h = 34,
+            press = function(_, mx)
+                if not mx then
+                    menu.settings.color = (menu.settings.color + 1) % count
+                else
+                    menu.settings.color = Fx.clamp(math.floor((mx - cx) / (half / count)), 0, count - 1)
+                end
+                menu:saveSettings()
+            end,
+            left = function() menu.settings.color = (menu.settings.color - 1) % count end,
+            right = function() menu.settings.color = (menu.settings.color + 1) % count end
+        })
+        add({ id = "flag", x = cx + half + 24, y = cy + 106, w = cw - half - 24, h = 34, press = function() menu.editing = "flag" end, text = fieldHandler(menu, "flag") })
         add({ id = "connect", x = cx, y = cy + 222, w = cw, h = 58, press = function() connect(menu) end })
     elseif current == "browse" then
         add({
@@ -193,6 +283,7 @@ function Multiplayer.build(menu)
             press = function(_, _, my) Multiplayer.clickRoom(menu, my) end,
             up = function() moveRoom(menu, -1) end, down = function() moveRoom(menu, 1) end
         })
+        add({ id = "password", x = cx + half + 24, y = cy + 22, w = cw - half - 24, h = 40, press = function() menu.editing = "password" end, text = passwordHandler(menu) })
         add({ id = "refresh", x = cx, y = cy + 90, w = half, h = 44, press = function() net():ListRooms() end })
         add({ id = "disconnect", x = cx + half + 24, y = cy + 90, w = cw - half - 24, h = 44, press = function() net():Disconnect() end })
         if net():CanRejoin() then
@@ -247,9 +338,12 @@ function Multiplayer.build(menu)
             left = editable(menu, function() s.bots = math.max(0, s.bots - 10) end),
             right = editable(menu, function() s.bots = math.min(MAX_BOTS, s.bots + 10) end)
         })
+        add({ id = "players", x = cx, y = cy + 24, w = cw, h = 24, nav = false, press = function(_, mx) clickPlayers(menu, cx, cy + 24, mx) end })
         local third = math.floor((cw - 24) / 3)
         add({ id = "leave", x = cx, y = cy + 222, w = third, h = 58, press = function() net():LeaveRoom() end })
-        add({ id = "start", x = cx + third + 24, y = cy + 222, w = cw - third - 24, h = 58, press = function() net():StartGame() end })
+        add({ id = "start", x = cx + third + 24, y = cy + 222, w = cw - third - 24, h = 58, press = function()
+            if net():IsHost() then net():StartGame() else toggleReady() end
+        end })
     end
     return elements
 end
@@ -259,7 +353,7 @@ function Multiplayer.clickLan(menu, my)
     local game = net():LanGames()[math.floor((my - l.rows.y) / ROW) + 1]
     if not game then return end
     menu:saveSettings()
-    net():JoinLan(game, menu.settings.name ~= "" and menu.settings.name or "Player")
+    net():JoinLan(game, menu.settings.name ~= "" and menu.settings.name or "Player", menu.password)
 end
 
 function Multiplayer.clickRoom(menu, my)
@@ -346,7 +440,34 @@ local function drawConnect(menu, elements, l)
     local server = find(elements, "server")
     UI.text("SERVER", server.x, server.y - 22, 11, UI.colors.muted)
     UI.field("server", server.x, server.y, server.w, server.h, s.server, { editing = menu.editing == "server", hot = menu.focus == "server", icon = "Monitor.png", placeholder = "localhost:6789" })
-    drawStatus(menu, name.x, name.y + 70)
+
+    local u = UI.unit
+    local color = find(elements, "color")
+    UI.text("COLOR", color.x, color.y - 22, 11, UI.colors.muted)
+    local count = #Palette.choices + 1
+    local cell = color.w / count
+    for k = 0, count - 1 do
+        local x0 = math.floor(color.x + k * cell)
+        local x1 = math.floor(color.x + (k + 1) * cell) - u
+        local selected = (s.color or 0) == k
+        UI.color(selected and UI.colors.gold or UI.colors.ink, selected and 1 or 0.85)
+        UI.block(x0, color.y, x1 - x0, color.h, u)
+        if k == 0 then
+            UI.color(UI.colors.raised)
+            UI.block(x0 + u, color.y + u, x1 - x0 - 2 * u, color.h - 2 * u, u)
+            UI.text("A", x0 + math.floor((x1 - x0) / 2) - 3, color.y + 8, 11, UI.colors.muted)
+        else
+            UI.color(Palette.choices[k])
+            UI.block(x0 + u, color.y + u, x1 - x0 - 2 * u, color.h - 2 * u, u)
+        end
+    end
+    local flag = find(elements, "flag")
+    UI.text("FLAG (COUNTRY CODE)", flag.x, flag.y - 22, 11, UI.colors.muted)
+    UI.field("flag", flag.x, flag.y, flag.w, flag.h, s.flag, { editing = menu.editing == "flag", hot = menu.focus == "flag", icon = "Pencil.png", placeholder = "fr, us, jp...", size = 13 })
+    if s.flag ~= "" then
+        Style.flag(s.flag, flag.x + flag.w - 34, flag.y + 5, 24)
+    end
+    drawStatus(menu, name.x, name.y + 134)
 
     local button = find(elements, "connect")
     local connecting = net().state == "connecting"
@@ -366,6 +487,11 @@ local function drawBrowse(menu, elements, l, e)
         UI.text(#mp.rooms == 0 and "No open room yet. Create one!" or "Unknown map", l.preview.x + 12, l.preview.y + 12, 14, UI.colors.muted)
     end
 
+    local password = find(elements, "password")
+    UI.text("ROOM PASSWORD", password.x, password.y - 22, 11, UI.colors.muted)
+    UI.field("password", password.x, password.y, password.w, password.h, string.rep("*", #(menu.password or "")), {
+        editing = menu.editing == "password", hot = menu.focus == "password", icon = "Key.png", placeholder = "Optional", size = 13
+    })
     local refresh = find(elements, "refresh")
     UI.text(string.format("Connected to %s as %s", tostring(mp.address), mp.name), refresh.x, refresh.y - 66, 12, UI.colors.muted)
     drawStatus(menu, refresh.x, refresh.y - 42)
@@ -406,14 +532,33 @@ local function drawLobby(menu, elements, l, e)
     local nations = find(elements, "nations")
     local players = room.players or {}
     UI.text(string.format("PLAYERS  %d / %d", #players, room.max or #players), nations.x, nations.y - 88, 11, UI.colors.muted)
-    local px = nations.x
-    for _, player in ipairs(players) do
-        local ping = mp.pings[player.id]
-        local label = player.name .. (player.id == mp.id and " (you)" or "") .. (ping and string.format("  %dms", ping) or "")
-        local w = UI.chip(px, nations.y - 66, label, player.id == room.host and "Trophy.png" or "Team.png", player.id == room.host and UI.colors.gold or nil)
-        px = px + w + u * 3
+    local area = find(elements, "players")
+    local mx, my = love.mouse.getPosition()
+    local hint
+    for _, chip in ipairs(chipLayout(mp, area.x, area.y)) do
+        local player = chip.player
+        local isHost = player.id == room.host
+        local textColor = isHost and UI.colors.gold or (player.ready and UI.colors.good or UI.colors.text)
+        UI.chip(chip.x, chip.y, chip.label, chip.icon, textColor)
+        local c = colorFor(player, chip.slot)
+        UI.color(c)
+        love.graphics.rectangle("fill", chip.x + u, chip.y + chip.h, chip.w - 2 * u, u)
+        if player.flag then
+            Style.flag(player.flag, chip.x + chip.w + 3, chip.y + 3, 13)
+        end
+        if mx >= chip.x and mx < chip.x + chip.w and my >= chip.y and my < chip.y + chip.h then
+            if player.id == mp.id then
+                hint = "Click to change your color"
+            elseif host then
+                hint = "Click to kick " .. player.name
+            end
+        end
     end
-    drawStatus(menu, nations.x, nations.y - 34)
+    if hint then
+        UI.text(hint, nations.x, nations.y - 34, 12, UI.colors.troops)
+    else
+        drawStatus(menu, nations.x, nations.y - 34)
+    end
 
     local nationCount = map and #(map.manifest.nations or {}) or 0
     UI.text("NATIONS", nations.x, nations.y - 22, 11, UI.colors.muted)
@@ -439,9 +584,18 @@ local function drawLobby(menu, elements, l, e)
     local leave = find(elements, "leave")
     UI.button("leave", leave.x, leave.y, leave.w, leave.h, "LEAVE", { hot = menu.focus == "leave", icon = "Exit.png", size = 16, color = UI.colors.bad })
     local start = find(elements, "start")
-    UI.button("start", start.x, start.y, start.w, start.h, host and "START GAME" or "WAITING FOR HOST", {
-        hot = menu.focus == "start", primary = host, disabled = not host, size = 20, icon = "Play.png", hint = host and "ENTER" or nil
-    })
+    if host then
+        local all, ready, count = mp:AllReady()
+        UI.button("start", start.x, start.y, start.w, start.h, all and "START GAME" or string.format("WAITING  %d/%d READY", ready, count), {
+            hot = menu.focus == "start", primary = all, disabled = not all, size = 20, icon = "Play.png", hint = all and "ENTER" or nil
+        })
+    else
+        local me = mp:Me()
+        local ready = me and me.ready
+        UI.button("start", start.x, start.y, start.w, start.h, ready and "READY  -  WAITING FOR HOST" or "I'M READY", {
+            hot = menu.focus == "start", primary = not ready, size = 18, icon = ready and "Unlocked.png" or "Locked.png", hint = "ENTER", color = ready and UI.colors.good or nil
+        })
+    end
 end
 
 function Multiplayer.draw(menu, elements, p)
@@ -491,7 +645,7 @@ function Multiplayer.draw(menu, elements, p)
         UI.text("OPEN ROOMS", l.list.x + 16, l.list.y + 24, 13, UI.colors.muted)
         local rows = {}
         for _, room in ipairs(mp.rooms) do
-            rows[#rows + 1] = { label = room.name, icon = "Home.png", detail = string.format("%d/%d", room.players, room.max) }
+            rows[#rows + 1] = { label = room.name, icon = room.locked and "Locked.png" or "Home.png", detail = string.format("%d/%d", room.players, room.max) }
         end
         drawRows(menu, l, e, rows, menu.roomIndex)
         if #rows == 0 then
@@ -541,6 +695,8 @@ function Multiplayer.keyPressed(menu, key)
             joinSelected(menu)
         elseif net():IsHost() then
             net():StartGame()
+        else
+            toggleReady()
         end
         return true
     end

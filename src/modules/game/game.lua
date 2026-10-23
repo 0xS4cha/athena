@@ -67,7 +67,8 @@ function Game:init(options)
     local humans = self.options.humans or { { name = self.options.playerName or "Player", flag = self.options.playerFlag } }
     local localSlot = self.options.localSlot or (not self.headless and 1 or nil)
     for slot, human in ipairs(humans) do
-        local player = self:addPlayer(human.name or "Player", "human", human.flag, slot ~= localSlot and Palette.color(slot) or nil)
+        local chosen = human.color and Palette.choices[human.color]
+        local player = self:addPlayer(human.name or "Player", "human", human.flag, chosen or (slot ~= localSlot and Palette.color(slot) or nil))
         if slot == localSlot then
             self.human = player
         end

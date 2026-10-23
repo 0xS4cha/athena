@@ -11,6 +11,12 @@ local Room = Class()
 
 local DIFFICULTIES = { easy = true, medium = true, hard = true }
 local DEFAULT_MAP = GameConfig.defaultMap
+local COLORS = #require("src.modules.player.palette").choices
+
+local function password(value)
+    if type(value) ~= "string" or value == "" then return nil end
+    return value:sub(1, 24)
+end
 local RESYNC_COOLDOWN = 5
 
 local function sanitize(settings)
@@ -33,6 +39,7 @@ function Room:init(id, host, settings)
     self.id = id
     self.name = type(settings) == "table" and type(settings.name) == "string" and settings.name:sub(1, 32) or (host.name .. "'s game")
     self.settings = sanitize(settings)
+    self.password = type(settings) == "table" and password(settings.password) or nil
     self.host = host
     self.members = {}
     self.slots = {}
@@ -56,14 +63,15 @@ function Room:Summary()
         state = self.state,
         map = self.settings.map,
         players = #self.members,
-        max = Config.maxRoomPlayers
+        max = Config.maxRoomPlayers,
+        locked = self.password ~= nil
     }
 end
 
 function Room:Info()
     local players = {}
     for _, client in ipairs(self.members) do
-        players[#players + 1] = { id = client.id, name = client.name }
+        players[#players + 1] = { id = client.id, name = client.name, ready = client.ready == true, color = client.color, flag = client.flag }
     end
     return {
         id = self.id,
@@ -72,7 +80,8 @@ function Room:Info()
         host = self.host and self.host.id,
         settings = self.settings,
         players = players,
-        max = Config.maxRoomPlayers
+        max = Config.maxRoomPlayers,
+        locked = self.password ~= nil
     }
 end
 
@@ -102,16 +111,72 @@ function Room:attach(client)
     self.emptySince = nil
 end
 
-function Room:Add(client)
+function Room:Add(client, given)
     if self.state ~= "lobby" then
         return false, "Game already started"
     end
     if #self.members >= Config.maxRoomPlayers then
         return false, "Room is full"
     end
+    if self.password and given ~= self.password and client ~= self.host then
+        return false, "Wrong password"
+    end
+    client.ready = false
+    if client.color and self:colorTaken(client.color, client) then
+        client.color = nil
+    end
     self:attach(client)
     self:Broadcast("room", self:Info())
     return true
+end
+
+function Room:colorTaken(color, except)
+    for _, member in ipairs(self.members) do
+        if member ~= except and member.color == color then return true end
+    end
+    return false
+end
+
+function Room:Profile(client, data)
+    if self.state ~= "lobby" or type(data) ~= "table" then return false end
+    local color = tonumber(data.color)
+    if color then
+        color = math.floor(color)
+        if color < 1 or color > COLORS then
+            color = nil
+        elseif self:colorTaken(color, client) then
+            return false, "This color is already taken"
+        end
+    end
+    local flag = type(data.flag) == "string" and data.flag:lower():sub(1, 32) or ""
+    client.color = color
+    client.flag = flag:match("^[%w%-]+$") and flag or nil
+    self:Broadcast("room", self:Info())
+    return true
+end
+
+function Room:SetReady(client, ready)
+    if self.state ~= "lobby" then return end
+    client.ready = ready == true
+    self:Broadcast("room", self:Info())
+end
+
+function Room:Kick(client, id)
+    if client ~= self.host then
+        return false, "Only the host can kick players"
+    end
+    if self.state ~= "lobby" then
+        return false, "Game already started"
+    end
+    for _, member in ipairs(self.members) do
+        if member.id == id and member ~= client then
+            self:Remove(member)
+            member:Send("kicked", { room = self.id })
+            Logger:info("room", string.format("Room %s host kicked %s", self.id, tostring(member.name)))
+            return true
+        end
+    end
+    return false, "Player not found"
 end
 
 function Room:Remove(client)
@@ -165,7 +230,7 @@ end
 function Room:players()
     local players = {}
     for slot, entry in ipairs(self.slots) do
-        players[slot] = { name = entry.name }
+        players[slot] = { name = entry.name, color = entry.color, flag = entry.flag }
     end
     return players
 end
@@ -234,10 +299,15 @@ function Room:Start(client)
     if self.state ~= "lobby" then
         return false, "Game already started"
     end
+    for _, member in ipairs(self.members) do
+        if member ~= self.host and not member.ready then
+            return false, "Waiting for every player to be ready"
+        end
+    end
     self.seed = math.random(1, 2147483646)
     for slot, member in ipairs(self.members) do
         member.slot = slot
-        self.slots[slot] = { name = member.name, token = UUID.getUUID(), client = member }
+        self.slots[slot] = { name = member.name, color = member.color, flag = member.flag, token = UUID.getUUID(), client = member }
     end
     local ok, game = pcall(Game, {
         map = self.settings.map,

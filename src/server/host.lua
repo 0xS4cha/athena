@@ -51,9 +51,9 @@ function Host:leaveRoom(client)
     self:closeExpired(room)
 end
 
-function Host:joinRoom(client, room)
+function Host:joinRoom(client, room, password)
     self:leaveRoom(client)
-    local ok, err = room:Add(client)
+    local ok, err = room:Add(client, password)
     if not ok then
         client:Send("error", { message = err })
     end
@@ -104,7 +104,31 @@ function Host:bind()
             client:Send("error", { message = "Room not found" })
             return
         end
-        self:joinRoom(client, room)
+        self:joinRoom(client, room, data.password)
+    end)
+
+    server:On("ready", function(client, data)
+        if client.room and type(data) == "table" then
+            client.room:SetReady(client, data.ready)
+        end
+    end)
+
+    server:On("profile", function(client, data)
+        if client.room then
+            local ok, err = client.room:Profile(client, data)
+            if not ok and err then
+                client:Send("error", { message = err })
+            end
+        end
+    end)
+
+    server:On("kick", function(client, data)
+        if client.room and type(data) == "table" then
+            local ok, err = client.room:Kick(client, data.id)
+            if not ok then
+                client:Send("error", { message = err })
+            end
+        end
     end)
 
     server:On("leave", function(client)

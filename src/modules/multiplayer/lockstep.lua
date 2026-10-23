@@ -176,7 +176,6 @@ function Lockstep:applySnapshot(tick, data)
     local human = game.players[self.slot]
     if human then
         game.human = human
-        human:setColor(Palette.human)
     end
     game.renderer:repaintAll()
     if game.renderer.idData then

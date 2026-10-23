@@ -105,6 +105,12 @@ Athena mixes an authoritative tick-lockstep with snapshots. The server owns the 
 
 Turn on **Open to LAN** in New Game and press **Host LAN game**: the local server then listens on your network (UDP 6789) and announces the room every second with a UDP broadcast on port 6788. You land in the lobby, pick the map and start once your friends are in. On the other computers, the **Multiplayer** screen lists the LAN games it hears about; click one to join it directly.
 
+### Lobby
+
+- Pick your color and flag (a country code such as `fr` or `jp`) on the Multiplayer screen; they are used in the lobby and in game. Colors are unique within a room, and clicking your own player chip in the lobby cycles to the next free color.
+- Rooms can be protected by a password typed before creating or joining them; locked rooms show a padlock.
+- Every guest marks themselves ready; the host can only start once everyone is ready, and can kick a player by clicking their chip.
+
 ### Dedicated server
 
 ```bash

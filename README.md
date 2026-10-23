@@ -204,6 +204,19 @@ love . --ci --autoplay --ticks 6000 --seed 42 --screenshot shot.png
       └─ hud/                   # Style, context menu, panels
 ```
 
+## Builds
+
+```bash
+make build            # Windows, macOS and Linux
+make build-windows    # or build-macos / build-linux for a single platform
+```
+
+The Makefile downloads [love-build](https://github.com/ellraiser/love-build) for the machine you run it on (macOS or Linux) and writes `Athena-windows.zip` (`Athena.exe`), `Athena-macos.zip` (`Athena.app`, unsigned), `Athena-linux.zip` and `Athena.love` to `dist/<version>/`. Development files (tests, Docker and build tooling) are left out of the packages through the `ignore` list of `build.lua`.
+
+Every packaged game is also a dedicated server: run it with `--server --port 6789` (for example `Athena.exe --server`).
+
+The **Builds** workflow packages every push to `main` and uploads the three archives as workflow artifacts. Pushing a `v*` tag also attaches them to a GitHub release.
+
 ## Tests
 
 ```bash

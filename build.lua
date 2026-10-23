@@ -5,9 +5,11 @@ return {
   love = '11.5',
   output = 'dist',
   icon = 'assets/icon.png',
-  platforms = {'linux'},
+  identifier = 'com.athena.game',
+  platforms = {'windows', 'macos', 'linux'},
   ignore = {
-    "^lib/.*",
-    "^tests/.*",
+    'dist', 'build', 'tests', 'love-build', 'lib',
+    'Makefile', 'Dockerfile', '.dockerignore', '.env', '.env.example', '.luarc.json',
+    'build.lua', 'CODE_OF_CONDUCT.md', 'appimagetool.AppImage', 'athena', 'athena_server'
   }
 }

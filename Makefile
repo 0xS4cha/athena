@@ -1,14 +1,22 @@
 PROJECT_NAME ?= athena
-APP_NAME := $(shell grep -oP "name\s*=\s*'\K[^']+" build.lua)
+APP_NAME := $(shell sed -n "s/^ *name *= *'\([^']*\)'.*/\1/p" build.lua | head -n 1)
 LOVE_VERSION ?= 11.5
+LOVE_BUILD_VERSION ?= 1.0
 BUILD_TOOL_DIR ?= love-build
+UNAME := $(shell uname -s)
+ifeq ($(UNAME),Darwin)
+LOVE_BUILD_OS := macos
+BUILD_TOOL ?= $(BUILD_TOOL_DIR)/love-build.app/Contents/MacOS/love
+else
+LOVE_BUILD_OS := linux
 BUILD_TOOL ?= $(BUILD_TOOL_DIR)/AppRun
+endif
 APPIMAGETOOL ?= appimagetool.AppImage
 SERVER_NAME ?= athena_server
 SERVER_DIR ?= server
 DIST_DIR ?= dist
 BUILD_DIR ?= build
-VERSION := $(shell grep -oP "version\s*=\s*'\K[^']+" build.lua)
+VERSION := $(shell sed -n "s/^ *version *= *'\([^']*\)'.*/\1/p" build.lua | head -n 1)
 MAIN_LUA := $(shell find . -maxdepth 1 -name "main.lua" | head -n 1)
 ifeq ($(MAIN_LUA),)
 $(error "main.lua unknow")
@@ -20,15 +28,19 @@ build: $(BUILD_TOOL)
 	@mkdir -p $(DIST_DIR)
 	@$(BUILD_TOOL) $(abspath $(MAIN_LUA))
 
+build-windows build-macos build-linux: $(BUILD_TOOL)
+	@mkdir -p $(DIST_DIR)
+	@$(BUILD_TOOL) $(abspath $(MAIN_LUA)) $(@:build-%=%)
+
 $(BUILD_TOOL):
 	@mkdir -p $(BUILD_TOOL_DIR)
-	@wget -q -O $(BUILD_TOOL_DIR).zip "https://github.com/ellraiser/love-build/releases/download/v0.9/love-build-0.9-linux.zip"
+	@curl -sSL -o $(BUILD_TOOL_DIR).zip "https://github.com/ellraiser/love-build/releases/download/v$(LOVE_BUILD_VERSION)/love-build-$(LOVE_BUILD_VERSION)-$(LOVE_BUILD_OS).zip"
 	@unzip -q -o $(BUILD_TOOL_DIR).zip -d $(BUILD_TOOL_DIR)
 	@rm -f $(BUILD_TOOL_DIR).zip
 	@chmod -R u+rwX $(BUILD_TOOL_DIR)
 
 $(APPIMAGETOOL):
-	@wget -q -O $(APPIMAGETOOL) "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
+	@curl -sSL -o $(APPIMAGETOOL) "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
 	@chmod +x $(APPIMAGETOOL)
 
 standalone: fclean build $(APPIMAGETOOL)
@@ -80,6 +92,6 @@ fclean: clean
 	@rm -f ./$(PROJECT_NAME) ./$(SERVER_NAME)
 
 dist: build
-	@cd $(DIST_DIR)/$(VERSION) && tar -czvf ../../$(PROJECT_NAME)-linux.tar.gz *
+	@ls -1 $(DIST_DIR)/$(VERSION)/$(APP_NAME)-*.zip
 
-.PHONY: all build run server test clean fclean dist standalone standalone-server
+.PHONY: all build build-windows build-macos build-linux run server test clean fclean dist standalone standalone-server

@@ -3,6 +3,7 @@ local Class = require("src.core.class")
 local Protocol = require("src.net.protocol")
 local Client = require("src.server.client")
 local Config = require("src.net.config")
+local Address = require("src.net.address")
 
 local Server = Class()
 
@@ -25,6 +26,13 @@ function Server:Start()
     end
     self.host = host
     Logger:info("server", "Listening on " .. self.address .. ":" .. self.port)
+    if self.address == "*" or self.address == "0.0.0.0" then
+        local lan = Address.lan()
+        if lan then
+            Logger:info("server", "Players on your network connect to " .. lan .. ":" .. self.port)
+        end
+        Logger:info("server", "Players on this machine connect to " .. Config.localAddress .. ":" .. self.port)
+    end
     return true
 end
 

@@ -18,16 +18,6 @@ function Lan:init()
     self.games = {}
 end
 
-function Lan.localAddress()
-    local probe = udp()
-    if not probe then return nil end
-    local ok = pcall(probe.setpeername, probe, "192.0.2.1", 9)
-    local address = ok and probe:getsockname() or nil
-    probe:close()
-    if not address or address == "0.0.0.0" then return nil end
-    return address
-end
-
 function Lan:Listen(enabled)
     if enabled and not self.listener then
         local listener = udp()

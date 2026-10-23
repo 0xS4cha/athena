@@ -6,6 +6,7 @@ local NetConfig = require("src.net.config")
 local Lockstep = require("src.modules.multiplayer.lockstep")
 local LocalServer = require("src.modules.multiplayer.localserver")
 local Lan = require("src.modules.multiplayer.lan")
+local Address = require("src.net.address")
 
 GM.Multiplayer = {}
 
@@ -241,7 +242,7 @@ function GM.Multiplayer:HostLan(settings, name)
     self.error = nil
     self.lockstep = nil
     self.lanHost = true
-    self.lanAddress = Lan.localAddress()
+    self.lanAddress = Address.lan()
     self.localServer:Start(function(port)
         if not self.solo then return end
         self:Connect(NetConfig.localAddress .. ":" .. port, name, true)

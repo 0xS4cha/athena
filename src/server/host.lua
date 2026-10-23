@@ -166,9 +166,9 @@ function Host:bind()
         end
     end)
 
-    server:On("tick", function()
+    server:On("update", function(_, dt)
         for _, room in pairs(self.rooms) do
-            room:Step()
+            room:Update(dt)
             self:closeExpired(room)
         end
     end)

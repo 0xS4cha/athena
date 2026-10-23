@@ -12,13 +12,10 @@ function Server:init(options)
     self.port = options.port or Config.port
     self.maxPeers = options.maxPeers or Config.maxPeers
     self.channels = options.channels or Config.channels
-    self.tickRate = options.tickRate or Config.tickRate
     self.host = nil
     self.clients = {}
     self.count = 0
     self.handlers = {}
-    self.accumulator = 0
-    self.tick = 0
 end
 
 function Server:Start()
@@ -106,19 +103,7 @@ end
 function Server:Think(dt)
     if not self.host then return end
     self:Poll()
-    self.accumulator = self.accumulator + dt
-    local step = 1 / self.tickRate
-    local steps = 0
-    while self.accumulator >= step do
-        self.accumulator = self.accumulator - step
-        self.tick = self.tick + 1
-        self:Emit("tick", nil, self.tick)
-        steps = steps + 1
-        if steps >= Config.maxFramesPerTick then
-            self.accumulator = 0
-            break
-        end
-    end
+    self:Emit("update", nil, dt)
     self.host:flush()
 end
 

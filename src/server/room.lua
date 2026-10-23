@@ -45,6 +45,7 @@ function Room:init(id, host, settings)
     self.snapshot = nil
     self.paused = false
     self.speedIndex = 1
+    self.accumulator = 0
     self.emptySince = nil
 end
 
@@ -377,20 +378,27 @@ function Room:advance()
     end
 end
 
-function Room:Step()
-    for _, member in ipairs(self.members) do
-        member.tickIntents = 0
+function Room:Update(dt)
+    if self.state ~= "playing" or self.paused then
+        self.accumulator = 0
+        for _, member in ipairs(self.members) do
+            member.tickIntents = 0
+        end
+        return
     end
-    if self.state ~= "playing" or self.paused then return end
-    local steps = #self.slots == 1 and GameConfig.speeds[self.speedIndex] or 1
-    for _ = 1, steps do
-        if self.state ~= "playing" then break end
+    local speed = #self.slots == 1 and GameConfig.speeds[self.speedIndex] or 1
+    local stepTime = 1 / Config.tickRate
+    self.accumulator = math.min(self.accumulator + dt * speed, stepTime * Config.maxFramesPerTick)
+    while self.accumulator >= stepTime and self.state == "playing" do
+        self.accumulator = self.accumulator - stepTime
+        for _, member in ipairs(self.members) do
+            member.tickIntents = 0
+        end
         local ok, err = xpcall(self.advance, debug.traceback, self)
         if not ok then
             Logger:error("room", "Simulation error in room " .. self.id .. ": " .. tostring(err))
             self.state = "ended"
             self:Broadcast("error", { message = "The server simulation crashed" })
-            break
         end
     end
 end

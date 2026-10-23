@@ -204,6 +204,21 @@ love . --ci --autoplay --ticks 6000 --seed 42 --screenshot shot.png
       └─ hud/                   # Style, context menu, panels
 ```
 
+## Tests
+
+```bash
+love . --test                     # or: make test
+love . --test --filter network    # only the cases whose name contains "network"
+```
+
+The suite runs headless and exits with code 1 when a case fails, so the CI runs it on every push:
+
+- `codec_test`, `hash_test`: the binary protocol round-trips values bit for bit, and the incremental ownership hash is order independent.
+- `intents_test`: the server sanitizes intents (sender slot, stripped fields, quantized ratios) and enforces the game rules.
+- `determinism_test`: a server with the AI, a client and two clients restored from snapshots keep the same state hash for 700 ticks; the AI only runs on the authority.
+- `network_test`: real ENet clients against an in-process server follow the frames without desync, get refused intents answered, catch up after a short disconnection and resynchronize or rejoin from a snapshot.
+- `lobby_test`: room passwords, unique colors, flags, kicks and the ready check.
+
 ## Map Format
 
 Each byte of `map.bin` is one tile:

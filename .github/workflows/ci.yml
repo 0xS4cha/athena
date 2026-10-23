@@ -20,6 +20,10 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y love xvfb
 
+    - name: Run the test suite
+      run: |
+        love . --test
+
     - name: Verify compilation and initialization
       run: |
         xvfb-run love . --ci --autoplay --ticks 3000 --seed 1

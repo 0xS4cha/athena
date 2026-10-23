@@ -68,6 +68,9 @@ run:
 server:
 	@love . --server
 
+test:
+	@love . --test
+
 clean:
 	@rm -rf $(DIST_DIR) $(BUILD_DIR) $(BUILD_TOOL_DIR)
 	@rm -f $(APPIMAGETOOL)
@@ -79,4 +82,4 @@ fclean: clean
 dist: build
 	@cd $(DIST_DIR)/$(VERSION) && tar -czvf ../../$(PROJECT_NAME)-linux.tar.gz *
 
-.PHONY: all build run server clean fclean dist standalone standalone-server
+.PHONY: all build run server test clean fclean dist standalone standalone-server

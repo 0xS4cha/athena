@@ -8,5 +8,6 @@ return {
   platforms = {'linux'},
   ignore = {
     "^lib/.*",
+    "^tests/.*",
   }
 }

@@ -2,7 +2,7 @@ local CONFIG = require("src.config.window")
 
 local function serverMode()
     for _, value in ipairs(arg or {}) do
-        if value == "--server" then return true end
+        if value == "--server" or value == "--test" then return true end
     end
     return false
 end

@@ -1,8 +1,14 @@
+local entry
 for _, value in ipairs(arg or {}) do
     if value == "--server" then
-        require("src.server.run")
-        return
+        entry = "src.server.run"
+    elseif value == "--test" then
+        entry = "tests.runner"
     end
+end
+if entry then
+    require(entry)
+    return
 end
 
 local env = require("src.core.env")

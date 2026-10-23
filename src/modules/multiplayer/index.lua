@@ -61,6 +61,8 @@ function GM.Multiplayer:Initialize()
         Logger:warn("multiplayer", tostring(data.message))
         if self.solo then
             self:abortSolo(tostring(data.message))
+        elseif self:inGame() then
+            self:notify(tostring(data.message))
         end
         if data.session == false then
             self:clearSession()
@@ -81,6 +83,9 @@ function GM.Multiplayer:Initialize()
     end)
     self:On("reject", function(data)
         if self.lockstep then self.lockstep:reject(data) end
+    end)
+    self:On("ended", function(data)
+        if self.lockstep then self.lockstep:serverEnded(data) end
     end)
     self:On("control", function(data)
         if self.lockstep then self.lockstep:applyControls(data) end

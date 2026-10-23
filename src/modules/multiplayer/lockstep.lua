@@ -196,6 +196,19 @@ function Lockstep:desync(tick)
     self.connection:Send("resync")
 end
 
+function Lockstep:serverEnded(data)
+    self.serverEnd = { tick = tonumber(data.tick) or 0, winner = tonumber(data.winner) }
+end
+
+function Lockstep:enforceEnd()
+    local game, finish = self.game, self.serverEnd
+    if not finish or game.phase == "ended" or game.tick < finish.tick or self:available() > 0 then return end
+    Logger:warn("multiplayer", "The server ended the game at tick " .. finish.tick .. " before this client did")
+    game.winner = finish.winner and game.players[finish.winner] or nil
+    game.phase = "ended"
+    game.endTick = finish.tick
+end
+
 function Lockstep:available()
     if not self.game then return 0 end
     return self.latest - self.game.tick + 1
@@ -276,7 +289,8 @@ function Lockstep:update()
         end
         return
     end
-    if self.resyncing then return end
+    self:enforceEnd()
+    if self.resyncing or game.phase == "ended" then return end
     self:checkGap()
     local speed = Config.speeds[self.controls.speed or 1] or 1
     local stepTime = 1 / (Config.tickRate * speed)

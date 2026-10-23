@@ -180,6 +180,9 @@ function Hud:Draw()
     if self.drawnGame ~= game then
         self.drawnGame = game
         self.appear = {}
+        self.spectating = false
+        self.endFocus = nil
+        self.endEmbers = nil
     end
     love.graphics.push("all")
     self.stagger = 0

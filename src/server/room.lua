@@ -374,6 +374,7 @@ function Room:advance()
     end
     if game.phase == "ended" then
         self.state = "ended"
+        self:Broadcast("ended", { tick = game.tick, winner = game.winner and game.winner.id })
         Logger:info("room", string.format("Room %s finished at tick %d", self.id, game.tick))
     end
 end

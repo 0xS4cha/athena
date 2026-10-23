@@ -226,6 +226,12 @@ function GM.Multiplayer:Send(kind, data)
     return true
 end
 
+function GM.Multiplayer:Flush()
+    if self.host then
+        self.host:flush()
+    end
+end
+
 function GM.Multiplayer:ListRooms()
     return self:Send("rooms")
 end
@@ -414,6 +420,11 @@ function GM.Multiplayer:Think()
         self.roomsTime = now
         self:ListRooms()
     end
+    self:Poll()
+end
+
+function GM.Multiplayer:Poll()
+    if not self.host then return end
     local event = self.host:service(0)
     while event do
         if event.type == "connect" then

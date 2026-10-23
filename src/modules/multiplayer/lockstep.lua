@@ -5,8 +5,8 @@ local Snapshot = require("src.net.snapshot")
 
 local Lockstep = Class()
 
-local BUFFER_TARGET = 2
-local CATCH_UP_FRAMES = 20
+local EARLY_STEP = 0.75
+local CATCH_UP_FRAMES = 3
 local CATCH_UP_BUDGET = 0.03
 local STALL_SECONDS = 1
 local GAP_SECONDS = 1
@@ -26,7 +26,7 @@ function Lockstep:init(connection, options)
     self.outbox = {}
     self.seq = 0
     self.pending = {}
-    self.accumulator = 0
+    self.lastStep = 0
     self.lastFrameTime = love.timer.getTime()
     self.gapSince = nil
     self.finished = false
@@ -86,6 +86,7 @@ function Lockstep:flush()
         self.connection:Send("intent", intent)
     end
     self.outbox = {}
+    self.connection:Flush()
 end
 
 function Lockstep:reject(data)
@@ -172,7 +173,6 @@ function Lockstep:applySnapshot(tick, data)
     self.latest = math.max(self.latest, restored - 1)
     self.resyncing = false
     self.gapSince = nil
-    self.accumulator = 0
     local human = game.players[self.slot]
     if human then
         game.human = human
@@ -202,7 +202,7 @@ function Lockstep:available()
 end
 
 function Lockstep:catchingUp()
-    return self:available() > CATCH_UP_FRAMES
+    return self:available() > CATCH_UP_FRAMES * 5
 end
 
 function Lockstep:stalled()
@@ -264,7 +264,8 @@ function Lockstep:checkGap()
     end
 end
 
-function Lockstep:update(dt)
+function Lockstep:update()
+    self.connection:Poll()
     self:flush()
     local game = self.game
     if not game then return end
@@ -279,17 +280,19 @@ function Lockstep:update(dt)
     self:checkGap()
     local speed = Config.speeds[self.controls.speed or 1] or 1
     local stepTime = 1 / (Config.tickRate * speed)
-    self.accumulator = math.min(self.accumulator + dt, stepTime * 2)
-    local started = love.timer.getTime()
-    while self.frames[game.tick] and game.phase ~= "ended" and not self.resyncing do
-        if self.accumulator >= stepTime then
-            self.accumulator = self.accumulator - stepTime
-        elseif self:available() <= BUFFER_TARGET or love.timer.getTime() - started > CATCH_UP_BUDGET then
-            break
-        end
+    local now = love.timer.getTime()
+    local backlog = self:available() > CATCH_UP_FRAMES * speed
+    if self.frames[game.tick] and (now - self.lastStep >= stepTime * EARLY_STEP or backlog) then
         self:step()
+        self.lastStep = now
+        if backlog then
+            while self.frames[game.tick] and game.phase ~= "ended" and not self.resyncing
+                and love.timer.getTime() - now < CATCH_UP_BUDGET do
+                self:step()
+            end
+        end
     end
-    game.accumulator = self.accumulator * speed
+    game.accumulator = math.min(stepTime, now - self.lastStep) * speed
 end
 
 return Lockstep

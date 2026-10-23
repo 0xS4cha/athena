@@ -5,6 +5,7 @@ local Protocol = require("src.net.protocol")
 local NetConfig = require("src.net.config")
 local Lockstep = require("src.modules.multiplayer.lockstep")
 local LocalServer = require("src.modules.multiplayer.localserver")
+local Lan = require("src.modules.multiplayer.lan")
 
 GM.Multiplayer = {}
 
@@ -38,6 +39,11 @@ function GM.Multiplayer:Initialize()
     self.localServer = LocalServer()
     self.isLocal = false
     self.solo = nil
+    self.lan = Lan()
+    self.lanHost = false
+    self.lanAddress = nil
+    self.announceAt = 0
+    self.pendingJoin = nil
 
     self:On("welcome", function(data)
         self.id = data.id
@@ -48,6 +54,9 @@ function GM.Multiplayer:Initialize()
             self:Rejoin()
         elseif self.solo then
             self:CreateRoom(self.solo)
+        elseif self.pendingJoin then
+            self:JoinRoom(self.pendingJoin)
+            self.pendingJoin = nil
         end
         self:ListRooms()
     end)
@@ -55,6 +64,9 @@ function GM.Multiplayer:Initialize()
     self:On("room", function(data)
         self.room = data
         self.error = nil
+        if self.solo and not self.solo.autostart then
+            self.solo = nil
+        end
     end)
     self:On("error", function(data)
         self.error = data.message
@@ -191,10 +203,51 @@ function GM.Multiplayer:PlaySolo(settings, name)
     }
     self.error = nil
     self.lockstep = nil
+    self.lanHost = false
     self.localServer:Start(function(port)
         if not self.solo then return end
         self:Connect(NetConfig.localAddress .. ":" .. port, name, true)
     end)
+end
+
+function GM.Multiplayer:HostLan(settings, name)
+    self.solo = {
+        map = settings.map,
+        bots = settings.bots,
+        nations = settings.nations,
+        difficulty = settings.difficulty,
+        name = (name or "Player") .. "'s LAN game"
+    }
+    self.error = nil
+    self.lockstep = nil
+    self.lanHost = true
+    self.lanAddress = Lan.localAddress()
+    self.localServer:Start(function(port)
+        if not self.solo then return end
+        self:Connect(NetConfig.localAddress .. ":" .. port, name, true)
+    end, true)
+end
+
+function GM.Multiplayer:JoinLan(game, name)
+    self.pendingJoin = game.room
+    self:Connect(game.address, name)
+end
+
+function GM.Multiplayer:LanGames()
+    return self.lan:List()
+end
+
+function GM.Multiplayer:LanEndpoint()
+    if not self.lanHost or not self.localServer:Running() then return nil end
+    return (self.lanAddress or "?") .. ":" .. tostring(self.localServer.port)
+end
+
+function GM.Multiplayer:stopLocal()
+    self:Disconnect()
+    self.localServer:Stop()
+    self.isLocal = false
+    self.lanHost = false
+    self.session = nil
 end
 
 function GM.Multiplayer:abortSolo(reason)
@@ -204,8 +257,7 @@ function GM.Multiplayer:abortSolo(reason)
         GM.Menu:CancelLaunch(reason)
     end
     if not self.lockstep then
-        self:Disconnect()
-        self.localServer:Stop()
+        self:stopLocal()
     end
 end
 
@@ -262,6 +314,10 @@ end
 
 function GM.Multiplayer:LeaveRoom()
     self.room = nil
+    if self.isLocal and not self.lockstep then
+        self:stopLocal()
+        return true
+    end
     return self:Send("leave")
 end
 
@@ -271,10 +327,7 @@ function GM.Multiplayer:LeaveGame(lockstep)
     self.reconnecting = false
     self.reconnectAt = nil
     if self.isLocal then
-        self:Disconnect()
-        self.localServer:Stop()
-        self.isLocal = false
-        self.session = nil
+        self:stopLocal()
     else
         self:LeaveRoom()
     end
@@ -402,8 +455,30 @@ function GM.Multiplayer:onConnectionLost()
     end
 end
 
+function GM.Multiplayer:updateLan(now)
+    local browsing = GM.Menu and GM.Menu:active() and GM.Menu.screen == "multiplayer"
+    self.lan:Listen(browsing and not self.lanHost)
+    self.lan:Poll()
+    local room = self.room
+    if self.lanHost and room and room.state == "lobby" and self.localServer:Running()
+        and now - self.announceAt >= NetConfig.discoveryInterval then
+        self.announceAt = now
+        self.lan:Announce({
+            port = self.localServer.port,
+            room = room.id,
+            players = #(room.players or {}),
+            max = room.max,
+            locked = room.locked,
+            map = room.settings and room.settings.map,
+            name = room.name,
+            address = self.lanAddress
+        })
+    end
+end
+
 function GM.Multiplayer:Think()
     self.localServer:Update()
+    self:updateLan(love.timer.getTime())
     if self.solo and self.localServer.state == "failed" then
         self:abortSolo(self.localServer.error or "The local game server failed to start")
     end
@@ -453,4 +528,5 @@ end
 function GM.Multiplayer:Shutdown()
     self:Disconnect()
     self.localServer:Stop()
+    self.lan:Close()
 end

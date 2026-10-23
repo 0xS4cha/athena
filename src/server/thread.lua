@@ -5,15 +5,17 @@ require("src.core.logger")
 local Host = require("src.server.host")
 local Config = require("src.net.config")
 
-local commandsName, statusName = ...
+local commandsName, statusName, lan = ...
 local commands = love.thread.getChannel(commandsName)
 local status = love.thread.getChannel(statusName)
 
 math.randomseed(os.time())
 
+local address = lan and Config.address or Config.localAddress
+local ports = lan and Config.lanPorts or Config.localPorts
 local host, port
-for candidate = Config.localPorts[1], Config.localPorts[2] do
-    local attempt = Host({ address = Config.localAddress, port = candidate, maxPeers = Config.maxRoomPlayers })
+for candidate = ports[1], ports[2] do
+    local attempt = Host({ address = address, port = candidate, maxPeers = Config.maxRoomPlayers * 2 })
     if attempt:Start() then
         host, port = attempt, candidate
         break

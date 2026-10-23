@@ -12,7 +12,7 @@ GM.Menu = {}
 GM.Modules:Register("Menu", 90)
 
 local CONFIG_FILE = "menu_config.txt"
-local SETTING_KEYS = { "map", "bots", "nations", "difficulty", "name", "server", "fullscreen", "vsync", "background", "battleSpeed", "particles", "advancedEvents" }
+local SETTING_KEYS = { "map", "bots", "nations", "difficulty", "lan", "name", "server", "fullscreen", "vsync", "background", "battleSpeed", "particles", "advancedEvents" }
 local SWITCH_IN = 0.6
 local SWITCH_OUT = 0.22
 local WIPE_SECONDS = 0.65
@@ -40,6 +40,7 @@ function GM.Menu:Initialize()
         bots = Config.defaultBots,
         nations = true,
         difficulty = "medium",
+        lan = false,
         name = "Player",
         server = "localhost:6789",
         fullscreen = false,
@@ -282,14 +283,16 @@ function GM.Menu:start()
     self.settings.map = map.path
     self:saveSettings()
     self.launchError = nil
-    self.wipe = { phase = "cover", start = love.timer.getTime(), label = map.name }
     local s = self.settings
-    GM.Multiplayer:PlaySolo({
-        map = s.map,
-        bots = s.bots,
-        nations = s.nations,
-        difficulty = s.difficulty
-    }, s.name ~= "" and s.name or "Player")
+    local settings = { map = s.map, bots = s.bots, nations = s.nations, difficulty = s.difficulty }
+    local name = s.name ~= "" and s.name or "Player"
+    if s.lan then
+        GM.Multiplayer:HostLan(settings, name)
+        self:switch("multiplayer", 1)
+        return
+    end
+    self.wipe = { phase = "cover", start = love.timer.getTime(), label = map.name }
+    GM.Multiplayer:PlaySolo(settings, name)
 end
 
 function GM.Menu:Launch(label, action)

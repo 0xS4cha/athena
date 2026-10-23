@@ -180,6 +180,10 @@ function Multiplayer.build(menu)
     local current = phase()
 
     if current == "connect" then
+        add({
+            id = "lan", x = l.rows.x, y = l.rows.y, w = l.rows.w, h = l.rows.h, nav = false,
+            press = function(_, _, my) Multiplayer.clickLan(menu, my) end
+        })
         add({ id = "name", x = cx, y = cy + 22, w = half, h = 42, press = function() menu.editing = "name" end, text = fieldHandler(menu, "name") })
         add({ id = "server", x = cx + half + 24, y = cy + 22, w = cw - half - 24, h = 42, press = function() menu.editing = "server" end, text = fieldHandler(menu, "server") })
         add({ id = "connect", x = cx, y = cy + 222, w = cw, h = 58, press = function() connect(menu) end })
@@ -248,6 +252,14 @@ function Multiplayer.build(menu)
         add({ id = "start", x = cx + third + 24, y = cy + 222, w = cw - third - 24, h = 58, press = function() net():StartGame() end })
     end
     return elements
+end
+
+function Multiplayer.clickLan(menu, my)
+    local l = Play.layout()
+    local game = net():LanGames()[math.floor((my - l.rows.y) / ROW) + 1]
+    if not game then return end
+    menu:saveSettings()
+    net():JoinLan(game, menu.settings.name ~= "" and menu.settings.name or "Player")
 end
 
 function Multiplayer.clickRoom(menu, my)
@@ -321,8 +333,8 @@ local function drawConnect(menu, elements, l)
     UI.shadowText("PLAY WITH FRIENDS", area.x + 12, area.y + 12, 22, UI.colors.gold)
     local lines = {
         "Join a server, create a room and pick the battlefield.",
-        "Everyone simulates the same world: only orders travel on the network.",
-        "Host your own server with  make run-server  and share your address (UDP 6789)."
+        "Games hosted on your network appear on the left: click one to join.",
+        "Host a LAN game from New Game, or a server with  love . --server  (UDP 6789)."
     }
     for k, line in ipairs(lines) do
         UI.text(line, area.x + 12, area.y + 40 + k * 26, 13, UI.colors.muted)
@@ -442,7 +454,8 @@ function Multiplayer.draw(menu, elements, p)
     local titles = {
         connect = { "MULTIPLAYER", "Connect to a server to find other commanders." },
         browse = { "SERVER ROOMS", "Join an open room or create your own." },
-        lobby = { string.upper(mp.room and mp.room.name or "LOBBY"), mp:IsHost() and "You are the host: pick the map and start when everyone is in." or "Waiting for the host to start the game." }
+        lobby = { string.upper(mp.room and mp.room.name or "LOBBY"), mp:LanEndpoint() and ("Open on your network at " .. mp:LanEndpoint() .. ": friends find it in Multiplayer.")
+            or mp:IsHost() and "You are the host: pick the map and start when everyone is in." or "Waiting for the host to start the game." }
     }
     UI.shadowText(titles[current][1], back.x + back.w + 36, 36, 26, UI.colors.text)
     UI.text(titles[current][2], back.x + back.w + 38, 76, 12, UI.colors.muted)
@@ -479,8 +492,20 @@ function Multiplayer.draw(menu, elements, p)
             UI.text("No open room.", l.rows.x + UI.unit * 4, l.rows.y + 6, 13, UI.colors.muted)
         end
     else
-        UI.text("SERVER", l.list.x + 16, l.list.y + 24, 13, UI.colors.muted)
-        UI.text(menu.settings.server, l.list.x + 16, l.list.y + 50, 13, UI.colors.text)
+        UI.text("LAN GAMES", l.list.x + 16, l.list.y + 24, 13, UI.colors.muted)
+        local rows = {}
+        for _, game in ipairs(mp:LanGames()) do
+            rows[#rows + 1] = {
+                label = game.name,
+                icon = game.locked and "Locked.png" or "Home.png",
+                detail = string.format("%d/%d", game.players, game.max)
+            }
+        end
+        drawRows(menu, l, e, rows, nil)
+        if #rows == 0 then
+            local dots = string.rep(".", math.floor(love.timer.getTime() * 2) % 4)
+            UI.text("Searching your network" .. dots, l.rows.x + UI.unit * 4, l.rows.y + 6, 13, UI.colors.muted)
+        end
     end
     love.graphics.pop()
 

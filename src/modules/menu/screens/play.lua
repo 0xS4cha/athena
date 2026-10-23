@@ -108,17 +108,23 @@ function Play.build(menu)
             right = function() menu.settings.bots = math.min(MAX_BOTS, menu.settings.bots + 10) end
         },
         {
-            id = "difficulty", x = cx, y = cy + 166, w = cw, h = 40,
+            id = "difficulty", x = cx, y = cy + 166, w = half, h = 40,
             press = function(_, mx)
                 if not mx then
                     menu.settings.difficulty = DIFFICULTIES[difficultyIndex(menu) % #DIFFICULTIES + 1]
                     return
                 end
-                local k = Fx.clamp(math.floor((mx - cx) / (cw / #DIFFICULTIES)) + 1, 1, #DIFFICULTIES)
+                local k = Fx.clamp(math.floor((mx - cx) / (half / #DIFFICULTIES)) + 1, 1, #DIFFICULTIES)
                 menu.settings.difficulty = DIFFICULTIES[k]
             end,
             left = function() menu.settings.difficulty = DIFFICULTIES[math.max(1, difficultyIndex(menu) - 1)] end,
             right = function() menu.settings.difficulty = DIFFICULTIES[math.min(#DIFFICULTIES, difficultyIndex(menu) + 1)] end
+        },
+        {
+            id = "lan", x = cx + half + 24, y = cy + 166, w = cw - half - 24, h = 40,
+            press = function() menu.settings.lan = not menu.settings.lan end,
+            left = function() menu.settings.lan = false end,
+            right = function() menu.settings.lan = true end
         },
         { id = "start", x = cx, y = cy + 222, w = cw, h = 58, press = function() menu:start() end }
     }
@@ -362,8 +368,16 @@ function Play.draw(menu, elements, p)
     local index = difficultyIndex(menu)
     UI.segments("difficulty", difficulty.x, difficulty.y, difficulty.w, difficulty.h, DIFFICULTY_LABELS, index, { hot = menu.focus == "difficulty", color = dcolors[index] })
 
+    local lan = find(elements, "lan")
+    UI.text("NETWORK", lan.x, lan.y - 22, 11, UI.colors.muted)
+    local lhot = UI.ease("lan:hot", menu.focus == "lan")
+    UI.color(UI.colors.raised, 0.4 + 0.4 * lhot)
+    UI.block(lan.x, lan.y, lan.w, lan.h)
+    local lw = UI.toggle("lan", lan.x + u * 3, lan.y + math.floor((lan.h - u * 7) / 2), s.lan, menu.focus == "lan")
+    UI.text(s.lan and "Open to LAN" or "Solo", lan.x + lw + u * 7, lan.y + 9, 13, s.lan and UI.colors.text or UI.colors.muted)
+
     local start = find(elements, "start")
-    UI.button("start", start.x, start.y, start.w, start.h, "START GAME", { hot = menu.focus == "start", primary = true, size = 20, icon = "Play.png", hint = "ENTER" })
+    UI.button("start", start.x, start.y, start.w, start.h, s.lan and "HOST LAN GAME" or "START GAME", { hot = menu.focus == "start", primary = true, size = 20, icon = s.lan and "Team.png" or "Play.png", hint = "ENTER" })
     if menu.launchError then
         UI.text(menu.launchError, start.x, start.y + start.h + 8, 12, UI.colors.bad)
     end

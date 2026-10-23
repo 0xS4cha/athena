@@ -14,6 +14,7 @@ function LocalServer:init()
     self.state = "stopped"
     self.port = nil
     self.error = nil
+    self.lan = false
     self.waiting = {}
 end
 
@@ -21,7 +22,12 @@ function LocalServer:Running()
     return self.state == "running"
 end
 
-function LocalServer:Start(callback)
+function LocalServer:Start(callback, lan)
+    lan = lan == true
+    if self.state ~= "stopped" and self.state ~= "failed" and self.lan ~= lan then
+        self:Stop()
+    end
+    self.lan = lan
     if self.state == "running" then
         callback(self.port)
         return
@@ -35,10 +41,10 @@ function LocalServer:Start(callback)
     self.commands:clear()
     self.status:clear()
     self.thread = love.thread.newThread(THREAD_FILE)
-    self.thread:start("athena_server_commands_" .. suffix, "athena_server_status_" .. suffix)
+    self.thread:start("athena_server_commands_" .. suffix, "athena_server_status_" .. suffix, lan)
     self.state = "starting"
     self.error = nil
-    Logger:info("localserver", "Starting the local game server")
+    Logger:info("localserver", lan and "Starting the LAN game server" or "Starting the local game server")
 end
 
 function LocalServer:fail(message)

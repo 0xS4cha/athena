@@ -67,7 +67,7 @@ end
 
 function Game:addPlayer(name, kind, flag, color)
     local id = #self.players + 1
-    color = color or (kind == "human" and Palette.human or Palette.color(id))
+    color = color or (kind == "human" and Palette.human or kind == "bot" and Palette.tribe or Palette.color(id))
     local player = Player(id, name, kind, color, flag)
     self.players[id] = player
     return player

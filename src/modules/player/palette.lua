@@ -1,6 +1,7 @@
 local Palette = {}
 
 Palette.human = { 0.2, 0.55, 1.0 }
+Palette.tribe = { 1, 1, 1 }
 
 local function hueToRgb(p, q, t)
     if t < 0 then t = t + 1 end

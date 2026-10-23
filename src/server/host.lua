@@ -10,6 +10,7 @@ function Host:init(options)
     self.server = Server({ address = options.address, port = options.port, maxPeers = options.maxPeers })
     self.rooms = {}
     self.nextRoomId = 1
+    self.pingAt = 0
     self:bind()
 end
 
@@ -167,8 +168,12 @@ function Host:bind()
     end)
 
     server:On("update", function(_, dt)
+        local now = love.timer.getTime()
+        local pings = now - self.pingAt >= Config.pingInterval
+        if pings then self.pingAt = now end
         for _, room in pairs(self.rooms) do
             room:Update(dt)
+            if pings then room:BroadcastPings() end
             self:closeExpired(room)
         end
     end)

@@ -76,6 +76,15 @@ function Room:Info()
     }
 end
 
+function Room:BroadcastPings()
+    if #self.members == 0 then return end
+    local pings = {}
+    for _, client in ipairs(self.members) do
+        pings[#pings + 1] = { id = client.id, slot = client.slot, ping = client:Ping() }
+    end
+    self:Broadcast("pings", { pings = pings })
+end
+
 function Room:Tick()
     return self.game and self.game.tick or 0
 end

@@ -17,6 +17,7 @@ Hud.componentPaths = {
     "src.modules.hud.components.info",
     "src.modules.hud.components.banner",
     "src.modules.hud.components.clock",
+    "src.modules.hud.components.ping",
     "src.modules.hud.components.layers",
     "src.modules.hud.components.control",
     "src.modules.hud.components.leaderboard",

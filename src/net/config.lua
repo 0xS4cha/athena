@@ -10,6 +10,7 @@ local CONFIG = {
     discoveryPort = 6788,
     discoveryInterval = 1,
     discoveryExpire = 4,
+    pingInterval = 2,
     maxPeers = 64,
     channels = 1,
     tickRate = GameConfig.tickRate,

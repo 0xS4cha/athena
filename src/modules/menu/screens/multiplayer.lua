@@ -408,7 +408,8 @@ local function drawLobby(menu, elements, l, e)
     UI.text(string.format("PLAYERS  %d / %d", #players, room.max or #players), nations.x, nations.y - 88, 11, UI.colors.muted)
     local px = nations.x
     for _, player in ipairs(players) do
-        local label = player.name .. (player.id == mp.id and " (you)" or "")
+        local ping = mp.pings[player.id]
+        local label = player.name .. (player.id == mp.id and " (you)" or "") .. (ping and string.format("  %dms", ping) or "")
         local w = UI.chip(px, nations.y - 66, label, player.id == room.host and "Trophy.png" or "Team.png", player.id == room.host and UI.colors.gold or nil)
         px = px + w + u * 3
     end
@@ -478,7 +479,12 @@ function Multiplayer.draw(menu, elements, p)
         local rows = {}
         for _, player in ipairs(mp.room.players or {}) do
             local isHost = player.id == mp.room.host
-            rows[#rows + 1] = { label = player.name, icon = isHost and "Trophy.png" or "Team.png", color = isHost and UI.colors.gold or nil, detail = player.id == mp.id and "you" or nil }
+            local ping = mp.pings[player.id]
+            local detail = ping and string.format("%d ms", ping) or nil
+            if player.id == mp.id then
+                detail = detail and ("you  " .. detail) or "you"
+            end
+            rows[#rows + 1] = { label = player.name, icon = isHost and "Trophy.png" or "Team.png", color = isHost and UI.colors.gold or nil, detail = detail }
         end
         drawRows(menu, l, e, rows, nil)
     elseif current == "browse" then

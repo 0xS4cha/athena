@@ -44,6 +44,8 @@ function GM.Multiplayer:Initialize()
     self.lanAddress = nil
     self.announceAt = 0
     self.pendingJoin = nil
+    self.pings = {}
+    self.slotPings = {}
 
     self:On("welcome", function(data)
         self.id = data.id
@@ -95,6 +97,13 @@ function GM.Multiplayer:Initialize()
     end)
     self:On("reject", function(data)
         if self.lockstep then self.lockstep:reject(data) end
+    end)
+    self:On("pings", function(data)
+        self.pings, self.slotPings = {}, {}
+        for _, entry in ipairs(data.pings or {}) do
+            if entry.id then self.pings[entry.id] = entry.ping end
+            if entry.slot then self.slotPings[entry.slot] = entry.ping end
+        end
     end)
     self:On("ended", function(data)
         if self.lockstep then self.lockstep:serverEnded(data) end
@@ -178,6 +187,7 @@ function GM.Multiplayer:Connect(address, name, isLocal)
 end
 
 function GM.Multiplayer:Disconnect()
+    self.pings, self.slotPings = {}, {}
     if self.peer then
         self.peer:disconnect_now()
         self.host:flush()
@@ -281,6 +291,23 @@ function GM.Multiplayer:Send(kind, data)
     end
     self.peer:send(raw, 0, "reliable")
     return true
+end
+
+function GM.Multiplayer:Ping()
+    if not self.peer or self.state ~= "online" then return nil end
+    return self.peer:round_trip_time()
+end
+
+function GM.Multiplayer:ShowsPing()
+    return self.state ~= "online" or not self.isLocal or self.lanHost
+end
+
+function GM.Multiplayer.PingColor(ping)
+    if not ping then return { 0.95, 0.35, 0.3, 1 } end
+    if ping < 60 then return { 0.3, 0.85, 0.45, 1 } end
+    if ping < 120 then return { 1, 0.82, 0.25, 1 } end
+    if ping < 200 then return { 0.95, 0.6, 0.3, 1 } end
+    return { 0.95, 0.35, 0.3, 1 }
 end
 
 function GM.Multiplayer:Flush()

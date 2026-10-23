@@ -1,3 +1,4 @@
+local GM = require("src.core.index")
 local Style = require("src.modules.hud.style")
 local Format = require("src.core.format")
 local Pixel = require("src.modules.hud.pixel")
@@ -122,6 +123,11 @@ function Leaderboard.draw(hud, x, y, w)
         Pixel.text(name, x + 62 + math.floor(hot * 2) * u, ry + 2, 11, color)
         Pixel.text(Format.percent(player.tiles / game.map.landCount), x + 196, ry + 2, 11, Style.colors.text)
         Pixel.text(Vision.troopsText(game, game.human, player), x + 242, ry + 2, 11, Style.colors.text)
+        local ping = game.lockstep and player:isHuman() and GM.Multiplayer.slotPings[player.id]
+        if ping then
+            Pixel.color(GM.Multiplayer.PingColor(ping))
+            love.graphics.rectangle("fill", x + w - u * 5, ry + math.floor((ROW - 3) / 2) - u, u * 2, u * 2)
+        end
     end
 end
 

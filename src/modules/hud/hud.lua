@@ -24,6 +24,7 @@ Hud.componentPaths = {
     "src.modules.hud.components.nukepreview",
     "src.modules.hud.components.settings",
     "src.modules.hud.components.endscreen",
+    "src.modules.hud.components.hotkeys",
     "src.modules.hud.components.help"
 }
 

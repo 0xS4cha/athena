@@ -14,6 +14,7 @@ local LINES = {
     { "+ / -", "Change game speed" },
     { "1 - 5", "Toggle terrain, territories, units, names, supply" },
     { "6 / 7", "Threat map / diplomatic map" },
+    { "Hotkeys", "Build or aim a nuke at the cursor (Settings > Key bindings)" },
     { "H", "Show or hide this help" },
     { "Escape", "Settings" }
 }
@@ -25,7 +26,7 @@ function Help.visible(hud)
 end
 
 function Help.size()
-    return 600, Style.headerHeight + 40 + #LINES * 30
+    return 640, Style.headerHeight + 40 + #LINES * 30
 end
 
 function Help.position(_, w, h, W, H)

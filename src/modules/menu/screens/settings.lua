@@ -12,7 +12,8 @@ local function rows(menu)
         { id = "background", label = "Live battle", hint = "AI nations fight behind the menu", kind = "toggle", value = s.background },
         { id = "battleSpeed", label = "Battle speed", hint = "Speed of the background battle", kind = "segments", value = s.battleSpeed },
         { id = "particles", label = "Embers", hint = "Floating sparks over the menu", kind = "toggle", value = s.particles },
-        { id = "nextBattle", label = "Next battle", hint = "Jump to another battlefield", kind = "action" }
+        { id = "nextBattle", label = "Next battle", hint = "Jump to another battlefield", kind = "action", press = function() menu:nextBattle() end },
+        { id = "keybinds", label = "Key bindings", hint = "Hotkeys for buildings, warships and nukes", kind = "action", press = function() menu:switch("keybinds", 1) end }
     }
 end
 
@@ -47,7 +48,7 @@ function Settings.build(menu)
             element.left = function() menu:setOption(row.id, math.max(1, menu.settings.battleSpeed - 1)) end
             element.right = function() menu:setOption(row.id, math.min(#SPEEDS, menu.settings.battleSpeed + 1)) end
         else
-            element.press = function() menu:nextBattle() end
+            element.press = row.press
         end
         list[#list + 1] = element
         y = y + l.rowH

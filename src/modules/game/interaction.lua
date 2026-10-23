@@ -319,6 +319,29 @@ function Interaction.loanItems(game, target, items)
     }
 end
 
+function Interaction.hotkey(game, action, tile)
+    local human = game.human
+    if game.phase ~= "playing" or not human.alive then return end
+    local BAD = { color = { 0.95, 0.35, 0.3, 1 } }
+    if action.group == "nuke" then
+        if human:unitCount("silo") == 0 then
+            game:addEvent("Cannot launch " .. action.label .. ": Needs silo.", BAD)
+        elseif game.nukeAim and game.nukeAim.kind == action.kind then
+            Interaction.cancelAim(game)
+        else
+            Interaction.startAim(game, action.kind)
+        end
+        return
+    end
+    if not tile then return end
+    local ok, reason = Units.check(game, human, action.kind, tile)
+    if not ok then
+        game:addEvent("Cannot build " .. action.label .. ": " .. reason .. ".", BAD)
+        return
+    end
+    game:submit({ type = "build", player = human.id, unit = action.kind, tile = tile })
+end
+
 function Interaction.startAim(game, kind)
     game.nukeAim = { kind = kind }
 end

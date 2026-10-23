@@ -23,6 +23,7 @@ local Screens = {
     play = require("src.modules.menu.screens.play"),
     multiplayer = require("src.modules.menu.screens.multiplayer"),
     settings = require("src.modules.menu.screens.settings"),
+    keybinds = require("src.modules.menu.screens.keybinds"),
     howto = require("src.modules.menu.screens.howto")
 }
 
@@ -496,6 +497,9 @@ end
 function GM.Menu:KeyPressed(key)
     if not self:active() or self.wipe then return end
     local screen = Screens[self.screen]
+    if screen.capture and screen.capture(self, key) then
+        return
+    end
     if key == "escape" then
         if screen.back then
             screen.back(self)

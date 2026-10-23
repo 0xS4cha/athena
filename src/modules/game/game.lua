@@ -21,7 +21,8 @@ local SystemPaths = {
     "src.modules.game.systems.diplomacy",
     "src.modules.game.systems.loans",
     "src.modules.game.systems.ai",
-    "src.modules.game.systems.victory"
+    "src.modules.game.systems.victory",
+    "src.modules.game.systems.stats"
 }
 
 local Systems = {}

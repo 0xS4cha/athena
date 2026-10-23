@@ -87,6 +87,7 @@ love .
   - Embargo, donate troops or gold to allies, mark a player as a target for your allies, send emojis.
   - Request a loan (100K, 500K or 2M gold) from any nation. The lender can lend for free, demand 10% or 25% interest (the borrower then accepts or declines the terms), or refuse. Loans are repaid automatically in installments over 5 minutes, or early from the Empire panel. Whatever is still owed at the deadline is a default: the borrower is marked as a traitor and loses the lender's trust.
 - **Victory**: control 80% of the land, or be the last nation standing.
+- **End of game stats**: the victory and defeat screens chart your share of the land over time against your three strongest rivals, and list your peak and final territory, tiles captured, attacks launched, buildings, nukes launched and nations eliminated. The history is part of the simulation (sampled every 5 seconds), so it survives reconnections and snapshots.
 
 ## Networking
 

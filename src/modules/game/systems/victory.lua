@@ -19,6 +19,7 @@ function Victory.declare(game, winner)
     game.winner = winner
     game.phase = "ended"
     game.endTick = game.tick
+    game:emit("gameEnded", winner)
     if winner == game.human then
         game:addEvent("Victory! You dominate the world.", { color = { 1, 0.85, 0.3, 1 }, duration = 100000 })
     else

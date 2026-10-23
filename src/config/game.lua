@@ -155,6 +155,7 @@ local CONFIG = {
     recentFront = 32,
     winRatio = 0.8,
     victoryCheckTicks = 10,
+    statsTicks = 50,
     difficulties = {
         easy = { population = 0.6, gold = 0.7, decisionTicks = 40 },
         medium = { population = 0.85, gold = 1.0, decisionTicks = 25 },

@@ -209,10 +209,10 @@ function Ships.updateBlockades(game)
             if unit.blockaded and not was then
                 local label = Config.units[unit.kind].label
                 game:notify(unit.owner, string.format("%s is blockading your %s!", ship.owner.name, label), { color = { 0.95, 0.35, 0.3, 1 } })
-                game:notify(ship.owner, string.format("Your warship is blockading a %s of %s.", label, unit.owner.name), { color = { 0.3, 0.85, 0.45, 1 } })
+                game:notify(ship.owner, string.format("Your warship is blockading a %s of %s.", label, unit.owner.name), { color = { 0.3, 0.85, 0.45, 1 }, minor = true })
                 game:emit("blockadeStarted", unit, ship)
             elseif was and not unit.blockaded then
-                game:notify(unit.owner, "The blockade of your " .. Config.units[unit.kind].label .. " has been lifted.", { color = { 0.55, 0.75, 1, 1 } })
+                game:notify(unit.owner, "The blockade of your " .. Config.units[unit.kind].label .. " has been lifted.", { color = { 0.55, 0.75, 1, 1 }, minor = true })
             end
         end
     end
@@ -304,8 +304,8 @@ function Ships.capture(game, ship, player)
     ship.path = path
     ship.progress = 1
     ship.toPort = port
-    game:notify(previous, "A trade ship was captured by " .. player.name .. ".", { color = { 0.95, 0.5, 0.3, 1 } })
-    game:notify(player, "Your warship captured a trade ship from " .. previous.name .. ".", { color = { 0.3, 0.85, 0.45, 1 } })
+    game:notify(previous, "A trade ship was captured by " .. player.name .. ".", { color = { 0.95, 0.5, 0.3, 1 }, minor = true })
+    game:notify(player, "Your warship captured a trade ship from " .. previous.name .. ".", { color = { 0.3, 0.85, 0.45, 1 }, minor = true })
 end
 
 function Ships.strike(game, warship, target)
@@ -315,7 +315,7 @@ function Ships.strike(game, warship, target)
         Ships.capture(game, target, warship.owner)
     elseif target.kind == "transport" then
         game:notify(target.owner, "Your transport ship was sunk by " .. warship.owner.name .. ".", { color = { 0.95, 0.35, 0.3, 1 } })
-        game:notify(warship.owner, "Your warship sank a transport from " .. target.owner.name .. ".", { color = { 0.3, 0.85, 0.45, 1 } })
+        game:notify(warship.owner, "Your warship sank a transport from " .. target.owner.name .. ".", { color = { 0.3, 0.85, 0.45, 1 }, minor = true })
         Units.remove(game, target)
     else
         target.health = target.health - def.damage
@@ -483,7 +483,7 @@ Ships.intents = {
         best.progress = 1
         best.target = nil
         best.chasing = nil
-        game:notify(player, "Warship dispatched.", { color = { 0.55, 0.75, 1, 1 } })
+        game:notify(player, "Warship dispatched.", { color = { 0.55, 0.75, 1, 1 }, minor = true })
     end,
     boat = function(game, intent)
         if game.phase ~= "playing" then return end

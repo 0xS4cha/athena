@@ -50,7 +50,7 @@ function Diplomacy.betray(game, traitor, victim)
     end
     game:notify(victim, traitor.name .. " betrayed you and broke your alliance!", { color = BAD, duration = 300 })
     if traitor ~= game.human and victim ~= game.human and not traitor:isBot() then
-        game:addEvent(traitor.name .. " betrayed " .. victim.name .. ".", { color = { 0.95, 0.6, 0.3, 1 } })
+        game:addEvent(traitor.name .. " betrayed " .. victim.name .. ".", { color = { 0.95, 0.6, 0.3, 1 }, minor = true })
     end
     game:notify(traitor, "You broke your alliance with " .. victim.name .. ". You are marked as a traitor.", { color = BAD })
 end
@@ -63,7 +63,7 @@ function Diplomacy.request(game, from, to)
     end
     if to.allianceRequests[from.id] then return end
     to.allianceRequests[from.id] = game.tick + Config.allianceRequestTicks
-    game:notify(from, "Alliance request sent to " .. to.name .. ".", { color = INFO })
+    game:notify(from, "Alliance request sent to " .. to.name .. ".", { color = INFO, minor = true })
     if to == game.human then
         local event = game:addEvent(from.name .. " requests an alliance.", {
             color = INFO,
@@ -127,7 +127,7 @@ function Diplomacy.requestPact(game, from, to)
     end
     if to.pactRequests[from.id] then return end
     to.pactRequests[from.id] = game.tick + Config.pactRequestTicks
-    game:notify(from, "Non-aggression pact proposed to " .. to.name .. ".", { color = INFO })
+    game:notify(from, "Non-aggression pact proposed to " .. to.name .. ".", { color = INFO, minor = true })
     if to == game.human then
         to.pactEvents[from.id] = game:addEvent(from.name .. " proposes a non-aggression pact.", {
             color = INFO,
@@ -165,7 +165,7 @@ function Diplomacy.endPact(game, player, other)
     other:changeRelation(player, -15)
     local seconds = math.floor(Config.pactNoticeTicks / Config.tickRate)
     game:notify(other, string.format("%s will end your non-aggression pact in %ds.", player.name, seconds), { color = BAD, duration = Config.pactNoticeTicks })
-    game:notify(player, string.format("Your pact with %s ends in %ds.", other.name, seconds), { color = INFO })
+    game:notify(player, string.format("Your pact with %s ends in %ds.", other.name, seconds), { color = INFO, minor = true })
 end
 
 function Diplomacy.breakPact(game, traitor, victim)
@@ -185,14 +185,14 @@ function Diplomacy.donate(game, from, to, kind, ratio)
         from.troops = from.troops - amount
         to.troops = to.troops + amount
         game:notify(to, string.format("%s sent you %s troops.", from.name, Format.number(amount)), { color = GOOD })
-        game:notify(from, string.format("You sent %s troops to %s.", Format.number(amount), to.name), { color = INFO })
+        game:notify(from, string.format("You sent %s troops to %s.", Format.number(amount), to.name), { color = INFO, minor = true })
     else
         local amount = math.floor(from.gold * ratio)
         if amount < 1 then return end
         from.gold = from.gold - amount
         to.gold = to.gold + amount
         game:notify(to, string.format("%s sent you %s gold.", from.name, Format.number(amount)), { color = GOOD })
-        game:notify(from, string.format("You sent %s gold to %s.", Format.number(amount), to.name), { color = INFO })
+        game:notify(from, string.format("You sent %s gold to %s.", Format.number(amount), to.name), { color = INFO, minor = true })
     end
     to:changeRelation(from, 20)
 end
@@ -323,7 +323,7 @@ Diplomacy.intents = {
         if not a or not b or not b.alive then return end
         b.emoji = { icon = intent.icon, from = a.id, untilTick = game.tick + Config.emojiTicks }
         if b == game.human then
-            game:addEvent(a.name .. " sent you an emoji.", { color = INFO, duration = Config.emojiTicks })
+            game:addEvent(a.name .. " sent you an emoji.", { color = INFO, duration = Config.emojiTicks, minor = true })
         end
     end
 }

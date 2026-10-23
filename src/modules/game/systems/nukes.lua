@@ -200,7 +200,7 @@ function Nukes.launch(game, player, kind, tile)
         target:changeRelation(player, -100)
         game:emit("nukeLaunched", unit, player, target)
     end
-    game:notify(player, def.label .. " launched.", { color = { 1, 0.6, 0.3, 1 } })
+    game:notify(player, def.label .. " launched.", { color = { 1, 0.6, 0.3, 1 }, minor = true })
     return unit
 end
 
@@ -232,7 +232,7 @@ function Nukes.update(game, nuke)
         if sam then
             sam.cooldown = Config.units.sam.cooldownTicks
             game:notify(nuke.owner, "Your " .. Config.nukes[nuke.nukeKind].label .. " was intercepted by a SAM.", { color = { 0.95, 0.5, 0.3, 1 } })
-            game:notify(sam.owner, "Your SAM intercepted a " .. Config.nukes[nuke.nukeKind].label .. ".", { color = { 0.3, 0.85, 0.45, 1 } })
+            game:notify(sam.owner, "Your SAM intercepted a " .. Config.nukes[nuke.nukeKind].label .. ".", { color = { 0.3, 0.85, 0.45, 1 }, minor = true })
             table.insert(game.explosions, { x = nuke.x, y = nuke.y, radius = 6, tick = game.tick })
             Units.remove(game, nuke)
             return

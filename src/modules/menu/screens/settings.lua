@@ -12,6 +12,7 @@ local function rows(menu)
         { id = "background", label = "Live battle", hint = "AI nations fight behind the menu", kind = "toggle", value = s.background },
         { id = "battleSpeed", label = "Battle speed", hint = "Speed of the background battle", kind = "segments", value = s.battleSpeed },
         { id = "particles", label = "Embers", hint = "Floating sparks over the menu", kind = "toggle", value = s.particles },
+        { id = "advancedEvents", label = "Advanced events", hint = "Show every minor event in the in-game feed", kind = "toggle", value = s.advancedEvents },
         { id = "nextBattle", label = "Next battle", hint = "Jump to another battlefield", kind = "action", press = function() menu:nextBattle() end },
         { id = "keybinds", label = "Key bindings", hint = "Hotkeys for buildings, warships and nukes", kind = "action", press = function() menu:switch("keybinds", 1) end }
     }

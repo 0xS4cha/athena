@@ -224,11 +224,18 @@ function Game:addEvent(text, options)
         tick = self.tick,
         color = options.color or { 0.85, 0.87, 0.92, 1 },
         actions = options.actions,
+        minor = options.minor == true,
+        duration = options.duration or Config.eventTicks,
         expires = self.tick + (options.duration or Config.eventTicks)
     }
     table.insert(self.events, event)
     if #self.events > Config.maxEvents then
-        table.remove(self.events, 1)
+        for k, old in ipairs(self.events) do
+            if not old.actions then
+                table.remove(self.events, k)
+                break
+            end
+        end
     end
     return event
 end

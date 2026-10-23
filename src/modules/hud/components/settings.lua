@@ -18,6 +18,14 @@ local function buttons(hud)
         { label = "Reset Panel Positions", icon = "Restart.png", action = function() hud:resetPositions() end }
     }
     if GM.Menu then
+        local advanced = GM.Menu.settings.advancedEvents
+        list[#list + 1] = {
+            label = "Advanced Events: " .. (advanced and "On" or "Off"),
+            icon = "Book.png",
+            action = function() GM.Menu:setOption("advancedEvents", not advanced) end
+        }
+    end
+    if GM.Menu then
         list[#list + 1] = {
             label = "Back To Menu",
             icon = "Home.png",

@@ -41,7 +41,7 @@ function Capital.unitRemoved(game, unit)
     if by then
         game:notify(by, "You captured the capital of " .. owner.name .. "!", { color = GOOD })
         if owner:isNation() and by ~= game.human and owner ~= game.human then
-            game:addEvent(by.name .. " captured the capital of " .. owner.name .. ".", { color = { 0.95, 0.6, 0.3, 1 } })
+            game:addEvent(by.name .. " captured the capital of " .. owner.name .. ".", { color = { 0.95, 0.6, 0.3, 1 }, minor = true })
         end
     end
 end
@@ -57,7 +57,7 @@ function Capital.step(game)
                 anchor = game.map:tileAt(x, y)
             end
             if anchor and Capital.found(game, player, anchor) then
-                game:notify(player, "A new capital has been founded.", { color = GOOD })
+                game:notify(player, "A new capital has been founded.", { color = GOOD, minor = true })
             end
         end
     end

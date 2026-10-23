@@ -169,7 +169,7 @@ function Units.transfer(game, unit, player)
     unit.capturedTick = game.tick
     game.defenseVersion = game.defenseVersion + 1
     game:notify(previous, string.format("%s captured your %s.", player.name, Config.units[unit.kind].label), { color = { 0.95, 0.5, 0.3, 1 } })
-    game:notify(player, string.format("You captured a %s from %s.", Config.units[unit.kind].label, previous.name), { color = { 0.3, 0.85, 0.45, 1 } })
+    game:notify(player, string.format("You captured a %s from %s.", Config.units[unit.kind].label, previous.name), { color = { 0.3, 0.85, 0.45, 1 }, minor = true })
 end
 
 local function defensePosts(game, player)
@@ -269,7 +269,7 @@ Units.intents = {
         if not player then return end
         local unit = Units.build(game, player, intent.unit, intent.tile)
         if unit then
-            game:notify(player, string.format("Building %s (%s gold).", Config.units[intent.unit].label, Format.number(unit.cost)))
+            game:notify(player, string.format("Building %s (%s gold).", Config.units[intent.unit].label, Format.number(unit.cost)), { minor = true })
         end
     end
 }

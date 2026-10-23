@@ -95,7 +95,7 @@ function Loans.request(game, borrower, lender, amount)
     if not Loans.canRequest(game, borrower, lender, amount) then return end
     local request = { amount = amount, expires = game.tick + Config.loanRequestTicks }
     lender.loanRequests[borrower.id] = request
-    game:notify(borrower, string.format("Loan of %s gold requested from %s.", Format.number(amount), lender.name), { color = INFO })
+    game:notify(borrower, string.format("Loan of %s gold requested from %s.", Format.number(amount), lender.name), { color = INFO, minor = true })
     if lender == game.human then
         local function reply(rate)
             return function() game:submit({ type = "loanReply", player = lender.id, from = borrower.id, rate = rate }) end
@@ -138,7 +138,7 @@ function Loans.grant(game, lender, borrower, amount, rate)
     lender:changeRelation(borrower, 5)
     borrower:changeRelation(lender, rate == 0 and 25 or 10)
     game:notify(borrower, string.format("%s lent you %s.", lender.name, describe(amount, rate)), { color = GOOD })
-    game:notify(lender, string.format("You lent %s gold to %s, %s due.", Format.number(amount), borrower.name, Format.number(loan.due)), { color = GOOD })
+    game:notify(lender, string.format("You lent %s gold to %s, %s due.", Format.number(amount), borrower.name, Format.number(loan.due)), { color = GOOD, minor = true })
     return loan
 end
 
@@ -156,7 +156,7 @@ function Loans.reply(game, lender, borrower, rate)
     end
     local offer = { amount = request.amount, rate = rate, expires = game.tick + Config.loanRequestTicks }
     borrower.loanOffers[lender.id] = offer
-    game:notify(lender, string.format("Loan offer sent to %s at %d%% interest.", borrower.name, math.floor(rate * 100 + 0.5)), { color = INFO })
+    game:notify(lender, string.format("Loan offer sent to %s at %d%% interest.", borrower.name, math.floor(rate * 100 + 0.5)), { color = INFO, minor = true })
     if borrower == game.human then
         offer.event = game:addEvent(string.format("%s offers %s (%d%% interest).", lender.name, describe(request.amount, rate), math.floor(rate * 100 + 0.5)), {
             color = GOLD,
@@ -197,7 +197,7 @@ function Loans.pay(game, loan, amount)
     if Loans.remaining(loan) <= 0 then
         close(game, loan)
         loan.lender:changeRelation(loan.borrower, 15)
-        game:notify(loan.borrower, "You repaid your loan to " .. loan.lender.name .. ".", { color = GOOD })
+        game:notify(loan.borrower, "You repaid your loan to " .. loan.lender.name .. ".", { color = GOOD, minor = true })
         game:notify(loan.lender, loan.borrower.name .. " repaid their loan in full.", { color = GOOD })
     end
     return amount
@@ -217,7 +217,7 @@ function Loans.default(game, loan)
     game:notify(lender, string.format("%s defaulted on %s gold!", borrower.name, left), { color = BAD, duration = 300 })
     game:notify(borrower, string.format("You defaulted on your loan to %s. You are marked as a traitor.", lender.name), { color = BAD, duration = 300 })
     if borrower ~= game.human and lender ~= game.human then
-        game:addEvent(borrower.name .. " defaulted on a loan from " .. lender.name .. ".", { color = { 0.95, 0.6, 0.3, 1 } })
+        game:addEvent(borrower.name .. " defaulted on a loan from " .. lender.name .. ".", { color = { 0.95, 0.6, 0.3, 1 }, minor = true })
     end
 end
 

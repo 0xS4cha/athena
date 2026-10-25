@@ -4,6 +4,8 @@ local Vision = require("src.modules.game.systems.vision")
 
 local function sq(v) return v * v end
 
+local INTERCEPT_START = 0.3
+
 local Nukes = {}
 
 function Nukes.init(game)
@@ -159,7 +161,8 @@ function Nukes.preview(game, player, kind, tile)
     local touched = Nukes.impactOwners(game, kind, cx, cy)
     for _, unit in ipairs(game.units) do
         if unit.kind == "sam" and not unit.dead and unit.buildLeft == 0 and not unit.owner:isFriendly(player)
-            and touched[unit.owner.id] and Nukes.covers(unit, kind, cx, cy) and knownTo(game, player, unit) then
+            and touched[unit.owner.id] and Nukes.covers(unit, kind, cx, cy) and knownTo(game, player, unit)
+            and (not silo or Nukes.crossesRange(unit, silo.x, silo.y, cx, cy)) then
             result.sams[#result.sams + 1] = unit
         end
     end
@@ -237,14 +240,24 @@ function Nukes.covers(sam, kind, cx, cy)
     return sq(sam.x - cx) + sq(sam.y - cy) <= sq(range + def.outer)
 end
 
+function Nukes.crossesRange(sam, fromX, fromY, toX, toY)
+    local dx, dy = toX - fromX, toY - fromY
+    local len2 = dx * dx + dy * dy
+    local t = len2 > 0 and ((sam.x - fromX) * dx + (sam.y - fromY) * dy) / len2 or 1
+    t = math.max(INTERCEPT_START, math.min(1, t))
+    return sq(fromX + dx * t - sam.x) + sq(fromY + dy * t - sam.y) <= sq(Config.units.sam.range)
+end
+
 function Nukes.interceptor(game, nuke)
     if not nuke.impactOwners then
         nuke.impactOwners = Nukes.impactOwners(game, nuke.nukeKind, nuke.toX, nuke.toY)
     end
     local touched = nuke.impactOwners
+    local r2 = sq(Config.units.sam.range)
     for _, unit in ipairs(game.units) do
         if unit.kind == "sam" and unit.buildLeft == 0 and unit.cooldown == 0 and not unit.dead
             and unit.owner ~= nuke.owner and not unit.owner:isAlliedWith(nuke.owner)
+            and sq(unit.x - nuke.x) + sq(unit.y - nuke.y) <= r2
             and touched[unit.owner.id] and Nukes.covers(unit, nuke.nukeKind, nuke.toX, nuke.toY) then
             return unit
         end
@@ -259,7 +272,7 @@ function Nukes.update(game, nuke)
     nuke.y = nuke.fromY + (nuke.toY - nuke.fromY) * t
     nuke.progress = t
 
-    if nuke.nukeKind ~= "warhead" and t > 0.3 then
+    if nuke.nukeKind ~= "warhead" and t > INTERCEPT_START then
         local sam = Nukes.interceptor(game, nuke)
         if sam then
             sam.cooldown = Config.units.sam.cooldownTicks

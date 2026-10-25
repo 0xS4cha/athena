@@ -35,7 +35,7 @@ local PAGES = {
         lines = {
             "Build a missile silo, then right click a target to launch an Atom Bomb, a Hydrogen Bomb or a MIRV.",
             "Nuked land loses its owner and is covered in fallout that slowly decays and doubles conquest costs.",
-            "SAM launchers intercept warheads whose blast reaches their range and their owner's land."
+            "SAM launchers intercept warheads flying through their range whose blast hits their owner's land."
         }
     },
     {

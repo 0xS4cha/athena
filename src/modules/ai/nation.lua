@@ -4,6 +4,7 @@ local Navy = require("src.modules.ai.navy")
 local Strategist = require("src.modules.ai.strategist")
 local Diplomat = require("src.modules.ai.diplomat")
 local Personality = require("src.modules.ai.personality")
+local Negotiator = require("src.modules.ai.negotiator")
 
 local Nation = {}
 
@@ -26,6 +27,9 @@ function Nation.targetScore(game, player, other)
     end
     if #Attack.incoming(game, other) > 0 then
         score = score * traits.opportunism
+    end
+    if Negotiator.plannedTarget(game, player) == other.id then
+        score = score * 1.6
     end
     local relation = player:relation(other)
     if relation < 0 then

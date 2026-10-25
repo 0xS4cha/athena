@@ -3,6 +3,9 @@ local Units = require("src.modules.game.systems.units")
 local Nukes = require("src.modules.game.systems.nukes")
 local Vision = require("src.modules.game.systems.vision")
 local Personality = require("src.modules.ai.personality")
+local Negotiator = require("src.modules.ai.negotiator")
+
+local memory = Negotiator.memory
 
 local Strategist = {}
 
@@ -42,11 +45,6 @@ end
 
 local function known(game, player, unit)
     return not Config.aiNukeFog or Vision.knows(game, player, unit.x, unit.y, unit.kind)
-end
-
-local function memory(player)
-    player.aiMemory = player.aiMemory or {}
-    return player.aiMemory
 end
 
 local function recentStrikes(game, player)
@@ -149,7 +147,7 @@ end
 Strategist.targetTile = targetTile
 
 function Strategist.behavior(game, player, ctx)
-    if game.tick < MIN_TICK or game.options.difficulty == "easy" then return false end
+    if game.tick < MIN_TICK or game.options.difficulty == "easy" or memory(player).saving then return false end
     local rng = game.aiRng
     local traits = Personality.of(player)
     if rng:random() > 0.3 * math.max(traits.nuclear, traits.caution) then return false end

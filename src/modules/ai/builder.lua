@@ -135,6 +135,7 @@ Builder.wishes = {
 }
 
 function Builder.behavior(game, player, ctx)
+    if player.aiMemory and player.aiMemory.saving then return false end
     if game.aiRng:random() > math.min(0.85, 0.5 * Personality.of(player).greed) then return false end
     for _, wish in ipairs(Builder.wishes) do
         local kind, tile = wish(game, player, ctx)

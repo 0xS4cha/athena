@@ -322,14 +322,15 @@ function Game:report()
     for k, v in pairs(counts) do parts[#parts + 1] = k .. "=" .. v end
     table.sort(parts)
     Logger:info("game", "units " .. table.concat(parts, " "))
-    local alliances = 0
+    local alliances, pacts = 0, 0
     for _, p in ipairs(self.players) do
         for _ in pairs(p.allies) do alliances = alliances + 1 end
+        for _ in pairs(p.pacts) do pacts = pacts + 1 end
     end
     local blockaded = 0
     for _, u in ipairs(self.units) do if u.blockaded then blockaded = blockaded + 1 end end
     Logger:info("game", string.format("blockaded ports=%d", blockaded))
-    Logger:info("game", string.format("alliances=%d rails=%d events=%d", alliances / 2, #(self.rails or {}), #self.events))
+    Logger:info("game", string.format("alliances=%d pacts=%d loans=%d rails=%d events=%d", alliances / 2, pacts / 2, #(self.loans or {}), #(self.rails or {}), #self.events))
     for _, e in ipairs(self.events) do
         Logger:trace("event", e.text)
     end

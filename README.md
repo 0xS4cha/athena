@@ -89,6 +89,9 @@ New to the game? Press **Tutorial** in the main menu: it starts a solo game on I
   - Guardian: fortifies its borders with defense posts and SAMs and only attacks when much stronger.
   - Diplomat: seeks alliances, supports its allies and rarely betrays.
   - Opportunist: preys on nations that are already under attack and betrays when it pays.
+- **AI diplomacy**: AI nations negotiate with a plan rather than at random:
+  - Pacts: at war, they offer non-aggression pacts to their other strong neighbours to secure their flanks, and accept them for the same reason. A threatened Guardian asks its stronger neighbours for peace. Before attacking a weak or embattled pact partner, they give the 30 s notice and only strike once the pact has ended.
+  - Loans: they lend cheaply to their allies and to whoever fights their enemies, charge more to risky borrowers, and refuse traitors, their enemies, nations that threaten them and borrowers whose income cannot cover the debt. They borrow from their friends to fund a plan (barracks at war, a silo for nuclear powers, the next city for builders) only when their income can repay, save their gold when a deadline gets close, and repay early once they can.
 - **Diplomacy** (right-click on another nation):
   - Request or accept an alliance; alliances expire after 5 minutes.
   - Propose a non-aggression pact: neither side can attack the other by land or sea for 10 minutes. Ending a pact gives 30 s of notice and no penalty; nuking a pact partner breaks it and marks you as a traitor.
@@ -245,7 +248,7 @@ The suite runs headless and exits with code 1 when a case fails, so the CI runs 
 - `determinism_test`: a server with the AI, a client and two clients restored from snapshots keep the same state hash for 700 ticks; the AI only runs on the authority.
 - `network_test`: real ENet clients against an in-process server follow the frames without desync, get refused intents answered, catch up after a short disconnection and resynchronize or rejoin from a snapshot.
 - `balance_test`: diminishing cities and the housing cap, the factory link limit and the diminishing train income.
-- `ai_test`: AI personalities are the same on the server and every client.
+- `ai_test`: AI personalities are the same on the server and every client; AI lenders, pact negotiations, pact notices before an attack, and borrowing and early repayment.
 - `lobby_test`: room passwords, unique colors, flags, kicks, the ready check, and the chat (history, sanitizing, rate limit, ally messages).
 
 ## Map Format

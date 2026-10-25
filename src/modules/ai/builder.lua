@@ -1,14 +1,15 @@
 local Units = require("src.modules.game.systems.units")
 local Config = require("src.config.game")
 local Personality = require("src.modules.ai.personality")
+local Economy = require("src.modules.game.systems.economy")
 
 local Builder = {}
 
-local function randomOwnTile(game, player, predicate)
+local function randomOwnTile(game, player, predicate, scale)
     local map = game.map
     local rng = game.aiRng
     local cx, cy = player:center()
-    local spread = math.sqrt(player.tiles) * 0.6
+    local spread = math.sqrt(player.tiles) * (scale or 0.6)
     for _ = 1, 12 do
         local tile = map:findNear(cx + (rng:random() * 2 - 1) * spread, cy + (rng:random() * 2 - 1) * spread, 8, function(i)
             return map.owner[i] == player.id and (not predicate or predicate(i))
@@ -16,6 +17,21 @@ local function randomOwnTile(game, player, predicate)
         if tile then return tile end
     end
     return nil
+end
+
+local function remoteTile(game, player)
+    local best, bestEfficiency
+    for _ = 1, 6 do
+        local tile = randomOwnTile(game, player, function(i) return Units.isSpaced(game, i) end, 1.3)
+        if tile then
+            local x, y = game.map:coords(tile)
+            local efficiency = Economy.efficiencyAt(player.adminPoints, x + 0.5, y + 0.5) or 1
+            if not bestEfficiency or efficiency < bestEfficiency then
+                best, bestEfficiency = tile, efficiency
+            end
+        end
+    end
+    return best
 end
 
 local function coastTile(game, player)
@@ -60,6 +76,9 @@ end
 Builder.wishes = {
     function(game, player)
         if not player.crowded and player:unitCount("city") < 1 + math.floor(player.tiles * Personality.of(player).greed / 12000) then
+            if (player.administration or 1) < 0.85 then
+                return "city", remoteTile(game, player)
+            end
             return "city", randomOwnTile(game, player, function(i) return Units.isSpaced(game, i) end)
         end
     end,

@@ -239,6 +239,8 @@ local function tiles(hud)
     local crippled = human.capitalLostUntil and human.capitalLostUntil > game.tick
     local unpaid = not human.upkeepPaid
     local crowded = human.crowded and not crippled
+    local lost = math.floor((1 - (human.administration or 1)) * 100 + 0.5)
+    local corrupt = lost >= 30
     local GOOD, BAD = Style.colors.good, Style.colors.bad
     local function sign(value) return value < 0 and BAD or GOOD end
     return {
@@ -250,9 +252,9 @@ local function tiles(hud)
             alert = full or crippled or crowded, alertColor = crippled and BAD or Style.colors.gold
         },
         {
-            id = "gold", label = unpaid and "GOLD - UNPAID" or "GOLD", icon = "Coin.png", color = Style.colors.gold,
+            id = "gold", label = unpaid and "GOLD - UNPAID" or lost >= 5 and string.format("GOLD - %d%% LOST", lost) or "GOLD", icon = "Coin.png", color = Style.colors.gold,
             value = human.gold, rate = rateText(human.income), rateColor = sign(human.income),
-            alert = unpaid, alertColor = BAD
+            alert = unpaid or corrupt, alertColor = unpaid and BAD or Style.colors.gold
         },
         {
             id = "army", label = attacked and "ARMY - ATTACKED" or "ARMY", icon = "Skull.png", color = BAD,

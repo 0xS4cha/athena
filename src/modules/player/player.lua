@@ -25,6 +25,9 @@ function Player:init(id, name, kind, color, flag)
     self.unitCounts = {}
     self.sumX = 0
     self.sumY = 0
+    self.sumX2 = 0
+    self.sumY2 = 0
+    self.administration = 1
     self.borders = {}
     self.allies = {}
     self.allianceRequests = {}
@@ -72,6 +75,14 @@ function Player:center()
         return 0, 0
     end
     return self.sumX / self.tiles + 0.5, self.sumY / self.tiles + 0.5
+end
+
+function Player:spread()
+    if self.tiles == 0 then
+        return 0, 0
+    end
+    local cx, cy = self.sumX / self.tiles, self.sumY / self.tiles
+    return math.sqrt(math.max(0, self.sumX2 / self.tiles - cx * cx)), math.sqrt(math.max(0, self.sumY2 / self.tiles - cy * cy))
 end
 
 function Player:familiarity(biomeId)

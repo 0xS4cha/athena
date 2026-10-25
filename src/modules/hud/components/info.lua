@@ -12,6 +12,7 @@ local Overlay = require("src.modules.game.overlay")
 local Supply = require("src.modules.game.systems.supply")
 local Personality = require("src.modules.ai.personality")
 local Coalitions = require("src.modules.game.systems.coalitions")
+local Economy = require("src.modules.game.systems.economy")
 
 function Info.draw(hud)
     local game = hud:game()
@@ -27,6 +28,10 @@ function Info.draw(hud)
         if game.phase == "playing" then
             local supply = Supply.multiplier(game, game.human, tile)
             parts[#parts + 1] = supply > 1 and string.format("Supply x%.1f", supply) or "Supplied"
+            local admin = map.owner[tile] == game.human.id and Economy.efficiencyAt(game.human.adminPoints, x + 0.5, y + 0.5)
+            if admin then
+                parts[#parts + 1] = string.format("Admin %d%%", math.floor(admin * 100 + 0.5))
+            end
         end
     end
     local camera = hud:camera()

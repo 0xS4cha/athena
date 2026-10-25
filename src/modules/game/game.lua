@@ -162,6 +162,8 @@ function Game:setOwner(i, id)
         previous.tiles = previous.tiles - 1
         previous.sumX = previous.sumX - x
         previous.sumY = previous.sumY - y
+        previous.sumX2 = previous.sumX2 - x * x
+        previous.sumY2 = previous.sumY2 - y * y
         previous.borders[i] = nil
     end
     if id ~= 0 then
@@ -170,6 +172,8 @@ function Game:setOwner(i, id)
         p.tiles = p.tiles + 1
         p.sumX = p.sumX + x
         p.sumY = p.sumY + y
+        p.sumX2 = p.sumX2 + x * x
+        p.sumY2 = p.sumY2 + y * y
     end
 
     self:refreshBorder(i)
@@ -345,7 +349,7 @@ function Game:report()
     Logger:info("game", string.format("tick=%d phase=%s alive=%d", self.tick, self.phase, #alive))
     for k = 1, math.min(8, #alive) do
         local p = alive[k]
-        Logger:info("game", string.format("%-28s %-6s tiles=%-7d troops=%-9d workers=%-9d gold=%d", p.name, p.kind, p.tiles, p.troops, p.workers, p.gold))
+        Logger:info("game", string.format("%-28s %-6s tiles=%-7d troops=%-9d workers=%-9d gold=%-10d admin=%d%%", p.name, p.kind, p.tiles, p.troops, p.workers, p.gold, math.floor((p.administration or 1) * 100)))
     end
     local h = self.human
     if h then

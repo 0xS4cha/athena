@@ -72,5 +72,25 @@ return {
             T.expect(total < single * 40 * 0.3, "forty rails pay much less than forty times one")
             T.expect(total > single, "a bigger network still pays more")
         end
+    },
+    {
+        name = "territory far from cities and the capital earns less gold",
+        run = function()
+            local points = { 0, 0 }
+            T.equal(Economy.efficiencyAt(points, Config.adminRange - 1, 0), 1, "close territory is fully administered")
+            local half = Economy.efficiencyAt(points, Config.adminRange + Config.adminFalloff / 2, 0)
+            T.expect(math.abs(half - 0.5) < 1e-9, "efficiency falls with the distance")
+            T.equal(Economy.efficiencyAt(points, 5000, 0), Config.adminFloor, "efficiency has a floor")
+            T.equal(Economy.efficiencyAt({}, 0, 0), nil, "no administrative center")
+
+            local game, human = expandedGame()
+            Economy.refreshAdministration(game)
+            T.expect(human.adminPoints and #human.adminPoints >= 2, "the capital administers the land")
+            T.expect(human.administration > Config.adminFloor and human.administration <= 1, "administration in range")
+            human.administration = 1
+            local full = Economy.goldRate(game, human)
+            human.administration = 0.5
+            T.expect(math.abs(Economy.goldRate(game, human) - full * 0.5) < 1e-9, "gold scales with the administration")
+        end
     }
 }

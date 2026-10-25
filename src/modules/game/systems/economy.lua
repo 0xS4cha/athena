@@ -1,5 +1,6 @@
 local Config = require("src.config.game")
 local DMath = require("src.core.dmath")
+local Hash = require("src.core.hash")
 
 local Economy = {}
 
@@ -26,13 +27,71 @@ function Economy.housingCapacity(player)
 end
 
 function Economy.goldRate(game, player)
-    local rate = math.sqrt(math.max(0, player.workers) * player.tiles) / Config.goldDivisor
+    local rate = math.sqrt(math.max(0, player.workers) * player.tiles) / Config.goldDivisor * (player.administration or 1)
     if player:isBot() then
         rate = rate * Config.botGoldFactor
     elseif player:isNation() then
         rate = rate * game:difficulty().gold
     end
     return rate
+end
+
+function Economy.efficiencyAt(points, x, y)
+    if not points or #points == 0 then return nil end
+    local best = math.huge
+    for k = 1, #points, 2 do
+        local dx, dy = points[k] - x, points[k + 1] - y
+        local d = dx * dx + dy * dy
+        if d < best then best = d end
+    end
+    local d = math.sqrt(best)
+    if d <= Config.adminRange then return 1 end
+    return math.max(Config.adminFloor, 1 - (d - Config.adminRange) / Config.adminFalloff)
+end
+
+local function sampleAdministration(game, player, points)
+    local map = game.map
+    local cx, cy = player:center()
+    local sx, sy = player:spread()
+    sx, sy = sx * 2.2 + 2, sy * 2.2 + 2
+    local bucket = math.floor(game.tick / Config.adminRefreshTicks)
+    local total, count = 0, 0
+    for k = 1, Config.adminSamples do
+        local h = Hash.combine(Hash.combine(Hash.combine(player.id, k), bucket), 0xad1)
+        local ox = (h % 2001) / 1000 - 1
+        local oy = (math.floor(h / 2001) % 2001) / 1000 - 1
+        local x, y = math.floor(cx + ox * sx), math.floor(cy + oy * sy)
+        if map:isValid(x, y) and map.owner[map:index(x, y)] == player.id then
+            total = total + Economy.efficiencyAt(points, x + 0.5, y + 0.5)
+            count = count + 1
+        end
+    end
+    if count == 0 then return player.administration or 1 end
+    return total / count
+end
+
+function Economy.refreshAdministration(game)
+    local points = {}
+    for _, unit in ipairs(game.units) do
+        if Config.adminSources[unit.kind] and unit.buildLeft == 0 and not unit.dead then
+            local list = points[unit.owner.id]
+            if not list then
+                list = {}
+                points[unit.owner.id] = list
+            end
+            list[#list + 1] = unit.x
+            list[#list + 1] = unit.y
+        end
+    end
+    for _, player in ipairs(game.players) do
+        if player.alive and player.spawned and player.tiles > 0 then
+            local list = points[player.id]
+            player.adminPoints = list
+            if list then
+                player.administration = sampleAdministration(game, player, list)
+            end
+        end
+    end
 end
 
 function Economy.countBuildings(game)
@@ -125,6 +184,9 @@ end
 function Economy.step(game)
     if game.phase ~= "playing" then return end
     Economy.countBuildings(game)
+    if game.tick % Config.adminRefreshTicks == 0 then
+        Economy.refreshAdministration(game)
+    end
     for _, player in ipairs(game.players) do
         if player.alive and player.spawned and player.tiles > 0 then
             Economy.updatePlayer(game, player)

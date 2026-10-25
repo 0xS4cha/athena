@@ -54,6 +54,7 @@ New to the game? Press **Tutorial** in the main menu: it starts a solo game on I
 
 - **Spawn phase**: click anywhere on land to choose your starting location, then press `Space` or wait for the countdown.
 - **Population**: your maximum population grows with your territory and your cities. Growth is fastest when you are far from the cap.
+- **Administration**: land far from your capital and your cities is poorly administered. Within 55 tiles of them it earns full gold, then its income falls with the distance down to 35%. The gold panel shows the share of income lost (`GOLD - 23% LOST`) and hovering your land shows its administration, so wide empires need cities spread across their territory. AI nations build their next city in their least administered region.
 - **Housing**: the population brought by cities and farms is limited by your housing capacity (400K plus 250 per tile), so a tiny island packed with cities stops growing. The population panel shows `POP - CROWDED` when you hit it, and the build menu warns that a new city or farm would bring no housing.
 - **Troops / Workers**: the slider splits your population. Troops attack and defend; workers produce gold.
 - **Attacks**: left-click a neighbour (or the wilderness) to send `Attack Ratio` percent of your troops. The front advances tile by tile. Each tile costs troops depending on terrain (plains < highland < mountain), fallout, the defender's troop density, defense posts, and whether the defender is a traitor. Attacks can be retreated from the Empire panel, and opposite attacks cancel each other out.
@@ -254,7 +255,7 @@ The suite runs headless and exits with code 1 when a case fails, so the CI runs 
 - `intents_test`: the server sanitizes intents (sender slot, stripped fields, quantized ratios) and enforces the game rules.
 - `determinism_test`: a server with the AI, a client and two clients restored from snapshots keep the same state hash for 700 ticks; the AI only runs on the authority.
 - `network_test`: real ENet clients against an in-process server follow the frames without desync, get refused intents answered, catch up after a short disconnection and resynchronize or rejoin from a snapshot.
-- `balance_test`: diminishing cities and the housing cap, the factory link limit and the diminishing train income.
+- `balance_test`: diminishing cities and the housing cap, the factory link limit, the diminishing train income and the administration falloff.
 - `ai_test`: AI personalities are the same on the server and every client; AI lenders, pact negotiations, pact notices before an attack, and borrowing and early repayment.
 - `coalition_test`: coalition founding, invitations, attack and defense bonuses, permanent alliances, desertion, dissolution, server validation and snapshots.
 - `lobby_test`: room passwords, unique colors, flags, kicks, the ready check, and the chat (history, sanitizing, rate limit, ally messages).

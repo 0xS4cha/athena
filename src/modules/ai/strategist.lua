@@ -6,6 +6,14 @@ local Vision = require("src.modules.game.systems.vision")
 local Strategist = {}
 
 local MIN_TICK = 3000
+local STRIKE_MEMORY = 3000
+local MAX_STRIKES = 8
+local RANDOM_SAMPLES = 6
+local JITTER = 6
+local TARGET_VALUES = {
+    capital = 3, city = 2, silo = 2.5, factory = 1.6, tradePort = 1.3, militaryPort = 1.3,
+    barracks = 1.2, radar = 1.2, mine = 1.1, farm = 1, sam = 0.8, defensePost = 0.8
+}
 
 local function enemyHasSilo(game, player)
     for _, other in ipairs(game.players) do
@@ -35,27 +43,106 @@ local function known(game, player, unit)
     return not Config.aiNukeFog or Vision.knows(game, player, unit.x, unit.y, unit.kind)
 end
 
-local function targetTile(game, player, victim)
-    local rng = game.aiRng
-    local capital = victim.capital
-    if capital and not capital.dead and rng:random() < 0.5 and known(game, player, capital) then
-        return capital.tile
-    end
-    local cities = {}
-    for _, city in ipairs(Units.list(game, victim, "city")) do
-        if not city.dead and known(game, player, city) then
-            cities[#cities + 1] = city
+local function memory(player)
+    player.aiMemory = player.aiMemory or {}
+    return player.aiMemory
+end
+
+local function recentStrikes(game, player)
+    local kept = {}
+    for _, strike in ipairs(memory(player).strikes or {}) do
+        if game.tick - strike.tick < STRIKE_MEMORY then
+            kept[#kept + 1] = strike
         end
     end
-    if #cities > 0 then
-        return cities[rng:random(#cities)].tile
+    memory(player).strikes = kept
+    return kept
+end
+
+local function remember(game, player, tile, kind)
+    local strikes = recentStrikes(game, player)
+    local x, y = game.map:coords(tile)
+    strikes[#strikes + 1] = { x = x, y = y, radius = Config.nukes[kind].outer, tick = game.tick }
+    while #strikes > MAX_STRIKES do
+        table.remove(strikes, 1)
+    end
+end
+
+local function randomTerritory(game, victim)
+    local map = game.map
+    local rng = game.aiRng
+    local cx, cy = victim:center()
+    local spread = math.sqrt(victim.tiles) * 0.9
+    local x = cx + (rng:random() * 2 - 1) * spread
+    local y = cy + (rng:random() * 2 - 1) * spread
+    return map:findNear(x, y, 25, function(i) return map.owner[i] == victim.id end)
+end
+
+local function weight(game, strikes, tile, value)
+    local map = game.map
+    local x, y = map:coords(tile)
+    for _, strike in ipairs(strikes) do
+        local d2 = (strike.x - x) ^ 2 + (strike.y - y) ^ 2
+        if d2 < strike.radius ^ 2 then
+            value = value * 0.08
+        elseif d2 < (strike.radius * 2) ^ 2 then
+            value = value * 0.45
+        end
+    end
+    if map.fallout[tile] > 0 then
+        value = value * 0.3
+    end
+    return value
+end
+
+local function candidates(game, player, victim)
+    local rng = game.aiRng
+    local strikes = recentStrikes(game, player)
+    local list = {}
+    local function add(tile, value)
+        if tile then
+            list[#list + 1] = { tile = tile, weight = weight(game, strikes, tile, value) }
+        end
+    end
+    for _, unit in ipairs(Units.list(game, victim)) do
+        local value = TARGET_VALUES[unit.kind]
+        if value and not unit.dead and known(game, player, unit) then
+            add(unit.tile, value)
+        end
     end
     local x, y = victim:center()
-    if Config.aiNukeFog and not Vision.knows(game, player, x, y) then
-        x = x + (rng:random() * 2 - 1) * Config.blindScatter
-        y = y + (rng:random() * 2 - 1) * Config.blindScatter
+    if not Config.aiNukeFog or Vision.knows(game, player, x, y) then
+        add(game.map:findNear(x, y, 30, function(i) return game.map.owner[i] == victim.id end), 1)
     end
-    return game.map:findNear(x, y, 30, function(i) return game.map.owner[i] == victim.id end)
+    for _ = 1, RANDOM_SAMPLES do
+        add(randomTerritory(game, victim), 0.9 + rng:random() * 0.4)
+    end
+    return list
+end
+
+local function pick(game, list)
+    local total = 0
+    for _, entry in ipairs(list) do
+        total = total + entry.weight
+    end
+    if total <= 0 then return nil end
+    local roll = game.aiRng:random() * total
+    for _, entry in ipairs(list) do
+        roll = roll - entry.weight
+        if roll <= 0 then return entry.tile end
+    end
+    return list[#list].tile
+end
+
+local function targetTile(game, player, victim)
+    local rng = game.aiRng
+    local map = game.map
+    local tile = pick(game, candidates(game, player, victim))
+    if not tile then return nil end
+    local x, y = map:coords(tile)
+    x = x + rng:random(-JITTER, JITTER)
+    y = y + rng:random(-JITTER, JITTER)
+    return map:findNear(x, y, JITTER * 2, function(i) return map.owner[i] == victim.id end) or tile
 end
 
 Strategist.targetTile = targetTile
@@ -104,6 +191,7 @@ function Strategist.behavior(game, player, ctx)
         local allowed = kind ~= "mirv" or victim.tiles / game.map.landCount > 0.3
         if allowed and player.gold > def.cost + reserve and Nukes.check(game, player, kind, tile) then
             game:command({ type = "nuke", player = player.id, kind = kind, tile = tile })
+            remember(game, player, tile, kind)
             return true
         end
     end

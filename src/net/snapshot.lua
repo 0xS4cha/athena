@@ -23,7 +23,7 @@ local LOCAL_FIELDS = {
 
 local PLAYER_LOCAL_FIELDS = {
     id = true, color = true, color255 = true, attackRatio = true, brain = true, nextDecision = true, requestEvents = true, pactEvents = true,
-    borders = true, supplyCache = true
+    borders = true, supplyCache = true, aiMemory = true
 }
 
 local classNames

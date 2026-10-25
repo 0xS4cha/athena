@@ -16,6 +16,7 @@ local DEFAULTS = {
     ["build:defensePost"] = "d",
     ["build:silo"] = "v",
     ["build:sam"] = "s",
+    ["build:bunker"] = "k",
     ["build:warship"] = "w",
     ["nuke:atom"] = "z",
     ["nuke:hydrogen"] = "x",

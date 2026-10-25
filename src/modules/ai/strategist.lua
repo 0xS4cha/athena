@@ -148,6 +148,21 @@ local function targetTile(game, player, victim)
     return map:findNear(x, y, JITTER * 2, function(i) return map.owner[i] == victim.id end) or tile
 end
 
+local function fortify(game, player, kind)
+    local rng = game.aiRng
+    if player.gold < Units.cost(game, player, kind) then return false end
+    local cities = Units.list(game, player, "city")
+    local anchor = cities[1] and cities[rng:random(#cities)].tile or player.spawnTile
+    if not anchor then return false end
+    local x, y = game.map:coords(anchor)
+    local tile = game.map:findNear(x + rng:random(-8, 8), y + rng:random(-8, 8), 15, function(i)
+        return game.map.owner[i] == player.id and Units.isSpaced(game, i)
+    end)
+    if not tile or not Units.check(game, player, kind, tile) then return false end
+    game:command({ type = "build", player = player.id, unit = kind, tile = tile })
+    return true
+end
+
 Strategist.targetTile = targetTile
 
 function Strategist.behavior(game, player, ctx)
@@ -170,19 +185,12 @@ function Strategist.behavior(game, player, ctx)
         end
     end
 
-    if player:unitCount("sam") < math.floor((1 + player.tiles / 40000) * traits.caution) and enemyHasSilo(game, player) and player.gold > Units.cost(game, player, "sam") then
-        local cities = Units.list(game, player, "city")
-        local anchor = cities[1] and cities[rng:random(#cities)].tile or player.spawnTile
-        if anchor then
-            local x, y = game.map:coords(anchor)
-            local tile = game.map:findNear(x + rng:random(-8, 8), y + rng:random(-8, 8), 15, function(i)
-                return game.map.owner[i] == player.id and Units.isSpaced(game, i)
-            end)
-            if tile and Units.check(game, player, "sam", tile) then
-                game:command({ type = "build", player = player.id, unit = "sam", tile = tile })
-                return true
-            end
-        end
+    local threatened = enemyHasSilo(game, player)
+    if threatened and player:unitCount("sam") < math.floor((1 + player.tiles / 40000) * traits.caution) and fortify(game, player, "sam") then
+        return true
+    end
+    if threatened and player:unitCount("bunker") < math.floor((1 + player:unitCount("city") / 5) * traits.caution) and fortify(game, player, "bunker") then
+        return true
     end
 
     local victim = chooseVictim(game, player, ctx)

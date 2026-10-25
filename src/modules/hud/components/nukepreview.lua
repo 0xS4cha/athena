@@ -3,6 +3,7 @@ local Format = require("src.core.format")
 local Pixel = require("src.modules.hud.pixel")
 local Interaction = require("src.modules.game.interaction")
 local Nukes = require("src.modules.game.systems.nukes")
+local Config = require("src.config.game")
 
 local NukePreview = { id = "nukepreview" }
 
@@ -47,6 +48,9 @@ local function rows(game, preview)
         interception, color = "No SAM in range", Style.colors.good
     end
     list[#list + 1] = { "Interception", interception, color }
+    if preview.sheltered then
+        list[#list + 1] = { "Shelter", string.format("Bunker: -%d%% casualties", math.floor(Config.units.bunker.shelter * 100 + 0.5)), Style.colors.bad }
+    end
     list[#list + 1] = { "Cost", Format.number(def.cost) .. " gold", game.human.gold >= def.cost and Style.colors.text or Style.colors.bad }
     return list
 end

@@ -60,8 +60,8 @@ local CONFIG = {
     falloutCost = 2.0,
     buildingSpacing = 5,
     portSearch = 12,
-    buildingTypes = { "capital", "city", "tradePort", "militaryPort", "factory", "barracks", "mine", "farm", "radar", "defensePost", "silo", "sam" },
-    buildMenu = { "city", "farm", "tradePort", "militaryPort", "factory", "mine", "barracks", "radar", "defensePost", "silo", "sam", "warship" },
+    buildingTypes = { "capital", "city", "tradePort", "militaryPort", "factory", "barracks", "mine", "farm", "radar", "defensePost", "silo", "sam", "bunker" },
+    buildMenu = { "city", "farm", "tradePort", "militaryPort", "factory", "mine", "barracks", "radar", "defensePost", "silo", "sam", "bunker", "warship" },
     units = {
         capital = { label = "Capital", icon = "Trophy.png", cost = 0, scale = "flat", cap = 0, buildTicks = 0, buildable = false, destroyOnCapture = true, radius = 25, defense = 1.6 },
         city = { label = "City", icon = "Home.png", cost = 125000, scale = "double", cap = 2000000, buildTicks = 20 },
@@ -78,7 +78,8 @@ local CONFIG = {
         nuke = { label = "Nuke", icon = "PotionRed.png", cost = 0, scale = "flat", cap = 0 },
         trade = { label = "Trade Ship", icon = "Coin.png", cost = 0, scale = "flat", cap = 0 },
         transport = { label = "Transport Ship", icon = "Luggage.png", cost = 0, scale = "flat", cap = 0 },
-        sam = { label = "SAM Launcher", icon = "Eye.png", cost = 1500000, scale = "linear", cap = 3000000, buildTicks = 30, range = 75, cooldownTicks = 75 }
+        sam = { label = "SAM Launcher", icon = "Eye.png", cost = 1500000, scale = "linear", cap = 3000000, buildTicks = 30, range = 75, cooldownTicks = 75 },
+        bunker = { label = "Bunker", icon = "Briefcase.png", cost = 400000, scale = "linear", cap = 2000000, buildTicks = 60, radius = 40, shelter = 0.7, shelterBuildings = 0.6, hitRadius = 6 }
     },
     boatsPerMilitaryPort = 2,
     maxBoats = 6,

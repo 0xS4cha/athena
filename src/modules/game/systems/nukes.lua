@@ -26,6 +26,18 @@ function Nukes.readySilo(game, player, tile)
     return best
 end
 
+function Nukes.shelter(game, player, x, y)
+    local def = Config.units.bunker
+    local r2 = def.radius * def.radius
+    for _, unit in ipairs(game.units) do
+        if unit.kind == "bunker" and unit.owner == player and unit.buildLeft == 0 and not unit.dead
+            and sq(unit.x - x) + sq(unit.y - y) <= r2 then
+            return unit
+        end
+    end
+    return nil
+end
+
 function Nukes.check(game, player, kind, tile)
     local def = Config.nukes[kind]
     if not def then return false, "Unknown" end
@@ -86,7 +98,7 @@ function Nukes.preview(game, player, kind, tile)
         kind = kind, tile = tile, bucket = bucket, def = def, ok = ok, reason = reason,
         x = cx, y = cy, target = game:playerAt(tile),
         total = 0, enemy = 0, friendly = 0, friendlyTiles = {},
-        enemyBuildings = 0, friendlyBuildings = 0, sams = {}
+        enemyBuildings = 0, friendlyBuildings = 0, sams = {}, sheltered = false
     }
     local silo = Nukes.readySilo(game, player, tile)
     if not silo then
@@ -163,6 +175,9 @@ function Nukes.preview(game, player, kind, tile)
             result.sams[#result.sams + 1] = unit
         end
     end
+    local victim = result.target
+    local shelter = victim and victim ~= player and Nukes.shelter(game, victim, cx, cy)
+    result.sheltered = shelter and knownTo(game, player, shelter) or false
     result.blind = not Vision.inRadar(game, player, cx, cy)
     game.nukePreview = result
     return result
@@ -276,6 +291,23 @@ function Nukes.detonate(game, attacker, cx, cy, def)
     local lost = {}
     local strength = Config.falloutStrength
     local ring = def.outer - def.inner
+    local r2 = def.outer * def.outer
+    local bunker = Config.units.bunker
+    local protected = {}
+    for _, unit in ipairs(game.units) do
+        local d2 = sq(unit.x - cx) + sq(unit.y - cy)
+        if not unit.dead and unit.buildLeft == 0 and d2 <= r2 then
+            if unit.kind == "bunker" then
+                protected[unit] = d2 > bunker.hitRadius * bunker.hitRadius
+            elseif Units.isBuilding(unit.kind) and Nukes.shelter(game, unit.owner, unit.x, unit.y) then
+                protected[unit] = rng:random() < bunker.shelterBuildings
+            end
+        end
+    end
+    local function shielded(i)
+        local unit = game.buildingAt[i]
+        return unit and protected[unit] == true
+    end
     map:forDisk(cx, cy, def.outer, function(i, d2)
         if not map:isLand(i) then return end
         local d = math.sqrt(d2)
@@ -287,7 +319,7 @@ function Nukes.detonate(game, attacker, cx, cy, def)
         end
         map.fallout[i] = strength
         local owner = map.owner[i]
-        if owner ~= 0 then
+        if owner ~= 0 and not shielded(i) then
             lost[owner] = (lost[owner] or 0) + 1
             game:setOwner(i, 0)
         else
@@ -298,6 +330,9 @@ function Nukes.detonate(game, attacker, cx, cy, def)
     for id, count in pairs(lost) do
         local player = game.players[id]
         local fraction = math.min(1, count / math.max(1, player.tiles + count) * Config.nukeTroopKill)
+        if Nukes.shelter(game, player, cx, cy) then
+            fraction = fraction * (1 - Config.units.bunker.shelter)
+        end
         player.troops = player.troops * (1 - fraction)
         player.workers = player.workers * (1 - fraction)
         if player ~= attacker then
@@ -305,9 +340,8 @@ function Nukes.detonate(game, attacker, cx, cy, def)
         end
     end
 
-    local r2 = def.outer * def.outer
     for _, unit in ipairs(game.units) do
-        if not unit.dead and unit.kind ~= "nuke" and sq(unit.x - cx) + sq(unit.y - cy) <= r2 then
+        if not unit.dead and unit.kind ~= "nuke" and not protected[unit] and sq(unit.x - cx) + sq(unit.y - cy) <= r2 then
             Units.remove(game, unit)
         end
     end

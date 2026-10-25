@@ -87,6 +87,9 @@ Structures.art = {
         frames = { { ".GGg.", "GLRLg", "GLRLg", "GLRLg", ".ggg." } },
         light = { 2, 0 }
     },
+    bunker = {
+        frames = { { "..g..", ".gCg.", "gCCCg", "MWDWD", "DDDDD" } }
+    },
     sam = {
         frames = {
             { "RGg.R", ".R.R.", "..G..", ".GGg.", "GGGgg" },
@@ -108,10 +111,11 @@ Structures.badges = {
     radar = { ".x.", "x.x", ".x." },
     defensePost = { "xxx", "xxx", ".x." },
     silo = { ".x.", "xxx", "x.x" },
-    sam = { "x.x", ".x.", "xxx" }
+    sam = { "x.x", ".x.", "xxx" },
+    bunker = { "xxx", "x.x", "xxx" }
 }
 
-local KINDS = { "capital", "city", "tradePort", "militaryPort", "factory", "barracks", "mine", "farm", "radar", "defensePost", "silo", "sam" }
+local KINDS = { "capital", "city", "tradePort", "militaryPort", "factory", "barracks", "mine", "farm", "radar", "defensePost", "silo", "sam", "bunker" }
 
 local atlas, quads, rowOf = nil, {}, {}
 

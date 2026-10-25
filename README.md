@@ -78,6 +78,7 @@ New to the game? Press **Tutorial** in the main menu: it starts a solo game on I
   - Defense Post: raises the cost of attacking nearby tiles.
   - Missile Silo: launches nukes.
   - SAM Launcher: intercepts nukes aimed inside its range.
+  - Bunker: shelters everything within 40 tiles from nukes. A blast centred in its range kills 70% fewer troops and workers, each of your buildings in its range has a 60% chance to survive with its tile, and the bunker itself only falls to a direct hit (6 tiles). The nuke preview warns you when a known enemy bunker shelters the target. AI nations build bunkers near their cities once an enemy owns a silo.
   - Nuke warning: you only learn about a nuke aimed at you or your allies once it is detected, either by a radar (yours or an ally's) or when it enters your vision. A radar covering the enemy silo warns you at launch. The warning shows a countdown, the blast zone and the missile's path.
   - Warship: built at a military port; patrols, sinks transports, captures trade ships, and fights other warships.
 - **Nukes** (right-click > Launch Nuke):
@@ -257,6 +258,7 @@ The suite runs headless and exits with code 1 when a case fails, so the CI runs 
 - `network_test`: real ENet clients against an in-process server follow the frames without desync, get refused intents answered, catch up after a short disconnection and resynchronize or rejoin from a snapshot.
 - `balance_test`: diminishing cities and the housing cap, the factory link limit, the diminishing train income and the administration falloff.
 - `ai_test`: AI personalities are the same on the server and every client; AI lenders, pact negotiations, pact notices before an attack, and borrowing and early repayment.
+- `military_test`: bunker shelter and direct hits.
 - `coalition_test`: coalition founding, invitations, attack and defense bonuses, permanent alliances, desertion, dissolution, server validation and snapshots.
 - `lobby_test`: room passwords, unique colors, flags, kicks, the ready check, and the chat (history, sanitizing, rate limit, ally messages).
 

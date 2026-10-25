@@ -29,6 +29,14 @@ function GM.Hud:KeyPressed(key, scancode, isrepeat)
     self.Instance:KeyPressed(key, scancode, isrepeat)
 end
 
+function GM.Hud:TextInput(text)
+    self.Instance:TextInput(text)
+end
+
+function GM.Hud:Typing()
+    return self.Instance ~= nil and self.Instance:Typing() ~= nil
+end
+
 function GM.Hud:Captures(mx, my)
     return self.Instance ~= nil and self.Instance:game() ~= nil and self.Instance:Captures(mx, my)
 end

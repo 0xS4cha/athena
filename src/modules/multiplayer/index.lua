@@ -17,6 +17,7 @@ local RECONNECT_DELAY = 3
 local MAX_RECONNECTS = 10
 local SESSION_FILE = "multiplayer_session.json"
 local BAD = { 0.95, 0.35, 0.3, 1 }
+local MAX_CHAT = 100
 
 function GM.Multiplayer:Initialize()
     self.host = nil
@@ -48,6 +49,7 @@ function GM.Multiplayer:Initialize()
     self.pings = {}
     self.slotPings = {}
     self.password = nil
+    self.chat = {}
 
     self:On("welcome", function(data)
         self.id = data.id
@@ -104,8 +106,16 @@ function GM.Multiplayer:Initialize()
     self:On("reject", function(data)
         if self.lockstep then self.lockstep:reject(data) end
     end)
+    self:On("chat", function(data) self:receiveChat(data) end)
+    self:On("chatlog", function(data)
+        self.chat = {}
+        for _, message in ipairs(data.messages or {}) do
+            self:receiveChat(message, 0)
+        end
+    end)
     self:On("kicked", function()
         self.room = nil
+        self.chat = {}
         self.error = "You were kicked from the room"
     end)
     self:On("pings", function(data)
@@ -198,6 +208,7 @@ end
 
 function GM.Multiplayer:Disconnect()
     self.pings, self.slotPings = {}, {}
+    self.chat = {}
     if self.peer then
         self.peer:disconnect_now()
         self.host:flush()
@@ -355,6 +366,27 @@ function GM.Multiplayer:Kick(id)
     return self:Send("kick", { id = id })
 end
 
+function GM.Multiplayer:SendChat(text, scope)
+    return self:Send("chat", { text = text, scope = scope })
+end
+
+function GM.Multiplayer:receiveChat(data, time)
+    if type(data.text) ~= "string" or type(data.name) ~= "string" then return end
+    local chat = self.chat
+    chat[#chat + 1] = {
+        id = data.id,
+        slot = tonumber(data.slot),
+        name = data.name,
+        color = tonumber(data.color),
+        text = data.text,
+        scope = data.scope == "allies" and "allies" or "all",
+        time = time or love.timer.getTime()
+    }
+    if #chat > MAX_CHAT then
+        table.remove(chat, 1)
+    end
+end
+
 function GM.Multiplayer:Me()
     for _, player in ipairs(self.room and self.room.players or {}) do
         if player.id == self.id then return player end
@@ -385,6 +417,7 @@ end
 
 function GM.Multiplayer:LeaveRoom()
     self.room = nil
+    self.chat = {}
     if self.isLocal and not self.lockstep then
         self:stopLocal()
         return true

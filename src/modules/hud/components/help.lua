@@ -15,6 +15,7 @@ local LINES = {
     { "1 - 5", "Toggle terrain, territories, units, names, supply" },
     { "6 / 7", "Threat map / diplomatic map" },
     { "Hotkeys", "Place a building or aim a nuke (Settings > Key bindings)" },
+    { "Enter", "Chat with the other players (Tab: all / allies)" },
     { "H", "Show or hide this help" },
     { "Escape", "Settings" }
 }

@@ -4,6 +4,7 @@ local Fx = require("src.modules.hud.fx")
 local UI = require("src.modules.hud.pixel")
 local Play = require("src.modules.menu.screens.play")
 local Palette = require("src.modules.player.palette")
+local ChatLog = require("src.modules.hud.chatlog")
 
 local Multiplayer = { id = "multiplayer" }
 
@@ -11,6 +12,8 @@ local ROW = 30
 local CONTROLS_H = 300
 local MAX_BOTS = 400
 local SYNC_DELAY = 0.25
+local CHAT_W = 380
+local CHAT_INPUT_H = 38
 local DIFFICULTIES = { "easy", "medium", "hard" }
 local DIFFICULTY_LABELS = { "Easy", "Medium", "Hard" }
 local FIELDS = {
@@ -158,6 +161,26 @@ local function searchHandler(menu)
             menu.search = menu.search:sub(1, -2)
             menu:refreshFilter()
         end
+    end
+end
+
+local function chatArea(l)
+    local area = l.preview
+    local w = math.min(CHAT_W, math.floor(area.w * 0.45))
+    return { x = area.x + area.w - w, y = area.y, w = w, h = area.h - UI.unit * 2 }
+end
+
+local function lobbyLayout(l)
+    local area = chatArea(l)
+    local preview = { x = l.preview.x, y = l.preview.y, w = area.x - l.preview.x - 18, h = l.preview.h }
+    return { M = l.M, list = l.list, panel = l.panel, rows = l.rows, preview = preview }
+end
+
+local function sendChat(menu)
+    local text = menu.chatText or ""
+    menu.chatText = ""
+    if text:match("%S") then
+        net():SendChat(text)
     end
 end
 
@@ -339,6 +362,12 @@ function Multiplayer.build(menu)
             right = editable(menu, function() s.bots = math.min(MAX_BOTS, s.bots + 10) end)
         })
         add({ id = "players", x = cx, y = cy + 24, w = cw, h = 24, nav = false, press = function(_, mx) clickPlayers(menu, cx, cy + 24, mx) end })
+        local chat = chatArea(l)
+        add({
+            id = "chat", x = chat.x, y = chat.y + chat.h - CHAT_INPUT_H, w = chat.w, h = CHAT_INPUT_H, nav = false,
+            press = function() menu.editing = "chat" end,
+            text = function(_, text) menu.chatText = ChatLog.edit(menu.chatText or "", text) end
+        })
         local third = math.floor((cw - 24) / 3)
         add({ id = "leave", x = cx, y = cy + 222, w = third, h = 58, press = function() net():LeaveRoom() end })
         add({ id = "start", x = cx + third + 24, y = cy + 222, w = cw - third - 24, h = 58, press = function()
@@ -522,13 +551,31 @@ local function drawLobby(menu, elements, l, e)
     local s = roomSettings(menu)
     local map = mapByPath(menu, s.map)
     if map then
-        Play.drawPreview(menu, l, e, map, s.nations)
+        Play.drawPreview(menu, lobbyLayout(l), e, map, s.nations)
         Play.drawChips(l, map, s.nations, s.bots or 0)
     else
         UI.text("Missing map " .. tostring(s.map), l.preview.x + 12, l.preview.y + 12, 14, UI.colors.bad)
     end
 
     local u = UI.unit
+    local area = chatArea(l)
+    local input = find(elements, "chat")
+    UI.panel(area.x, area.y, area.w, area.h, {})
+    UI.text("CHAT", area.x + u * 4, area.y + u * 3, 11, UI.colors.muted)
+    local indexes = {}
+    for k, player in ipairs(room.players or {}) do
+        indexes[player.id] = { player = player, slot = k }
+    end
+    local entries = {}
+    for _, message in ipairs(mp.chat) do
+        local member = indexes[message.id]
+        entries[#entries + 1] = { message = message, color = member and colorFor(member.player, member.slot) or ChatLog.color(message) }
+    end
+    ChatLog.draw(entries, area.x + u * 2, input.y - u * 2, area.w - u * 4, { top = area.y + 24 })
+    ChatLog.input(input.x + u * 2, input.y, input.w - u * 4, input.h - u * 2, menu.chatText or "", {
+        editing = menu.editing == "chat",
+        placeholder = menu.editing == "chat" and "" or "Click to chat"
+    })
     local nations = find(elements, "nations")
     local players = room.players or {}
     UI.text(string.format("PLAYERS  %d / %d", #players, room.max or #players), nations.x, nations.y - 88, 11, UI.colors.muted)
@@ -685,9 +732,21 @@ function Multiplayer.draw(menu, elements, p)
     UI.alpha = 1
 end
 
+function Multiplayer.capture(menu, key)
+    if key == "escape" and menu.editing == "chat" then
+        menu.editing = nil
+        return true
+    end
+    return false
+end
+
 function Multiplayer.keyPressed(menu, key)
     local current = phase()
     if key == "return" or key == "kpenter" then
+        if menu.editing == "chat" and current == "lobby" then
+            sendChat(menu)
+            return true
+        end
         if menu.focus == "back" then return false end
         if current == "connect" then
             connect(menu)

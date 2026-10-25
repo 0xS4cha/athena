@@ -24,6 +24,7 @@ Hud.componentPaths = {
     "src.modules.hud.components.events",
     "src.modules.hud.components.tutorial",
     "src.modules.hud.components.nukepreview",
+    "src.modules.hud.components.chat",
     "src.modules.hud.components.settings",
     "src.modules.hud.components.endscreen",
     "src.modules.hud.components.hotkeys",
@@ -262,9 +263,30 @@ function Hud:MouseReleased(x, y, button)
     self.contextMenu:mouseReleased(x, y, button)
 end
 
+function Hud:Typing()
+    if not self:game() then return nil end
+    for _, component in ipairs(self.components) do
+        if component.typing and component.typing(self) then
+            return component
+        end
+    end
+end
+
+function Hud:TextInput(text)
+    local typing = self:Typing()
+    if typing and typing.textInput then
+        typing.textInput(self, text)
+    end
+end
+
 function Hud:KeyPressed(key)
     local game = self:game()
     if not game then return end
+    local typing = self:Typing()
+    if typing then
+        typing.keyPressed(self, key)
+        return
+    end
     if key == "escape" and (game.nukeAim or game.buildAim) then
         game.nukeAim = nil
         game.buildAim = nil

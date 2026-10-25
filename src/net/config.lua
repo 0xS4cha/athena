@@ -1,7 +1,7 @@
 local GameConfig = require("src.config.game")
 
 local CONFIG = {
-    version = 2,
+    version = 3,
     address = "*",
     port = 6789,
     localAddress = "127.0.0.1",
@@ -23,7 +23,11 @@ local CONFIG = {
     maxIntentsPerTick = 32,
     emptyRoomSeconds = 120,
     soloEmptySeconds = 5,
-    maxFramesPerTick = 8
+    maxFramesPerTick = 8,
+    chatLength = 160,
+    chatBurst = 5,
+    chatWindow = 5,
+    chatHistory = 40
 }
 
 return CONFIG

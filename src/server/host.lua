@@ -185,6 +185,12 @@ function Host:bind()
         end
     end)
 
+    server:On("chat", function(client, data)
+        if client.room then
+            client.room:Chat(client, data)
+        end
+    end)
+
     server:On("control", function(client, data)
         if client.room then
             client.room:Control(client, data)

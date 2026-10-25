@@ -102,6 +102,11 @@ function Client:handle(kind, data)
         self.frames[data.t] = data
     elseif kind == "reject" then
         self.rejected = data
+    elseif kind == "chat" then
+        self.chats = self.chats or {}
+        self.chats[#self.chats + 1] = data
+    elseif kind == "chatlog" then
+        self.chatlog = data.messages
     elseif kind == "kicked" then
         self.kicked = true
         self.roomInfo = nil

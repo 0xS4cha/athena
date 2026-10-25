@@ -6,6 +6,7 @@ local GameConfig = require("src.config.game")
 local Intents = require("src.net.intents")
 local Snapshot = require("src.net.snapshot")
 local Game = require("src.modules.game.game")
+local Text = require("src.core.text")
 
 local Room = Class()
 
@@ -55,6 +56,7 @@ function Room:init(id, host, settings)
     self.speedIndex = 1
     self.accumulator = 0
     self.emptySince = nil
+    self.chat = {}
 end
 
 function Room:Summary()
@@ -110,6 +112,49 @@ function Room:attach(client)
     self.members[#self.members + 1] = client
     client.room = self
     self.emptySince = nil
+    client:Send("chatlog", { messages = self.chat })
+end
+
+function Room:Chat(client, data)
+    if type(data) ~= "table" then return end
+    local text = Text.clean(data.text, Config.chatLength)
+    if not text or text == "" then return end
+    local now = love.timer.getTime()
+    local recent = {}
+    for _, at in ipairs(client.chatTimes or {}) do
+        if now - at < Config.chatWindow then recent[#recent + 1] = at end
+    end
+    client.chatTimes = recent
+    if #recent >= Config.chatBurst then
+        client:Send("error", { message = "You are sending messages too fast" })
+        return
+    end
+    recent[#recent + 1] = now
+    local sender = self.game and client.slot and self.game.players[client.slot]
+    local allies = data.scope == "allies" and sender ~= nil
+    local message = {
+        id = client.id,
+        slot = sender and client.slot or nil,
+        name = client.name,
+        color = client.color,
+        text = text,
+        scope = allies and "allies" or "all"
+    }
+    if not allies then
+        self.chat[#self.chat + 1] = message
+        if #self.chat > Config.chatHistory then
+            table.remove(self.chat, 1)
+        end
+        self:Broadcast("chat", message)
+        return
+    end
+    local raw = Protocol.Encode("chat", message)
+    for _, member in ipairs(self.members) do
+        local player = member.slot and self.game.players[member.slot]
+        if player and sender:isFriendly(player) then
+            member:SendRaw(raw)
+        end
+    end
 end
 
 function Room:Add(client, given)

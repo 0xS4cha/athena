@@ -76,7 +76,7 @@ end
 
 function GM.Session:KeyPressed(key)
     local game = self.Game
-    if not game then return end
+    if not game or (GM.Hud and GM.Hud:Typing()) then return end
     local delta = (key == "=" or key == "kp+") and 1 or (key == "-" or key == "kp-") and -1 or nil
     if key ~= "p" and not delta then return end
     local lockstep = game.lockstep

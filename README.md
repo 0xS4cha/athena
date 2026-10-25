@@ -113,6 +113,12 @@ Turn on **Open to LAN** in New Game and press **Host LAN game**: the local serve
 - Rooms can be protected by a password typed before creating or joining them; locked rooms show a padlock.
 - Every guest marks themselves ready; the host can only start once everyone is ready, and can kick a player by clicking their chip.
 
+### Chat
+
+- The lobby has a chat box next to the map preview: click it, type and press `Enter`.
+- In game, press `Enter` to open the chat, `Tab` to switch between everyone and your allies, `Enter` to send and `Escape` to cancel. New messages show in the bottom left corner for a few seconds. The chat only appears when the game has more than one human player.
+- The server trims messages to 160 characters, refuses more than 5 messages in 5 seconds, and only delivers ally messages to the sender's allies. It keeps the last 40 public messages of a room, so players who join the lobby or reconnect to a game get the history.
+
 ### Dedicated server
 
 ```bash
@@ -137,6 +143,7 @@ Everything on the map is drawn on the tile grid: buildings, rails, ships with th
 | `P` | Pause |
 | `+` / `-` | Change game speed (x1, x2, x4, x8) |
 | `1` `2` `3` `4` `5` | Toggle terrain, territories, units, names, supply |
+| `Enter` | Open the chat in multiplayer (`Tab` switches between all and allies) |
 | `H` | Controls help |
 | `Escape` | Settings |
 
@@ -230,7 +237,7 @@ The suite runs headless and exits with code 1 when a case fails, so the CI runs 
 - `intents_test`: the server sanitizes intents (sender slot, stripped fields, quantized ratios) and enforces the game rules.
 - `determinism_test`: a server with the AI, a client and two clients restored from snapshots keep the same state hash for 700 ticks; the AI only runs on the authority.
 - `network_test`: real ENet clients against an in-process server follow the frames without desync, get refused intents answered, catch up after a short disconnection and resynchronize or rejoin from a snapshot.
-- `lobby_test`: room passwords, unique colors, flags, kicks and the ready check.
+- `lobby_test`: room passwords, unique colors, flags, kicks, the ready check, and the chat (history, sanitizing, rate limit, ally messages).
 
 ## Map Format
 

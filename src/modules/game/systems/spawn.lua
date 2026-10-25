@@ -1,4 +1,5 @@
 local Config = require("src.config.game")
+local Personality = require("src.modules.ai.personality")
 
 local Spawn = {}
 
@@ -86,6 +87,7 @@ function Spawn.setup(game)
         for _, nation in ipairs(map.manifest.nations or {}) do
             if nation.coordinates then
                 local player = game:addPlayer(nation.name, "nation", nation.flag)
+                player.personality = Personality.pick(game, player)
                 local tile = map:findNear(nation.coordinates[1], nation.coordinates[2], Config.nationSpawnSearch, function(i)
                     return isFree(game, i, Config.spawnRadius)
                 end)

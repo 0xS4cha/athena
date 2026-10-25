@@ -2,6 +2,7 @@ local Config = require("src.config.game")
 local Units = require("src.modules.game.systems.units")
 local Nukes = require("src.modules.game.systems.nukes")
 local Vision = require("src.modules.game.systems.vision")
+local Personality = require("src.modules.ai.personality")
 
 local Strategist = {}
 
@@ -35,7 +36,7 @@ local function chooseVictim(game, player, ctx)
             end
         end
     end
-    if best and bestScore > 60 then return best end
+    if best and bestScore > 60 / Personality.of(player).nuclear then return best end
     return nil
 end
 
@@ -150,10 +151,11 @@ Strategist.targetTile = targetTile
 function Strategist.behavior(game, player, ctx)
     if game.tick < MIN_TICK or game.options.difficulty == "easy" then return false end
     local rng = game.aiRng
-    if rng:random() > 0.3 then return false end
+    local traits = Personality.of(player)
+    if rng:random() > 0.3 * math.max(traits.nuclear, traits.caution) then return false end
 
     if player:unitCount("silo") == 0 then
-        if player.gold > Units.cost(game, player, "silo") * 1.5 and rng:random() < 0.5 then
+        if player.gold > Units.cost(game, player, "silo") * 1.5 and rng:random() < 0.5 * traits.nuclear then
             local tile = player.spawnTile and game.map.owner[player.spawnTile] == player.id and player.spawnTile
             if not tile then
                 local x, y = player:center()
@@ -166,7 +168,7 @@ function Strategist.behavior(game, player, ctx)
         end
     end
 
-    if player:unitCount("sam") < 1 + math.floor(player.tiles / 40000) and enemyHasSilo(game, player) and player.gold > Units.cost(game, player, "sam") then
+    if player:unitCount("sam") < math.floor((1 + player.tiles / 40000) * traits.caution) and enemyHasSilo(game, player) and player.gold > Units.cost(game, player, "sam") then
         local cities = Units.list(game, player, "city")
         local anchor = cities[1] and cities[rng:random(#cities)].tile or player.spawnTile
         if anchor then

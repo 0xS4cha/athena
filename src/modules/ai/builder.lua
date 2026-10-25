@@ -1,5 +1,6 @@
 local Units = require("src.modules.game.systems.units")
 local Config = require("src.config.game")
+local Personality = require("src.modules.ai.personality")
 
 local Builder = {}
 
@@ -58,12 +59,12 @@ end
 
 Builder.wishes = {
     function(game, player)
-        if not player.crowded and player:unitCount("city") < 1 + math.floor(player.tiles / 12000) then
+        if not player.crowded and player:unitCount("city") < 1 + math.floor(player.tiles * Personality.of(player).greed / 12000) then
             return "city", randomOwnTile(game, player, function(i) return Units.isSpaced(game, i) end)
         end
     end,
     function(game, player)
-        if player:unitCount("tradePort") < 1 + math.floor(player:unitCount("city") / 2) then
+        if player:unitCount("tradePort") < 1 + math.floor(player:unitCount("city") * Personality.of(player).greed / 2) then
             local tile = coastTile(game, player)
             if tile then return "tradePort", tile end
         end
@@ -77,7 +78,7 @@ Builder.wishes = {
     end,
     function(game, player)
         local cities = player:unitCount("city")
-        if cities >= 2 and player:unitCount("factory") < 1 + math.floor(cities / 3) then
+        if cities >= 2 and player:unitCount("factory") < 1 + math.floor(cities * Personality.of(player).greed / 3) then
             return "factory", randomOwnTile(game, player, function(i) return Units.isSpaced(game, i) end)
         end
     end,
@@ -114,17 +115,19 @@ Builder.wishes = {
         return "radar", tile or randomOwnTile(game, player, function(i) return Units.isSpaced(game, i) end)
     end,
     function(game, player, ctx)
-        if player:unitCount("barracks") >= 1 + math.floor(player.tiles / 25000) or player.income < 40 then return end
+        local traits = Personality.of(player)
+        if player:unitCount("barracks") >= 1 + math.floor(player.tiles * traits.aggression / 25000) or player.income < 40 then return end
         for _, other in ipairs(ctx.neighbors) do
-            if player:canAttack(other) and not other:isBot() and other.troops > player.troops * 0.8 then
+            if player:canAttack(other) and not other:isBot() and other.troops > player.troops * 0.8 / traits.aggression then
                 return "barracks", randomOwnTile(game, player, function(i) return Units.isSpaced(game, i) end)
             end
         end
     end,
     function(game, player, ctx)
-        if player:unitCount("defensePost") >= 2 + math.floor(player.tiles / 20000) then return end
+        local traits = Personality.of(player)
+        if player:unitCount("defensePost") >= math.floor((2 + player.tiles / 20000) * traits.caution) then return end
         for _, other in ipairs(ctx.neighbors) do
-            if not player:isAlliedWith(other) and other.troops > player.troops * 1.2 then
+            if not player:isAlliedWith(other) and other.troops > player.troops * 1.2 / traits.caution then
                 return "defensePost", frontTile(game, player, other)
             end
         end
@@ -132,7 +135,7 @@ Builder.wishes = {
 }
 
 function Builder.behavior(game, player, ctx)
-    if game.aiRng:random() > 0.5 then return false end
+    if game.aiRng:random() > math.min(0.85, 0.5 * Personality.of(player).greed) then return false end
     for _, wish in ipairs(Builder.wishes) do
         local kind, tile = wish(game, player, ctx)
         if kind and tile and player.gold >= Units.cost(game, player, kind) then

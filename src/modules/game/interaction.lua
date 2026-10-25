@@ -5,6 +5,7 @@ local Nukes = require("src.modules.game.systems.nukes")
 local Loans = require("src.modules.game.systems.loans")
 local Config = require("src.config.game")
 local Format = require("src.core.format")
+local Personality = require("src.modules.ai.personality")
 
 local Interaction = {}
 
@@ -151,6 +152,17 @@ Interaction.sections[#Interaction.sections + 1] = function(game, tile, items)
     local target = game:playerAt(tile)
     if not target or target == human or not target.alive then return end
     local GOOD, BAD = { 0.3, 0.85, 0.45, 1 }, { 0.95, 0.35, 0.3, 1 }
+    if target:isNation() then
+        local traits = Personality.of(target)
+        items[#items + 1] = {
+            label = traits.label,
+            icon = traits.icon,
+            info = true,
+            color = { 0.55, 0.75, 1, 1 },
+            sublabel = traits.tag,
+            sublabelColor = { 0.55, 0.6, 0.7, 1 }
+        }
+    end
     if human:isAlliedWith(target) then
         items[#items + 1] = {
             label = "Donate Troops",

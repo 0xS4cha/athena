@@ -8,7 +8,8 @@ local SUITES = {
     "tests.determinism_test",
     "tests.network_test",
     "tests.lobby_test",
-    "tests.balance_test"
+    "tests.balance_test",
+    "tests.ai_test"
 }
 
 local function run(filter)

@@ -2,6 +2,7 @@ local Config = require("src.config.game")
 local Diplomacy = require("src.modules.game.systems.diplomacy")
 local Loans = require("src.modules.game.systems.loans")
 local Units = require("src.modules.game.systems.units")
+local Personality = require("src.modules.ai.personality")
 
 local Diplomat = {}
 
@@ -15,7 +16,7 @@ local function considerRequests(game, player)
                 and from.traitorUntil <= game.tick
                 and Diplomacy.allianceCount(player) < Config.maxAllies
                 and (strong or relation > 25)
-                and game.aiRng:random() < 0.75
+                and game.aiRng:random() < math.min(0.95, 0.75 * Personality.of(player).diplomacy)
             game:command({ type = "allianceReply", player = player.id, from = from.id, accept = accept })
             return true
         end
@@ -120,7 +121,7 @@ local function seekLoan(game, player)
 end
 
 local function seekAlliance(game, player, ctx)
-    if Diplomacy.allianceCount(player) >= Config.maxAllies or game.aiRng:random() > 0.12 then return false end
+    if Diplomacy.allianceCount(player) >= Config.maxAllies or game.aiRng:random() > 0.12 * Personality.of(player).diplomacy then return false end
     for _, other in ipairs(ctx.neighbors) do
         if not other:isBot() and not player:isAlliedWith(other) and not other.allianceRequests[player.id]
             and player:relation(other) >= 0 and (player:relation(other) > 20 or other.troops > player.troops * 0.8)
@@ -133,7 +134,8 @@ local function seekAlliance(game, player, ctx)
 end
 
 local function maybeBetray(game, player, ctx)
-    if ctx.neutral or game.aiRng:random() > 0.04 then return false end
+    local loyalty = Personality.of(player).loyalty
+    if ctx.neutral or game.aiRng:random() > 0.04 * (2 - loyalty) * (2 - loyalty) then return false end
     local hostile = false
     local weakestAlly
     for _, other in ipairs(ctx.neighbors) do
@@ -151,7 +153,7 @@ local function maybeBetray(game, player, ctx)
 end
 
 local function supportAllies(game, player)
-    if player:population() < player.maxPopulation * 0.75 or game.aiRng:random() > 0.1 then return false end
+    if player:population() < player.maxPopulation * 0.75 or game.aiRng:random() > 0.1 * Personality.of(player).loyalty then return false end
     for id in pairs(player.allies) do
         local ally = game.players[id]
         if ally and ally.alive and ally.lastAttacker and ally.troops < player.troops * 0.5 then

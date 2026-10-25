@@ -83,6 +83,12 @@ New to the game? Press **Tutorial** in the main menu: it starts a solo game on I
   - Atom Bomb, Hydrogen Bomb, and MIRV (splits into many warheads over the target nation).
   - Hovering a bomb in the menu previews its blast zone on the map: expected destroyed tiles, enemy land, friendly fire (your and your allies' tiles blink in white), known buildings hit, flight time from the silo that will fire, and the known enemy SAMs able to intercept it. Picking a bomb enters aiming mode: the preview follows the mouse, left click launches, right click or Escape cancels.
   - Nuked land loses its owner and gets fallout, which slowly decays and doubles conquest costs.
+- **AI personalities**: every AI nation has a personality, shown when you hover its land and at the top of its context menu. It changes how it attacks, builds, negotiates and nukes:
+  - Warlord: attacks early with big armies, keeps more troops, builds silos and nukes often, keeps few promises.
+  - Merchant: builds cities, ports and factories, lends gold readily, prefers pacts to wars.
+  - Guardian: fortifies its borders with defense posts and SAMs and only attacks when much stronger.
+  - Diplomat: seeks alliances, supports its allies and rarely betrays.
+  - Opportunist: preys on nations that are already under attack and betrays when it pays.
 - **Diplomacy** (right-click on another nation):
   - Request or accept an alliance; alliances expire after 5 minutes.
   - Propose a non-aggression pact: neither side can attack the other by land or sea for 10 minutes. Ending a pact gives 30 s of notice and no penalty; nuking a pact partner breaks it and marks you as a traitor.
@@ -239,6 +245,7 @@ The suite runs headless and exits with code 1 when a case fails, so the CI runs 
 - `determinism_test`: a server with the AI, a client and two clients restored from snapshots keep the same state hash for 700 ticks; the AI only runs on the authority.
 - `network_test`: real ENet clients against an in-process server follow the frames without desync, get refused intents answered, catch up after a short disconnection and resynchronize or rejoin from a snapshot.
 - `balance_test`: diminishing cities and the housing cap, the factory link limit and the diminishing train income.
+- `ai_test`: AI personalities are the same on the server and every client.
 - `lobby_test`: room passwords, unique colors, flags, kicks, the ready check, and the chat (history, sanitizing, rate limit, ally messages).
 
 ## Map Format

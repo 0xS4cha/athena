@@ -1,5 +1,6 @@
 local Config = require("src.config.game")
 local Ships = require("src.modules.game.systems.ships")
+local Personality = require("src.modules.ai.personality")
 
 local function sq(v) return v * v end
 
@@ -42,8 +43,9 @@ local function enemyTarget(game, player)
 end
 
 function Navy.behavior(game, player, ctx)
-    if player:unitCount("transport") > 0 or game.aiRng:random() > 0.35 then return false end
-    if player.troops < player.maxPopulation * 0.35 then return false end
+    local traits = Personality.of(player)
+    if player:unitCount("transport") > 0 or game.aiRng:random() > 0.35 * traits.aggression then return false end
+    if player.troops < player.maxPopulation * 0.35 * traits.caution then return false end
     local hasTarget = ctx.neutral
     for _, other in ipairs(ctx.neighbors) do
         if player:canAttack(other) then hasTarget = true end

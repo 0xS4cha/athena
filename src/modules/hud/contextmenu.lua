@@ -126,7 +126,7 @@ function ContextMenu:draw()
         local e = Fx.outCubic(Fx.clamp(age * 8 - i * 0.35, 0, 1))
         Pixel.alpha = e
         local dx = math.floor((1 - e) * 24 * self.direction / u) * u
-        local hot = Pixel.ease("ctx:" .. depth .. ":" .. i .. ":" .. item.label, self.hoveredIdx == i and not item.disabled, 20)
+        local hot = Pixel.ease("ctx:" .. depth .. ":" .. i .. ":" .. item.label, self.hoveredIdx == i and not item.disabled and not item.info, 20)
         local ix = self.x + dx
         if hot > 0.01 then
             Pixel.color(item.color or Pixel.colors.hover, 0.25 + 0.55 * hot)
@@ -167,7 +167,7 @@ function ContextMenu:draw()
 end
 
 function ContextMenu:activate(item)
-    if item.disabled then return end
+    if item.disabled or item.info then return end
     if item.back then
         self:pop()
         return

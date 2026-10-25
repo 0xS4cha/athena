@@ -10,6 +10,7 @@ local Config = require("src.config.game")
 local Attack = require("src.modules.game.systems.attack")
 local Overlay = require("src.modules.game.overlay")
 local Supply = require("src.modules.game.systems.supply")
+local Personality = require("src.modules.ai.personality")
 
 function Info.draw(hud)
     local game = hud:game()
@@ -38,6 +39,9 @@ function Info.draw(hud)
     local owner = game:playerAt(tile)
     if owner then
         parts[#parts + 1] = owner.name
+        if owner:isNation() then
+            parts[#parts + 1] = Personality.of(owner).label
+        end
         parts[#parts + 1] = Vision.troopsText(game, game.human, owner) .. " troops"
         parts[#parts + 1] = Format.percent(owner.tiles / map.landCount)
         local human = game.human

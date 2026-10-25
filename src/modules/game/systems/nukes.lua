@@ -156,10 +156,10 @@ function Nukes.preview(game, player, kind, tile)
         end
     end
     result.radius = radius
-    local range = Config.units.sam.range
+    local touched = Nukes.impactOwners(game, kind, cx, cy)
     for _, unit in ipairs(game.units) do
         if unit.kind == "sam" and not unit.dead and unit.buildLeft == 0 and not unit.owner:isFriendly(player)
-            and sq(unit.x - cx) + sq(unit.y - cy) <= range * range and knownTo(game, player, unit) then
+            and touched[unit.owner.id] and Nukes.covers(unit, kind, cx, cy) and knownTo(game, player, unit) then
             result.sams[#result.sams + 1] = unit
         end
     end
@@ -206,17 +206,47 @@ function Nukes.launch(game, player, kind, tile)
     return unit
 end
 
-function Nukes.interceptor(game, nuke)
+function Nukes.impactOwners(game, kind, cx, cy)
+    local map = game.map
+    local def = Config.nukes[kind]
+    local owners = {}
+    if kind == "mirv" then
+        local x, y = math.floor(cx), math.floor(cy)
+        for ty = math.max(0, y - def.spread), math.min(map.height - 1, y + def.spread) do
+            for tx = math.max(0, x - def.spread), math.min(map.width - 1, x + def.spread) do
+                owners[map.owner[map:index(tx, ty)]] = true
+            end
+        end
+    else
+        map:forDisk(cx, cy, def.outer, function(i)
+            owners[map.owner[i]] = true
+        end)
+    end
+    owners[0] = nil
+    return owners
+end
+
+function Nukes.covers(sam, kind, cx, cy)
+    local def = Config.nukes[kind]
     local range = Config.units.sam.range
-    local r2 = range * range
+    if kind == "mirv" then
+        local dx = math.max(0, math.abs(sam.x - cx) - def.spread)
+        local dy = math.max(0, math.abs(sam.y - cy) - def.spread)
+        return dx * dx + dy * dy <= range * range
+    end
+    return sq(sam.x - cx) + sq(sam.y - cy) <= sq(range + def.outer)
+end
+
+function Nukes.interceptor(game, nuke)
+    if not nuke.impactOwners then
+        nuke.impactOwners = Nukes.impactOwners(game, nuke.nukeKind, nuke.toX, nuke.toY)
+    end
+    local touched = nuke.impactOwners
     for _, unit in ipairs(game.units) do
         if unit.kind == "sam" and unit.buildLeft == 0 and unit.cooldown == 0 and not unit.dead
-            and unit.owner ~= nuke.owner and not unit.owner:isAlliedWith(nuke.owner) then
-            local dn = sq(unit.x - nuke.x) + sq(unit.y - nuke.y)
-            local dt = sq(unit.x - nuke.toX) + sq(unit.y - nuke.toY)
-            if dn <= r2 and dt <= r2 then
-                return unit
-            end
+            and unit.owner ~= nuke.owner and not unit.owner:isAlliedWith(nuke.owner)
+            and touched[unit.owner.id] and Nukes.covers(unit, nuke.nukeKind, nuke.toX, nuke.toY) then
+            return unit
         end
     end
     return nil

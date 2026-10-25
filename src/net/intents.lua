@@ -3,6 +3,7 @@ local Attack = require("src.modules.game.systems.attack")
 local Units = require("src.modules.game.systems.units")
 local Ships = require("src.modules.game.systems.ships")
 local Nukes = require("src.modules.game.systems.nukes")
+local Coalitions = require("src.modules.game.systems.coalitions")
 
 local Intents = {}
 
@@ -23,6 +24,7 @@ local EMOJIS = set(Config.emojis)
 local LOAN_AMOUNTS = set(Config.loanAmounts)
 local LOAN_RATES = set(Config.loanRates)
 local DONATIONS = { troops = true, gold = true }
+local COALITION_KINDS = { war = true, defense = true }
 
 local function integer(v)
     return type(v) == "number" and v == floor(v) and v >= 0 and v < 2 ^ 31 and v or nil
@@ -46,7 +48,9 @@ local FIELDS = {
     donation = function(v) return DONATIONS[v] and v or nil end,
     icon = function(v) return EMOJIS[v] and v or nil end,
     amount = function(v) return LOAN_AMOUNTS[v] and v or nil end,
-    rate = function(v) return LOAN_RATES[v] and v or nil end
+    rate = function(v) return LOAN_RATES[v] and v or nil end,
+    coalitionKind = function(v) return COALITION_KINDS[v] and v or nil end,
+    coalition = integer
 }
 
 local SCHEMAS = {
@@ -72,7 +76,11 @@ local SCHEMAS = {
     loanRequest = { target = "target", amount = "amount" },
     loanReply = { from = "from", rate = "rate?" },
     loanAnswer = { from = "from", accept = "accept" },
-    loanRepay = { target = "target" }
+    loanRepay = { target = "target" },
+    coalitionFound = { kind = "coalitionKind", target = "target" },
+    coalitionInvite = { target = "target" },
+    coalitionReply = { coalition = "coalition", accept = "accept" },
+    coalitionLeave = {}
 }
 
 local function otherPlayer(game, player, id)
@@ -122,6 +130,17 @@ local RULES = {
     end,
     setTarget = function(game, player, intent)
         if intent.target and not otherPlayer(game, player, intent.target) then return "Unknown target" end
+    end,
+    coalitionFound = function(game, player, intent)
+        local ok, reason = Coalitions.canFound(game, player, intent.kind, game.players[intent.target])
+        if not ok then return reason end
+    end,
+    coalitionInvite = function(game, player, intent)
+        local ok, reason = Coalitions.canInvite(game, player, game.players[intent.target])
+        if not ok then return reason end
+    end,
+    coalitionLeave = function(game, player)
+        if not player.coalition then return "No coalition" end
     end
 }
 

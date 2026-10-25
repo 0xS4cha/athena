@@ -53,6 +53,7 @@ function Diplomacy.betray(game, traitor, victim)
         game:addEvent(traitor.name .. " betrayed " .. victim.name .. ".", { color = { 0.95, 0.6, 0.3, 1 }, minor = true })
     end
     game:notify(traitor, "You broke your alliance with " .. victim.name .. ". You are marked as a traitor.", { color = BAD })
+    game:emit("allianceBroken", traitor, victim)
 end
 
 function Diplomacy.request(game, from, to)
@@ -202,8 +203,10 @@ function Diplomacy.step(game)
     local tick = game.tick
     for _, player in ipairs(game.players) do
         for id, expires in pairs(player.allies) do
-            if expires <= tick then
-                local other = game.players[id]
+            local other = game.players[id]
+            if expires <= tick and player.coalition and player.coalition == other.coalition then
+                player.allies[id] = tick + Config.allianceTicks
+            elseif expires <= tick then
                 Diplomacy.dissolve(game, player, other)
                 game:notify(player, "Your alliance with " .. other.name .. " has expired.", { color = INFO })
                 game:notify(other, "Your alliance with " .. player.name .. " has expired.", { color = INFO })

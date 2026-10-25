@@ -4,6 +4,7 @@ local Nukes = require("src.modules.game.systems.nukes")
 local Vision = require("src.modules.game.systems.vision")
 local Personality = require("src.modules.ai.personality")
 local Negotiator = require("src.modules.ai.negotiator")
+local Coalitionist = require("src.modules.ai.coalitionist")
 
 local memory = Negotiator.memory
 
@@ -34,6 +35,9 @@ local function chooseVictim(game, player, ctx)
     for _, other in ipairs(game.players) do
         if other ~= player and other.alive and other.tiles > 0 and player:canAttack(other) and not other:isBot() then
             local score = -player:relation(other) + other.tiles / land * 300
+            if Coalitionist.isTarget(game, player, other) then
+                score = score + 100
+            end
             if not bestScore or score > bestScore then
                 best, bestScore = other, score
             end

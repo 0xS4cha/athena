@@ -2,6 +2,7 @@ local Config = require("src.config.game")
 local Diplomacy = require("src.modules.game.systems.diplomacy")
 local Personality = require("src.modules.ai.personality")
 local Negotiator = require("src.modules.ai.negotiator")
+local Coalitionist = require("src.modules.ai.coalitionist")
 
 local Diplomat = {}
 
@@ -84,12 +85,16 @@ end
 function Diplomat.behavior(game, player, ctx)
     react(game, player)
     if considerRequests(game, player) then return false end
+    if Coalitionist.considerInvites(game, player) then return false end
+    if Coalitionist.lead(game, player) then return false end
+    if Coalitionist.maybeLeave(game, player) then return false end
     if Negotiator.considerPacts(game, player) then return false end
     if Negotiator.considerLoans(game, player) then return false end
     if Negotiator.manageDebt(game, player) then return false end
     if maybeBetray(game, player, ctx) then return true end
     if Negotiator.maybeEndPact(game, player, ctx) then return false end
     if supportAllies(game, player) then return false end
+    if Coalitionist.found(game, player) then return false end
     if seekAlliance(game, player, ctx) then return false end
     if Negotiator.seekLoan(game, player, ctx) then return false end
     Negotiator.seekPact(game, player, ctx)

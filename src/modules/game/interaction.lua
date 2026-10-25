@@ -3,6 +3,7 @@ local Units = require("src.modules.game.systems.units")
 local Ships = require("src.modules.game.systems.ships")
 local Nukes = require("src.modules.game.systems.nukes")
 local Loans = require("src.modules.game.systems.loans")
+local Coalitions = require("src.modules.game.systems.coalitions")
 local Config = require("src.config.game")
 local Format = require("src.core.format")
 local Personality = require("src.modules.ai.personality")
@@ -204,6 +205,7 @@ Interaction.sections[#Interaction.sections + 1] = function(game, tile, items)
     end
     if not target:isBot() then
         Interaction.loanItems(game, target, items)
+        Interaction.coalitionItems(game, target, items)
     end
     local embargoed = human.embargo[target.id] ~= nil
     items[#items + 1] = {
@@ -331,6 +333,65 @@ function Interaction.loanItems(game, target, items)
             return "LOAN FROM " .. string.upper(target.name), list
         end
     }
+end
+
+function Interaction.coalitionItems(game, target, items)
+    local human = game.human
+    local own = Coalitions.of(game, human)
+    local theirs = Coalitions.of(game, target)
+    local MUTED, NEWS, GOOD = { 0.55, 0.6, 0.7, 1 }, { 1, 0.75, 0.3, 1 }, { 0.3, 0.85, 0.45, 1 }
+    if theirs then
+        items[#items + 1] = {
+            label = theirs.name,
+            icon = "Team.png",
+            info = true,
+            color = Coalitions.color(theirs),
+            sublabel = theirs.target and ("vs " .. theirs.target.name) or "Defensive",
+            sublabelColor = MUTED
+        }
+    end
+    if own then
+        if own.leader == human and not theirs and own.target ~= target then
+            local ok, reason = Coalitions.canInvite(game, human, target)
+            items[#items + 1] = {
+                label = "Invite To Coalition",
+                icon = "Team.png",
+                color = GOOD,
+                disabled = not ok,
+                sublabel = not ok and reason or nil,
+                action = function() game:submit({ type = "coalitionInvite", player = human.id, target = target.id }) end
+            }
+        end
+        return
+    end
+    if theirs and human.coalitionInvites[theirs.id] then
+        items[#items + 1] = {
+            label = "Join Coalition",
+            icon = "Team.png",
+            color = GOOD,
+            action = function() game:submit({ type = "coalitionReply", player = human.id, coalition = theirs.id, accept = true }) end
+        }
+    end
+    local ok, reason = Coalitions.canFound(game, human, "war", target)
+    items[#items + 1] = {
+        label = "Coalition Against",
+        icon = "Skull.png",
+        color = NEWS,
+        disabled = not ok,
+        sublabel = ok and "War" or reason,
+        sublabelColor = not ok and { 0.95, 0.35, 0.3, 1 } or MUTED,
+        action = function() game:submit({ type = "coalitionFound", player = human.id, kind = "war", target = target.id }) end
+    }
+    if not theirs then
+        items[#items + 1] = {
+            label = "Defensive Coalition",
+            icon = "Locked.png",
+            color = { 0.55, 0.75, 1, 1 },
+            sublabel = "Invite",
+            sublabelColor = MUTED,
+            action = function() game:submit({ type = "coalitionFound", player = human.id, kind = "defense", target = target.id }) end
+        }
+    end
 end
 
 function Interaction.hotkey(game, action)

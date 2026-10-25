@@ -122,6 +122,9 @@ function Attack.cost(game, attack, i)
     if game.defenseBonus then
         defense = game:defenseBonus(target, i)
     end
+    if game.coalitionModifier then
+        defense = defense * game:coalitionModifier(attack.attacker, target)
+    end
     if target.traitorUntil > game.tick then
         defense = defense * Config.traitorDefense
     end

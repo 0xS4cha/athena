@@ -21,6 +21,7 @@ Hud.componentPaths = {
     "src.modules.hud.components.layers",
     "src.modules.hud.components.control",
     "src.modules.hud.components.leaderboard",
+    "src.modules.hud.components.coalition",
     "src.modules.hud.components.events",
     "src.modules.hud.components.tutorial",
     "src.modules.hud.components.nukepreview",

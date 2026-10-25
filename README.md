@@ -98,6 +98,13 @@ New to the game? Press **Tutorial** in the main menu: it starts a solo game on I
   - Break an alliance, which marks you as a traitor and halves your defense for 30 s.
   - Embargo, donate troops or gold to allies, mark a player as a target for your allies, send emojis.
   - Request a loan (100K, 500K or 2M gold) from any nation. The lender can lend for free, demand 10% or 25% interest (the borrower then accepts or declines the terms), or refuse. Loans are repaid automatically in installments over 5 minutes, or early from the Empire panel. Whatever is still owed at the deadline is a default: the borrower is marked as a traitor and loses the lender's trust.
+- **Coalitions** (right-click on another nation): blocs of up to 6 nations bound by permanent alliances while the coalition lasts.
+  - Coalition Against: founds a war coalition against a dominant nation, the land leader or anyone holding 12% of the land. Once it has two members, they pay 20% less to conquer its land, and the target gets +10% defense against everyone so a coalition is not an instant death sentence.
+  - Defensive Coalition: founds a coalition for mutual defense and invites that nation. Members get +10% defense against outsiders.
+  - The leader invites new members from the context menu; invitations show up in the events panel. Members are allied and share their vision, and their alliances do not expire.
+  - The Coalition panel lists the members, the objective and the bonus. Leaving in peace costs nothing, but deserting a war coalition while its target stands marks you as a traitor and breaks your alliances with the members.
+  - A war coalition dissolves once its target falls, or drops under 4% of the land without being the leader anymore; a coalition that finds no member dissolves on its own. There is no shared victory: the members become rivals again.
+  - AI nations found coalitions against the leader they fear or hate (Diplomats most of all), invite the nations that border or dislike the target, join the coalitions whose target threatens them, and focus their attacks and nukes on it. Threatened Guardians found defensive coalitions with the other neighbours of their threat. Coalition members show a coloured mark in the leaderboard, coalition targets a skull, and hovering a nation shows its coalition.
 - **Victory**: control 80% of the land, or be the last nation standing.
 - **End of game stats**: the victory and defeat screens chart your share of the land over time against your three strongest rivals, and list your peak and final territory, tiles captured, attacks launched, buildings, nukes launched and nations eliminated. The history is part of the simulation (sampled every 5 seconds), so it survives reconnections and snapshots.
 
@@ -249,6 +256,7 @@ The suite runs headless and exits with code 1 when a case fails, so the CI runs 
 - `network_test`: real ENet clients against an in-process server follow the frames without desync, get refused intents answered, catch up after a short disconnection and resynchronize or rejoin from a snapshot.
 - `balance_test`: diminishing cities and the housing cap, the factory link limit and the diminishing train income.
 - `ai_test`: AI personalities are the same on the server and every client; AI lenders, pact negotiations, pact notices before an attack, and borrowing and early repayment.
+- `coalition_test`: coalition founding, invitations, attack and defense bonuses, permanent alliances, desertion, dissolution, server validation and snapshots.
 - `lobby_test`: room passwords, unique colors, flags, kicks, the ready check, and the chat (history, sanitizing, rate limit, ally messages).
 
 ## Map Format

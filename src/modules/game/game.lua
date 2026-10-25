@@ -20,6 +20,7 @@ local SystemPaths = {
     "src.modules.game.systems.vision",
     "src.modules.game.systems.diplomacy",
     "src.modules.game.systems.loans",
+    "src.modules.game.systems.coalitions",
     "src.modules.game.systems.ai",
     "src.modules.game.systems.victory",
     "src.modules.game.systems.stats"
@@ -331,6 +332,11 @@ function Game:report()
     for _, u in ipairs(self.units) do if u.blockaded then blockaded = blockaded + 1 end end
     Logger:info("game", string.format("blockaded ports=%d", blockaded))
     Logger:info("game", string.format("alliances=%d pacts=%d loans=%d rails=%d events=%d", alliances / 2, pacts / 2, #(self.loans or {}), #(self.rails or {}), #self.events))
+    for _, coalition in ipairs(self.coalitions or {}) do
+        local names = {}
+        for _, member in ipairs(coalition.members) do names[#names + 1] = member.name end
+        Logger:info("game", string.format("coalition %s (%s%s): %s", coalition.name, coalition.kind, coalition.target and (" vs " .. coalition.target.name) or "", table.concat(names, ", ")))
+    end
     for _, e in ipairs(self.events) do
         Logger:trace("event", e.text)
     end

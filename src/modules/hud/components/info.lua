@@ -11,6 +11,7 @@ local Attack = require("src.modules.game.systems.attack")
 local Overlay = require("src.modules.game.overlay")
 local Supply = require("src.modules.game.systems.supply")
 local Personality = require("src.modules.ai.personality")
+local Coalitions = require("src.modules.game.systems.coalitions")
 
 function Info.draw(hud)
     local game = hud:game()
@@ -41,6 +42,10 @@ function Info.draw(hud)
         parts[#parts + 1] = owner.name
         if owner:isNation() then
             parts[#parts + 1] = Personality.of(owner).label
+        end
+        local coalition = Coalitions.of(game, owner)
+        if coalition then
+            parts[#parts + 1] = coalition.name
         end
         parts[#parts + 1] = Vision.troopsText(game, game.human, owner) .. " troops"
         parts[#parts + 1] = Format.percent(owner.tiles / map.landCount)

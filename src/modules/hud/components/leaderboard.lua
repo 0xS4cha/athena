@@ -3,6 +3,7 @@ local Style = require("src.modules.hud.style")
 local Format = require("src.core.format")
 local Pixel = require("src.modules.hud.pixel")
 local Vision = require("src.modules.game.systems.vision")
+local Coalitions = require("src.modules.game.systems.coalitions")
 
 local Leaderboard = { id = "leaderboard", title = "LEADERBOARD", panel = true }
 
@@ -105,7 +106,18 @@ function Leaderboard.draw(hud, x, y, w)
         else
             Pixel.text(tostring(row.rank), x + 10, ry + 2, 11, Style.colors.muted)
         end
+        local coalition = Coalitions.of(game, player)
+        if coalition then
+            Pixel.color(Coalitions.color(coalition))
+            love.graphics.rectangle("fill", x + 26, ry + 3, u, ROW - 9)
+        end
         Style.swatch(player.color, x + 30, ry + 5, 10)
+        for _, hunt in ipairs(Coalitions.against(game, player)) do
+            if #hunt.members >= 2 then
+                Pixel.icon("Skull.png", x + 180, ry + 4, 12)
+                break
+            end
+        end
         if player.flag then
             Style.flag(player.flag, x + 44, ry + 2, 13)
         end

@@ -58,7 +58,7 @@ end
 
 Builder.wishes = {
     function(game, player)
-        if player:unitCount("city") < 1 + math.floor(player.tiles / 12000) then
+        if not player.crowded and player:unitCount("city") < 1 + math.floor(player.tiles / 12000) then
             return "city", randomOwnTile(game, player, function(i) return Units.isSpaced(game, i) end)
         end
     end,

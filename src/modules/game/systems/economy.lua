@@ -5,8 +5,11 @@ local Economy = {}
 
 function Economy.maxPopulation(game, player)
     local max = DMath.pow(player.tiles, Config.populationExponent) * Config.populationPerTile + Config.basePopulation
-    max = max + (player.cities or 0) * Config.cityPopulation
-    max = max + Economy.built(game, player, "farm") * Config.farmPopulation
+    local housing = Economy.stacked(player.cities or 0, Config.cityPopulation, Config.cityDiminishing)
+        + Economy.built(game, player, "farm") * Config.farmPopulation
+    local capacity = Economy.housingCapacity(player)
+    player.crowded = housing > capacity
+    max = max + math.min(housing, capacity)
     if player.capital and not player.capital.dead then
         max = max + Config.capitalPopulation
     end
@@ -16,6 +19,10 @@ function Economy.maxPopulation(game, player)
         max = max * game:difficulty().population
     end
     return max
+end
+
+function Economy.housingCapacity(player)
+    return Config.housingBase + player.tiles * Config.housingPerTile
 end
 
 function Economy.goldRate(game, player)
@@ -59,9 +66,9 @@ function Economy.mineIncome(game, player)
     return owned and owned.mineGold or 0
 end
 
-function Economy.stacked(count, per)
+function Economy.stacked(count, per, exponent)
     if count <= 0 then return 0 end
-    return per * DMath.pow(count, Config.buildingDiminishing)
+    return per * DMath.pow(count, exponent or Config.buildingDiminishing)
 end
 
 function Economy.upkeep(game, player)

@@ -47,12 +47,14 @@ function Interaction.unitItem(game, kind, tile)
     local human = game.human
     local def = Config.units[kind]
     local ok, reason = Units.check(game, human, kind, tile)
+    local crowded = ok and human.crowded and (kind == "city" or kind == "farm")
+    local sublabel = ok and Format.number(Units.cost(game, human, kind)) or reason
     return {
         label = def.label,
         icon = def.icon,
         sprite = kind,
-        sublabel = ok and Format.number(Units.cost(game, human, kind)) or reason,
-        sublabelColor = not ok and { 0.95, 0.35, 0.3, 1 } or nil,
+        sublabel = crowded and (sublabel .. "  No housing") or sublabel,
+        sublabelColor = not ok and { 0.95, 0.35, 0.3, 1 } or crowded and { 1, 0.82, 0.25, 1 } or nil,
         disabled = not ok,
         action = function()
             game:submit({ type = "build", player = human.id, unit = kind, tile = tile }, { tile = tile })

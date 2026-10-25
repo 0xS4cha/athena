@@ -238,15 +238,16 @@ local function tiles(hud)
     local attacked = #Attack.incoming(game, human) > 0
     local crippled = human.capitalLostUntil and human.capitalLostUntil > game.tick
     local unpaid = not human.upkeepPaid
+    local crowded = human.crowded and not crippled
     local GOOD, BAD = Style.colors.good, Style.colors.bad
     local function sign(value) return value < 0 and BAD or GOOD end
     return {
         {
-            id = "population", label = crippled and "POP - HALVED" or "POPULATION", icon = "Team.png", color = Style.colors.troops,
+            id = "population", label = crippled and "POP - HALVED" or crowded and "POP - CROWDED" or "POPULATION", icon = "Team.png", color = Style.colors.troops,
             value = population, suffix = "/ " .. Format.number(human.maxPopulation),
             rate = full and "FULL" or rateText(human.growth), rateColor = full and Style.colors.gold or sign(human.growth),
             fill = fill, fillColor = full and Style.colors.gold or Style.colors.troops,
-            alert = full or crippled, alertColor = crippled and BAD or Style.colors.gold
+            alert = full or crippled or crowded, alertColor = crippled and BAD or Style.colors.gold
         },
         {
             id = "gold", label = unpaid and "GOLD - UNPAID" or "GOLD", icon = "Coin.png", color = Style.colors.gold,

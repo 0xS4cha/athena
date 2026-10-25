@@ -54,6 +54,7 @@ New to the game? Press **Tutorial** in the main menu: it starts a solo game on I
 
 - **Spawn phase**: click anywhere on land to choose your starting location, then press `Space` or wait for the countdown.
 - **Population**: your maximum population grows with your territory and your cities. Growth is fastest when you are far from the cap.
+- **Housing**: the population brought by cities and farms is limited by your housing capacity (400K plus 250 per tile), so a tiny island packed with cities stops growing. The population panel shows `POP - CROWDED` when you hit it, and the build menu warns that a new city or farm would bring no housing.
 - **Troops / Workers**: the slider splits your population. Troops attack and defend; workers produce gold.
 - **Attacks**: left-click a neighbour (or the wilderness) to send `Attack Ratio` percent of your troops. The front advances tile by tile. Each tile costs troops depending on terrain (plains < highland < mountain), fallout, the defender's troop density, defense posts, and whether the defender is a traitor. Attacks can be retreated from the Empire panel, and opposite attacks cancel each other out.
 - **Biomes**: land is plains, desert, mountain or snow, derived from elevation and latitude. Each biome has a base conquest cost, plus an adaptation penalty that fades as that biome makes up a larger share of your land (full adaptation at 20%). A desert empire struggles to push into snow until it owns some. Your adaptation appears in the Empire panel, and hovering a tile shows your cost multiplier.
@@ -65,10 +66,10 @@ New to the game? Press **Tutorial** in the main menu: it starts a solo game on I
 - **Diplomatic map**: press `7` to recolour every nation by its relation to you: ally, at war, pact, traitor, hostile, friendly, neutral or tribe. It is drawn with a palette shader, so switching it on stays smooth even on the largest maps.
 - **Hidden intel**: structures are drawn as small pixel buildings on the map, readable only when zoomed in. Enemy structures, ships and nukes are visible only within 35 tiles of your or your allies' territory or 55 tiles of your warships. Missile silos and SAM launchers stay hidden unless a radar sweeps them. AI nations play under the same fog: they only aim at the structures they have seen. Each strike picks a target at random, weighted by value (capital, silos, cities, factories, ports...) and mixed with random points of the enemy territory, and avoids the areas they nuked recently or that are already irradiated, so their nukes spread over the whole nation instead of hitting the same spot. The troops of nations you do not observe (not you, an ally, a neighbour of you or your allies, or under one of your radars) are only shown as rough estimates like "~300K".
 - **Buildings** (right-click > Build), paid in gold with escalating costs:
-  - City: raises your maximum population.
+  - City: raises your maximum population, with diminishing returns for each extra city and within your housing capacity.
   - Trade Port: sends trade ships to nearby trade ports, so both sides earn gold. It is also a rail station.
   - Military Port: launches invasions overseas and builds warships.
-  - Factory: lays pixel rail tracks across your own land to your cities and trade ports; trains generate gold.
+  - Factory: lays pixel rail tracks across your own land to its 3 nearest cities and trade ports; trains generate gold. Each train pays less as your rail network grows, so stacking factories next to many cities no longer prints money.
   - Farm: only on plains. Raises your maximum population and speeds up growth (diminishing with each extra farm), with no upkeep.
   - Mine: only on mountains or deserts. Produces a steady flow of gold, 50% more on mountains, so the biomes that are hardest to conquer finally pay off.
   - Barracks: speeds up population growth, trains your armies (each barracks lowers conquest costs, up to -25%) and extends your supply lines. It costs gold upkeep every tick; without the gold to pay, the bonuses stop.
@@ -237,6 +238,7 @@ The suite runs headless and exits with code 1 when a case fails, so the CI runs 
 - `intents_test`: the server sanitizes intents (sender slot, stripped fields, quantized ratios) and enforces the game rules.
 - `determinism_test`: a server with the AI, a client and two clients restored from snapshots keep the same state hash for 700 ticks; the AI only runs on the authority.
 - `network_test`: real ENet clients against an in-process server follow the frames without desync, get refused intents answered, catch up after a short disconnection and resynchronize or rejoin from a snapshot.
+- `balance_test`: diminishing cities and the housing cap, the factory link limit and the diminishing train income.
 - `lobby_test`: room passwords, unique colors, flags, kicks, the ready check, and the chat (history, sanitizing, rate limit, ally messages).
 
 ## Map Format

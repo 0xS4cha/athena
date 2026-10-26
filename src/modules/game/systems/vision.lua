@@ -76,10 +76,23 @@ function Vision.nearTerritory(game, player, x, y, range)
     return false
 end
 
+local SHIP_VISION = { warship = Config.warshipVision, submarine = Config.submarineVision }
+
 function Vision.nearWarship(game, player, x, y)
-    local r2 = Config.warshipVision * Config.warshipVision
     for _, ship in ipairs(game.ships or {}) do
-        if ship.kind == "warship" and ship.owner == player and not ship.dead
+        local range = SHIP_VISION[ship.kind]
+        if range and ship.owner == player and not ship.dead
+            and sq(ship.x - x) + sq(ship.y - y) <= range * range then
+            return true
+        end
+    end
+    return false
+end
+
+function Vision.sonar(game, player, x, y)
+    local r2 = Config.sonarRange * Config.sonarRange
+    for _, ship in ipairs(game.ships or {}) do
+        if ship.kind == "warship" and not ship.dead and ship.owner:isFriendly(player)
             and sq(ship.x - x) + sq(ship.y - y) <= r2 then
             return true
         end
@@ -107,9 +120,22 @@ function Vision.passive(game, player, x, y)
     return false
 end
 
+function Vision.detects(game, player, unit)
+    if unit.owner:isFriendly(player) then
+        return true
+    end
+    if (unit.revealedUntil or 0) > game.tick and Vision.passive(game, player, unit.x, unit.y) then
+        return true
+    end
+    return Vision.inRadar(game, player, unit.x, unit.y) or Vision.sonar(game, player, unit.x, unit.y)
+end
+
 function Vision.live(game, player, unit)
     if unit.owner:isFriendly(player) then
         return true
+    end
+    if unit.kind == "submarine" then
+        return Vision.detects(game, player, unit)
     end
     if Vision.hidden[unit.kind] then
         return false

@@ -80,7 +80,8 @@ New to the game? Press **Tutorial** in the main menu: it starts a solo game on I
   - SAM Launcher: intercepts nukes aimed inside its range.
   - Bunker: shelters everything within 40 tiles from nukes. A blast centred in its range kills 70% fewer troops and workers, each of your buildings in its range has a 60% chance to survive with its tile, and the bunker itself only falls to a direct hit (6 tiles). The nuke preview warns you when a known enemy bunker shelters the target. AI nations build bunkers near their cities once an enemy owns a silo.
   - Nuke warning: you only learn about a nuke aimed at you or your allies once it is detected, either by a radar (yours or an ally's) or when it enters your vision. A radar covering the enemy silo warns you at launch. The warning shows a countdown, the blast zone and the missile's path.
-  - Warship: built at a military port; patrols, sinks transports, captures trade ships, and fights other warships.
+  - Warship: built at a military port; patrols, sinks transports, captures trade ships, and fights other warships. Its depth charges deal 50% more damage to submarines.
+  - Submarine: built at a military port; stays hidden from enemies unless a radar covers it, an enemy warship comes within 14 tiles (sonar), or it surfaces for 4 s after firing. It torpedoes transports, sinks trade ships instead of capturing them, and attacks warships as a last resort, so it wages a silent war on the enemy economy. Warships only engage the submarines they detect. Your own submarines are drawn half transparent while submerged. Right-click > Send Submarine Here dispatches one. Opportunist and Warlord AI nations build them to hunt the trade routes of their rivals.
 - **Nukes** (right-click > Launch Nuke):
   - Atom Bomb, Hydrogen Bomb, and MIRV (splits into many warheads over the target nation).
   - Hovering a bomb in the menu previews its blast zone on the map: expected destroyed tiles, enemy land, friendly fire (your and your allies' tiles blink in white), known buildings hit, flight time from the silo that will fire, and the known enemy SAMs able to intercept it. Picking a bomb enters aiming mode: the preview follows the mouse, left click launches, right click or Escape cancels.
@@ -258,7 +259,7 @@ The suite runs headless and exits with code 1 when a case fails, so the CI runs 
 - `network_test`: real ENet clients against an in-process server follow the frames without desync, get refused intents answered, catch up after a short disconnection and resynchronize or rejoin from a snapshot.
 - `balance_test`: diminishing cities and the housing cap, the factory link limit, the diminishing train income and the administration falloff.
 - `ai_test`: AI personalities are the same on the server and every client; AI lenders, pact negotiations, pact notices before an attack, and borrowing and early repayment.
-- `military_test`: bunker shelter and direct hits.
+- `military_test`: bunker shelter and direct hits, submarine stealth, sonar detection, depth charges and torpedoes.
 - `coalition_test`: coalition founding, invitations, attack and defense bonuses, permanent alliances, desertion, dissolution, server validation and snapshots.
 - `lobby_test`: room passwords, unique colors, flags, kicks, the ready check, and the chat (history, sanitizing, rate limit, ally messages).
 

@@ -3,6 +3,7 @@ local Format = require("src.core.format")
 local Units = require("src.modules.game.systems.units")
 local Attack = require("src.modules.game.systems.attack")
 local Pathfinding = require("src.modules.map.pathfinding")
+local Vision = require("src.modules.game.systems.vision")
 
 local function sq(v) return v * v end
 
@@ -258,7 +259,11 @@ function Ships.updatePort(game, port)
     end
 end
 
-local PRIORITY = { warship = 3, transport = 2, trade = 1 }
+local PRIORITY = { warship = 3, submarine = 3, transport = 2, trade = 1 }
+local HUNT = {
+    warship = { warship = 3, submarine = 3, transport = 2, trade = 1 },
+    submarine = { transport = 3, trade = 2, warship = 1 }
+}
 
 function Ships.step(game)
     local ships = {}
@@ -275,10 +280,11 @@ end
 
 function Ships.nearestShip(game, warship, range)
     local best, bestD, bestPriority
-    local priority = PRIORITY
+    local priority = HUNT[warship.kind] or HUNT.warship
     for _, unit in ipairs(game.ships or {}) do
         local p = priority[unit.kind]
-        if p and unit ~= warship and not unit.dead and Ships.isHostile(warship.owner, unit.owner) then
+        if p and unit ~= warship and not unit.dead and Ships.isHostile(warship.owner, unit.owner)
+            and (unit.kind ~= "submarine" or Vision.detects(game, warship.owner, unit)) then
             local d = math.sqrt(sq(unit.x - warship.x) + sq(unit.y - warship.y))
             if d <= range and (not bestPriority or p > bestPriority or (p == bestPriority and d < bestD)) then
                 best, bestD, bestPriority = unit, d, p
@@ -311,18 +317,28 @@ function Ships.capture(game, ship, player)
 end
 
 function Ships.strike(game, warship, target)
-    local def = Config.units.warship
+    local def = Config.units[warship.kind]
+    local label = string.lower(def.label)
+    local attacker = warship.kind == "submarine" and "an enemy submarine" or warship.owner.name
+    local BAD, GOOD = { 0.95, 0.35, 0.3, 1 }, { 0.3, 0.85, 0.45, 1 }
     warship.cooldown = def.reloadTicks
-    if target.kind == "trade" then
+    if warship.kind == "submarine" then
+        warship.revealedUntil = game.tick + Config.submarineReveal
+    end
+    if target.kind == "trade" and warship.kind == "warship" then
         Ships.capture(game, target, warship.owner)
-    elseif target.kind == "transport" then
-        game:notify(target.owner, "Your transport ship was sunk by " .. warship.owner.name .. ".", { color = { 0.95, 0.35, 0.3, 1 } })
-        game:notify(warship.owner, "Your warship sank a transport from " .. target.owner.name .. ".", { color = { 0.3, 0.85, 0.45, 1 }, minor = true })
+    elseif target.kind == "trade" or target.kind == "transport" then
+        local ship = target.kind == "trade" and "trade ship" or "transport ship"
+        game:notify(target.owner, string.format("Your %s was sunk by %s.", ship, attacker), { color = BAD, minor = target.kind == "trade" })
+        game:notify(warship.owner, string.format("Your %s sank a %s from %s.", label, ship, target.owner.name), { color = GOOD, minor = true })
         Units.remove(game, target)
     else
-        target.health = target.health - def.damage
+        local damage = def.damage * (target.kind == "submarine" and (def.antiSubmarine or 1) or 1)
+        target.health = target.health - damage
         if target.health <= 0 then
-            game:notify(target.owner, "Your warship was destroyed by " .. warship.owner.name .. ".", { color = { 0.95, 0.35, 0.3, 1 } })
+            local lost = string.lower(Config.units[target.kind].label)
+            game:notify(target.owner, string.format("Your %s was destroyed by %s.", lost, attacker), { color = BAD })
+            game:notify(warship.owner, string.format("Your %s destroyed a %s from %s.", label, lost, target.owner.name), { color = GOOD, minor = true })
             Units.remove(game, target)
         end
     end
@@ -346,8 +362,9 @@ function Ships.blockadeTarget(game, warship)
     local best, bestD
     local r2 = Config.aiBlockadeSearch * Config.aiBlockadeSearch
     local component = game.pathfinder.component[warship.tile]
+    local wanted = warship.kind == "submarine" and { tradePort = true } or PORTS
     for _, unit in ipairs(game.units) do
-        if PORTS[unit.kind] and not unit.dead and Ships.isHostile(warship.owner, unit.owner) and not unit.owner:isBot() then
+        if wanted[unit.kind] and not unit.dead and Ships.isHostile(warship.owner, unit.owner) and not unit.owner:isBot() then
             local d = sq(unit.x - warship.x) + sq(unit.y - warship.y)
             if d <= r2 and (not bestD or d < bestD) and game.pathfinder:waterComponents(unit.tile)[component] then
                 best, bestD = unit, d
@@ -359,7 +376,7 @@ end
 
 function Ships.patrolTarget(game, warship)
     local map = game.map
-    local def = Config.units.warship
+    local def = Config.units[warship.kind]
     if not warship.stationed and not warship.owner:isHuman() and game.rng:random() < Config.aiBlockadeChance then
         local port = Ships.blockadeTarget(game, warship)
         local water = port and Ships.station(game, warship, port.tile)
@@ -382,8 +399,8 @@ function Ships.patrolTarget(game, warship)
     return nil
 end
 
-function Ships.updateWarship(game, warship)
-    local def = Config.units.warship
+function Ships.updateHunter(game, warship)
+    local def = Config.units[warship.kind]
     local target, distance
     if game.tick >= (warship.scan or 0) or (warship.target and warship.target.dead) then
         warship.target = Ships.nearestShip(game, warship, def.range)
@@ -432,7 +449,7 @@ end
 function Ships.unitCompleted(game, unit)
     if unit.kind == "tradePort" then
         unit.update = Ships.updatePort
-    elseif unit.kind == "warship" then
+    elseif HUNT[unit.kind] then
         local water = Ships.waterNear(game, unit.tile)
         if not water then
             Units.remove(game, unit)
@@ -442,8 +459,8 @@ function Ships.unitCompleted(game, unit)
         unit.tile = water
         unit.home = water
         unit.x, unit.y = x + 0.5, y + 0.5
-        unit.health = Config.units.warship.health
-        unit.update = Ships.updateWarship
+        unit.health = Config.units[unit.kind].health
+        unit.update = Ships.updateHunter
     end
 end
 
@@ -461,31 +478,39 @@ function Ships.eliminated(game, player)
     end
 end
 
+local function dispatch(game, intent, kind)
+    local player = game.players[intent.player]
+    if not player or not player.alive then return end
+    local map = game.map
+    local tx, ty = map:coords(intent.tile)
+    local best, bestD
+    for _, ship in ipairs(game.ships or {}) do
+        if ship.kind == kind and ship.owner == player and not ship.dead
+            and game.pathfinder:connected(ship.tile, intent.tile) then
+            local d = sq(ship.x - tx) + sq(ship.y - ty)
+            if not bestD or d < bestD then best, bestD = ship, d end
+        end
+    end
+    local water = best and Ships.station(game, best, intent.tile)
+    local path = water and Ships.findPath(game, best.tile, water)
+    local label = Config.units[kind].label
+    if not path then
+        game:notify(player, string.format("No %s can reach that place.", string.lower(label)))
+        return
+    end
+    best.path = path
+    best.progress = 1
+    best.target = nil
+    best.chasing = nil
+    game:notify(player, label .. " dispatched.", { color = { 0.55, 0.75, 1, 1 }, minor = true })
+end
+
 Ships.intents = {
     warship = function(game, intent)
-        local player = game.players[intent.player]
-        if not player or not player.alive then return end
-        local map = game.map
-        local tx, ty = map:coords(intent.tile)
-        local best, bestD
-        for _, ship in ipairs(game.ships or {}) do
-            if ship.kind == "warship" and ship.owner == player and not ship.dead
-                and game.pathfinder:connected(ship.tile, intent.tile) then
-                local d = sq(ship.x - tx) + sq(ship.y - ty)
-                if not bestD or d < bestD then best, bestD = ship, d end
-            end
-        end
-        local water = best and Ships.station(game, best, intent.tile)
-        local path = water and Ships.findPath(game, best.tile, water)
-        if not path then
-            game:notify(player, "No warship can reach that place.")
-            return
-        end
-        best.path = path
-        best.progress = 1
-        best.target = nil
-        best.chasing = nil
-        game:notify(player, "Warship dispatched.", { color = { 0.55, 0.75, 1, 1 }, minor = true })
+        dispatch(game, intent, "warship")
+    end,
+    submarine = function(game, intent)
+        dispatch(game, intent, "submarine")
     end,
     boat = function(game, intent)
         if game.phase ~= "playing" then return end

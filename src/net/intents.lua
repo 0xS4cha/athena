@@ -60,6 +60,7 @@ local SCHEMAS = {
     retreat = { attack = "attack" },
     boat = { tile = "tile", ratio = "ratio" },
     warship = { tile = "tile" },
+    submarine = { tile = "tile" },
     build = { unit = "unit", tile = "tile" },
     nuke = { kind = "nukeKind", tile = "tile" },
     troopRatio = { ratio = "ratio" },
@@ -113,6 +114,10 @@ local RULES = {
     warship = function(game, player, intent)
         if intent.tile >= game.map.size then return "Invalid tile" end
         if player:unitCount("warship") == 0 then return "No warship" end
+    end,
+    submarine = function(game, player, intent)
+        if intent.tile >= game.map.size then return "Invalid tile" end
+        if player:unitCount("submarine") == 0 then return "No submarine" end
     end,
     build = function(game, player, intent)
         if intent.tile >= game.map.size then return "Invalid tile" end

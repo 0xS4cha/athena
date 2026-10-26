@@ -18,6 +18,7 @@ local DEFAULTS = {
     ["build:sam"] = "s",
     ["build:bunker"] = "k",
     ["build:warship"] = "w",
+    ["build:submarine"] = "u",
     ["nuke:atom"] = "z",
     ["nuke:hydrogen"] = "x",
     ["nuke:mirv"] = "q"

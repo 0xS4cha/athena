@@ -109,6 +109,17 @@ Builder.wishes = {
         end
     end,
     function(game, player)
+        local ports = player:unitCount("militaryPort")
+        if ports == 0 or player:unitCount("submarine") >= ports or game.aiRng:random() > 0.2 * Personality.of(player).opportunism then return end
+        for _, unit in ipairs(game.units) do
+            if unit.kind == "tradePort" and not unit.dead and player:canAttack(unit.owner) and not unit.owner:isBot() then
+                local port = Units.nearestPort(game, player, player.spawnTile or 0, "militaryPort")
+                if port then return "submarine", port.tile end
+                return
+            end
+        end
+    end,
+    function(game, player)
         local plains = player.biomeTiles[Config.biomes.plains.id]
         if plains < 500 or player:unitCount("farm") >= 1 + math.floor(plains / 8000) then return end
         return "farm", randomOwnTile(game, player, function(i)

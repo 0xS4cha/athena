@@ -238,20 +238,26 @@ end
 
 Interaction.sections[#Interaction.sections + 1] = function(game, tile, items)
     local human = game.human
-    if human:unitCount("warship") == 0 then return end
+    if human:unitCount("warship") == 0 and human:unitCount("submarine") == 0 then return end
     local map = game.map
     local x, y = map:coords(tile)
     local nearWater = map:findNear(x, y, Config.blockadeRange, function(i) return map:isWater(i) end)
     if not nearWater then return end
-    items[#items + 1] = {
-        label = "Send Warship Here",
-        icon = "Wrench3.png",
-        sublabel = human:unitCount("warship") .. " ships",
-        sublabelColor = { 0.45, 0.75, 1, 1 },
-        action = function()
-            game:submit({ type = "warship", player = human.id, tile = tile })
+    for _, kind in ipairs({ "warship", "submarine" }) do
+        local count = human:unitCount(kind)
+        if count > 0 then
+            local def = Config.units[kind]
+            items[#items + 1] = {
+                label = "Send " .. def.label .. " Here",
+                icon = def.icon,
+                sublabel = count .. (kind == "warship" and " ships" or " subs"),
+                sublabelColor = { 0.45, 0.75, 1, 1 },
+                action = function()
+                    game:submit({ type = kind, player = human.id, tile = tile })
+                end
+            }
         end
-    }
+    end
 end
 
 function Interaction.pactItem(game, target, items)

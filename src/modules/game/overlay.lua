@@ -767,7 +767,8 @@ local SHIP_COLORS = {
 Overlay.ships = {
     transport = { "..l..", ".lll.", "cccc.", ".dddd" },
     trade = { ".y.y.", "cyyy.", "ddddd", ".ddd." },
-    warship = { "...g...", "..ggg..", "cccccgd", ".ddddd." }
+    warship = { "...g...", "..ggg..", "cccccgd", ".ddddd." },
+    submarine = { "...g....", "..cc....", "ccccccgd", ".dddddd." }
 }
 
 local function heading(game, unit)
@@ -784,7 +785,8 @@ local function heading(game, unit)
     return 0, dy >= 0 and 1 or -1
 end
 
-function Overlay.drawShip(game, camera, unit)
+function Overlay.drawShip(game, camera, unit, _, alpha)
+    alpha = alpha or 1
     local sprite = Overlay.ships[unit.kind]
     if not sprite then return end
     local map = game.map
@@ -799,7 +801,7 @@ function Overlay.drawShip(game, camera, unit)
             if tile then
                 local x, y = map:coords(tile)
                 local sx, sy = camera:toScreen(x, y)
-                love.graphics.setColor(0.9, 0.95, 1, 0.5 * (1 - k / 6))
+                love.graphics.setColor(0.9, 0.95, 1, 0.5 * (1 - k / 6) * alpha)
                 love.graphics.rectangle("fill", sx, sy, size, size)
             end
         end
@@ -822,7 +824,7 @@ function Overlay.drawShip(game, camera, unit)
                     px, py = -oy * hy, ox * hy
                 end
                 local color = ch == "c" and owner or SHIP_COLORS[ch]
-                love.graphics.setColor(color[1], color[2], color[3], 1)
+                love.graphics.setColor(color[1], color[2], color[3], alpha)
                 local sx, sy = camera:toScreen(tx + px, ty + py)
                 love.graphics.rectangle("fill", sx, sy, size, size)
             end
@@ -953,23 +955,32 @@ Overlay.unitDrawers = {
     trade = Overlay.drawShip,
     warship = function(game, camera, unit)
         Overlay.drawShip(game, camera, unit)
-        local max = Config.units.warship.health
-        if unit.health and unit.health < max and camera.scale >= 2 then
-            local size = camera.scale
-            local tx, ty = math.floor(unit.x), math.floor(unit.y)
-            for k = -3, 3 do
-                local filled = (k + 4) / 7 <= unit.health / max
-                if filled then
-                    love.graphics.setColor(0.3, 0.9, 0.4, 1)
-                else
-                    love.graphics.setColor(0.6, 0.15, 0.12, 1)
-                end
-                local sx, sy = camera:toScreen(tx + k, ty - 3)
-                love.graphics.rectangle("fill", sx, sy, size, size * 0.6)
-            end
-        end
+        Overlay.drawHealth(camera, unit)
+    end,
+    submarine = function(game, camera, unit)
+        local surfaced = (unit.revealedUntil or 0) > game.tick
+        Overlay.drawShip(game, camera, unit, nil, surfaced and 1 or 0.55)
+        Overlay.drawHealth(camera, unit)
     end
 }
+
+function Overlay.drawHealth(camera, unit)
+    local max = Config.units[unit.kind].health
+    if unit.health and unit.health < max and camera.scale >= 2 then
+        local size = camera.scale
+        local tx, ty = math.floor(unit.x), math.floor(unit.y)
+        for k = -3, 3 do
+            local filled = (k + 4) / 7 <= unit.health / max
+            if filled then
+                love.graphics.setColor(0.3, 0.9, 0.4, 1)
+            else
+                love.graphics.setColor(0.6, 0.15, 0.12, 1)
+            end
+            local sx, sy = camera:toScreen(tx + k, ty - 3)
+            love.graphics.rectangle("fill", sx, sy, size, size * 0.6)
+        end
+    end
+end
 
 function Overlay.decorateLabel(game, player, sx, y, size)
     local human = game.human

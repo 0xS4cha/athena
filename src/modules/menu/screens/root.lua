@@ -7,6 +7,9 @@ local Title = require("src.modules.menu.title")
 
 local Root = { id = "root" }
 
+local GITHUB_URL = "https://github.com/0xS4cha/athena"
+local GITHUB_W, GITHUB_H = 140, 40
+
 local function margin()
     local W = love.graphics.getWidth()
     return math.max(40, math.floor(W * 0.05))
@@ -37,6 +40,12 @@ function Root.build(menu)
         element.x, element.y, element.w = M + 24, y, w
         y = y + element.h + 16
     end
+    local W, H = love.graphics.getDimensions()
+    list[#list + 1] = {
+        id = "github", label = "GITHUB", h = GITHUB_H, nav = false,
+        x = W - M - GITHUB_W, y = H - M - GITHUB_H, w = GITHUB_W,
+        press = function() love.system.openURL(GITHUB_URL) end
+    }
     return list
 end
 
@@ -140,7 +149,7 @@ function Root.draw(menu, elements, p)
     local liveW = math.min(400, math.floor(W * 0.3))
     UI.alpha = menu:stagger(p, 6)
     local slide = math.floor((1 - UI.alpha) * 60)
-    drawLive(menu, W - M - liveW + slide, H - M, liveW)
+    drawLive(menu, W - M - liveW + slide, H - M - GITHUB_H - 16, liveW)
     UI.alpha = 1
 end
 

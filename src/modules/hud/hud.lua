@@ -28,6 +28,7 @@ Hud.componentPaths = {
     "src.modules.hud.components.chat",
     "src.modules.hud.components.settings",
     "src.modules.hud.components.endscreen",
+    "src.modules.hud.components.buildbar",
     "src.modules.hud.components.hotkeys",
     "src.modules.hud.components.help"
 }

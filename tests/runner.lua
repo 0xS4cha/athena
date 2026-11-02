@@ -9,6 +9,7 @@ local SUITES = {
     "tests.network_test",
     "tests.lobby_test",
     "tests.balance_test",
+    "tests.hud_test",
     "tests.ai_test",
     "tests.coalition_test",
     "tests.military_test"

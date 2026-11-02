@@ -3,6 +3,7 @@ local Format = require("src.core.format")
 local Palette = require("src.modules.player.palette")
 local Fx = require("src.modules.hud.fx")
 local UI = require("src.modules.hud.pixel")
+local Teams = require("src.modules.game.systems.teams")
 
 local Play = { id = "play" }
 
@@ -72,6 +73,7 @@ function Play.build(menu)
     local cx, cw = p.x + 24, p.w - 48
     local cy = p.y + p.h - CONTROLS_H + 12
     local half = math.floor((cw - 24) / 2)
+    local column = math.floor((cw - 48) / 3)
     local function moveSelection(delta)
         return function() menu:moveSelection(delta) end
     end
@@ -108,20 +110,31 @@ function Play.build(menu)
             right = function() menu.settings.bots = math.min(MAX_BOTS, menu.settings.bots + 10) end
         },
         {
-            id = "difficulty", x = cx, y = cy + 166, w = half, h = 40,
+            id = "difficulty", x = cx, y = cy + 166, w = column, h = 40,
             press = function(_, mx)
                 if not mx then
                     menu.settings.difficulty = DIFFICULTIES[difficultyIndex(menu) % #DIFFICULTIES + 1]
                     return
                 end
-                local k = Fx.clamp(math.floor((mx - cx) / (half / #DIFFICULTIES)) + 1, 1, #DIFFICULTIES)
+                local k = Fx.clamp(math.floor((mx - cx) / (column / #DIFFICULTIES)) + 1, 1, #DIFFICULTIES)
                 menu.settings.difficulty = DIFFICULTIES[k]
             end,
             left = function() menu.settings.difficulty = DIFFICULTIES[math.max(1, difficultyIndex(menu) - 1)] end,
             right = function() menu.settings.difficulty = DIFFICULTIES[math.min(#DIFFICULTIES, difficultyIndex(menu) + 1)] end
         },
         {
-            id = "lan", x = cx + half + 24, y = cy + 166, w = cw - half - 24, h = 40,
+            id = "teams", x = cx + column + 24, y = cy + 166, w = column, h = 40,
+            press = function(_, mx)
+                local count = #Teams.modes
+                local index = mx and Fx.clamp(math.floor((mx - cx - column - 24) / (column / count)) + 1, 1, count)
+                    or Teams.modeIndex(menu.settings.teams) % count + 1
+                menu.settings.teams = Teams.modes[index]
+            end,
+            left = function() menu.settings.teams = Teams.modes[math.max(1, Teams.modeIndex(menu.settings.teams) - 1)] end,
+            right = function() menu.settings.teams = Teams.modes[math.min(#Teams.modes, Teams.modeIndex(menu.settings.teams) + 1)] end
+        },
+        {
+            id = "lan", x = cx + (column + 24) * 2, y = cy + 166, w = cw - (column + 24) * 2, h = 40,
             press = function() menu.settings.lan = not menu.settings.lan end,
             left = function() menu.settings.lan = false end,
             right = function() menu.settings.lan = true end
@@ -367,6 +380,10 @@ function Play.draw(menu, elements, p)
     local dcolors = { UI.colors.good, UI.colors.hover, UI.colors.bad }
     local index = difficultyIndex(menu)
     UI.segments("difficulty", difficulty.x, difficulty.y, difficulty.w, difficulty.h, DIFFICULTY_LABELS, index, { hot = menu.focus == "difficulty", color = dcolors[index] })
+
+    local teams = find(elements, "teams")
+    UI.text("TEAMS", teams.x, teams.y - 22, 11, UI.colors.muted)
+    UI.segments("teams", teams.x, teams.y, teams.w, teams.h, Teams.modeLabels, Teams.modeIndex(s.teams), { hot = menu.focus == "teams" })
 
     local lan = find(elements, "lan")
     UI.text("NETWORK", lan.x, lan.y - 22, 11, UI.colors.muted)

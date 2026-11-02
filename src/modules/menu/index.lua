@@ -12,7 +12,7 @@ GM.Menu = {}
 GM.Modules:Register("Menu", 90)
 
 local CONFIG_FILE = "menu_config.txt"
-local SETTING_KEYS = { "map", "bots", "nations", "difficulty", "lan", "name", "color", "flag", "server", "fullscreen", "vsync", "background", "battleSpeed", "particles", "advancedEvents", "soundVolume" }
+local SETTING_KEYS = { "map", "bots", "nations", "difficulty", "lan", "name", "color", "flag", "server", "fullscreen", "vsync", "background", "battleSpeed", "particles", "advancedEvents", "soundVolume", "teams" }
 local SWITCH_IN = 0.6
 local SWITCH_OUT = 0.22
 local WIPE_SECONDS = 0.65
@@ -51,7 +51,8 @@ function GM.Menu:Initialize()
         battleSpeed = 2,
         particles = true,
         advancedEvents = false,
-        soundVolume = 4
+        soundVolume = 4,
+        teams = 0
     }
     self:loadSettings()
     self.background = Background()
@@ -287,7 +288,7 @@ function GM.Menu:start()
     self:saveSettings()
     self.launchError = nil
     local s = self.settings
-    local settings = { map = s.map, bots = s.bots, nations = s.nations, difficulty = s.difficulty }
+    local settings = { map = s.map, bots = s.bots, nations = s.nations, difficulty = s.difficulty, teams = s.teams }
     local name = s.name ~= "" and s.name or "Player"
     if s.lan then
         GM.Multiplayer:HostLan(settings, name)

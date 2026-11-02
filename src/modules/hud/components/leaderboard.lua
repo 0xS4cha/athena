@@ -4,6 +4,7 @@ local Format = require("src.core.format")
 local Pixel = require("src.modules.hud.pixel")
 local Vision = require("src.modules.game.systems.vision")
 local Coalitions = require("src.modules.game.systems.coalitions")
+local Teams = require("src.modules.game.systems.teams")
 
 local Leaderboard = { id = "leaderboard", title = "LEADERBOARD", panel = true }
 
@@ -107,7 +108,10 @@ function Leaderboard.draw(hud, x, y, w)
             Pixel.text(tostring(row.rank), x + 10, ry + 2, 11, Style.colors.muted)
         end
         local coalition = Coalitions.of(game, player)
-        if coalition then
+        if player.team then
+            Pixel.color(Teams.color(player.team))
+            love.graphics.rectangle("fill", x + 26, ry + 3, u, ROW - 9)
+        elseif coalition then
             Pixel.color(Coalitions.color(coalition))
             love.graphics.rectangle("fill", x + 26, ry + 3, u, ROW - 9)
         end

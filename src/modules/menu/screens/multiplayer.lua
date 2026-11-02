@@ -5,6 +5,7 @@ local UI = require("src.modules.hud.pixel")
 local Play = require("src.modules.menu.screens.play")
 local Palette = require("src.modules.player.palette")
 local ChatLog = require("src.modules.hud.chatlog")
+local Teams = require("src.modules.game.systems.teams")
 
 local Multiplayer = { id = "multiplayer" }
 
@@ -47,13 +48,13 @@ local function mapByPath(menu, path)
 end
 
 local function settingsKey(s)
-    return string.format("%s|%d|%s|%s", tostring(s.map), s.bots or 0, tostring(s.nations), tostring(s.difficulty))
+    return string.format("%s|%d|%s|%s|%d", tostring(s.map), s.bots or 0, tostring(s.nations), tostring(s.difficulty), s.teams or 0)
 end
 
 local function hostSettings(menu)
     local map = menu:current()
     local s = menu.settings
-    return { map = map and map.path, bots = s.bots, nations = s.nations, difficulty = s.difficulty }
+    return { map = map and map.path, bots = s.bots, nations = s.nations, difficulty = s.difficulty, teams = s.teams }
 end
 
 local function roomSettings(menu)
@@ -184,6 +185,28 @@ local function sendChat(menu)
     end
 end
 
+local function sideLabels(count)
+    local labels = { "Auto" }
+    for team = 1, count do
+        labels[#labels + 1] = Teams.names[team]
+    end
+    return labels
+end
+
+local function pickSide(delta, mx, x, w, count)
+    local me = net():Me()
+    local current = me and me.team or 0
+    local side
+    if mx then
+        side = Fx.clamp(math.floor((mx - x) / (w / (count + 1))), 0, count)
+    elseif delta then
+        side = Fx.clamp(current + delta, 0, count)
+    else
+        side = (current + 1) % (count + 1)
+    end
+    net():SendProfile(side)
+end
+
 local function connect(menu)
     local mp = net()
     if mp.state == "connecting" then
@@ -253,6 +276,7 @@ function Multiplayer.update(menu)
         menu.settings.bots = s.bots
         menu.settings.nations = s.nations
         menu.settings.difficulty = s.difficulty
+        menu.settings.teams = s.teams or 0
         menu.syncedKey = settingsKey(s)
     end
     local settings = hostSettings(menu)
@@ -334,16 +358,29 @@ function Multiplayer.build(menu)
                 up = moveSelection(-1), down = moveSelection(1)
             })
         end
+        local column = math.floor((cw - 48) / 3)
         add({
-            id = "nations", x = cx, y = cy + 90, w = half, h = 40,
+            id = "nations", x = cx, y = cy + 90, w = column, h = 40,
             press = editable(menu, function() s.nations = not s.nations end),
             left = editable(menu, function() s.nations = false end),
             right = editable(menu, function() s.nations = true end)
         })
         add({
-            id = "difficulty", x = cx + half + 24, y = cy + 90, w = cw - half - 24, h = 40,
+            id = "teams", x = cx + (column + 24) * 2, y = cy + 90, w = cw - (column + 24) * 2, h = 40,
             press = editable(menu, function(_, mx)
-                local dx, dw = cx + half + 24, cw - half - 24
+                local count = #Teams.modes
+                local tx, tw = cx + (column + 24) * 2, cw - (column + 24) * 2
+                local index = mx and Fx.clamp(math.floor((mx - tx) / (tw / count)) + 1, 1, count)
+                    or Teams.modeIndex(s.teams) % count + 1
+                s.teams = Teams.modes[index]
+            end),
+            left = editable(menu, function() s.teams = Teams.modes[math.max(1, Teams.modeIndex(s.teams) - 1)] end),
+            right = editable(menu, function() s.teams = Teams.modes[math.min(#Teams.modes, Teams.modeIndex(s.teams) + 1)] end)
+        })
+        add({
+            id = "difficulty", x = cx + column + 24, y = cy + 90, w = column, h = 40,
+            press = editable(menu, function(_, mx)
+                local dx, dw = cx + column + 24, column
                 if not mx then
                     s.difficulty = DIFFICULTIES[difficultyIndex(s.difficulty) % #DIFFICULTIES + 1]
                     return
@@ -353,10 +390,21 @@ function Multiplayer.build(menu)
             left = editable(menu, function() s.difficulty = DIFFICULTIES[math.max(1, difficultyIndex(s.difficulty) - 1)] end),
             right = editable(menu, function() s.difficulty = DIFFICULTIES[math.min(#DIFFICULTIES, difficultyIndex(s.difficulty) + 1)] end)
         })
+        local sides = roomSettings(menu).teams or 0
+        local botsW = sides > 0 and half or cw
+        if sides > 0 then
+            local sx, sw = cx + half + 24, cw - half - 24
+            add({
+                id = "side", x = sx, y = cy + 158, w = sw, h = 36,
+                press = function(_, mx) pickSide(nil, mx, sx, sw, sides) end,
+                left = function() pickSide(-1, nil, sx, sw, sides) end,
+                right = function() pickSide(1, nil, sx, sw, sides) end
+            })
+        end
         add({
-            id = "bots", x = cx, y = cy + 166, w = cw, h = 24,
+            id = "bots", x = cx, y = cy + 166, w = botsW, h = 24,
             drag = host and function(_, mx)
-                s.bots = math.floor(Fx.clamp((mx - cx) / cw, 0, 1) * MAX_BOTS / 5 + 0.5) * 5
+                s.bots = math.floor(Fx.clamp((mx - cx) / botsW, 0, 1) * MAX_BOTS / 5 + 0.5) * 5
             end or nil,
             left = editable(menu, function() s.bots = math.max(0, s.bots - 10) end),
             right = editable(menu, function() s.bots = math.min(MAX_BOTS, s.bots + 10) end)
@@ -587,7 +635,7 @@ local function drawLobby(menu, elements, l, e)
         local isHost = player.id == room.host
         local textColor = isHost and UI.colors.gold or (player.ready and UI.colors.good or UI.colors.text)
         UI.chip(chip.x, chip.y, chip.label, chip.icon, textColor)
-        local c = colorFor(player, chip.slot)
+        local c = player.team and Teams.color(player.team) or colorFor(player, chip.slot)
         UI.color(c)
         love.graphics.rectangle("fill", chip.x + u, chip.y + chip.h, chip.w - 2 * u, u)
         if player.flag then
@@ -620,6 +668,18 @@ local function drawLobby(menu, elements, l, e)
     local dcolors = { UI.colors.good, UI.colors.hover, UI.colors.bad }
     local index = difficultyIndex(s.difficulty)
     UI.segments("mpdifficulty", difficulty.x, difficulty.y, difficulty.w, difficulty.h, DIFFICULTY_LABELS, index, { hot = host and menu.focus == "difficulty", color = dcolors[index] })
+
+    local teams = find(elements, "teams")
+    UI.text("TEAMS", teams.x, teams.y - 22, 11, UI.colors.muted)
+    UI.segments("mpteams", teams.x, teams.y, teams.w, teams.h, Teams.modeLabels, Teams.modeIndex(s.teams or 0), { hot = host and menu.focus == "teams" })
+
+    local side = find(elements, "side")
+    if side then
+        local me = mp:Me()
+        local team = me and me.team or nil
+        UI.text("YOUR SIDE", side.x, side.y - 20, 11, UI.colors.muted)
+        UI.segments("mpside", side.x, side.y, side.w, side.h, sideLabels(s.teams), (team or 0) + 1, { hot = menu.focus == "side", color = team and Teams.color(team) or nil })
+    end
 
     local bots = find(elements, "bots")
     UI.text("WILD TRIBES", bots.x, bots.y - 26, 11, UI.colors.muted)

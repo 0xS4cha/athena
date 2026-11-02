@@ -7,6 +7,8 @@ local Fx = require("src.modules.hud.fx")
 local WordArt = require("src.modules.hud.wordart")
 local Stats = require("src.modules.game.systems.stats")
 local Palette = require("src.modules.player.palette")
+local Victory = require("src.modules.game.systems.victory")
+local Teams = require("src.modules.game.systems.teams")
 
 local EndScreen = { id = "endscreen", modal = true }
 
@@ -25,7 +27,7 @@ local BUTTON_GAP = 10
 local function state(hud)
     local game = hud:game()
     if game.phase == "ended" then
-        return game.winner == game.human and "victory" or "ended"
+        return Victory.won(game, game.human) and "victory" or "ended"
     end
     if not game.human.alive and game.phase == "playing" and not hud.spectating then
         return "defeat"
@@ -216,11 +218,11 @@ function EndScreen.draw(hud, x, y, w, h)
 
     local title, palette, subtitle, accent
     if s == "victory" then
-        title, palette, subtitle, accent = "VICTORY", "gold", "You conquered the world.", Style.colors.gold
+        title, palette, subtitle, accent = "VICTORY", "gold", game.winningTeam and (Teams.label(game.winningTeam) .. " conquered the world.") or "You conquered the world.", Style.colors.gold
     elseif s == "defeat" then
         title, palette, subtitle, accent = "DEFEAT", "red", "Your nation has fallen.", Style.colors.bad
     else
-        title, palette, subtitle, accent = "GAME OVER", "steel", (game.winner and game.winner.name or "Someone") .. " has won the game.", Style.colors.muted
+        title, palette, subtitle, accent = "GAME OVER", "steel", (game.winningTeam and Teams.label(game.winningTeam) or game.winner and game.winner.name or "Someone") .. " has won the game.", Style.colors.muted
     end
     Style.frame(x, y, w, h, nil, { accent = accent, cornerAlpha = 1 })
     local tw, th = WordArt.size(title, 22, TITLE_SCALE)

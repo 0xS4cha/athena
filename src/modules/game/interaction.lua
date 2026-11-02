@@ -8,6 +8,7 @@ local Coalitions = require("src.modules.game.systems.coalitions")
 local Config = require("src.config.game")
 local Format = require("src.core.format")
 local Personality = require("src.modules.ai.personality")
+local Teams = require("src.modules.game.systems.teams")
 
 local Interaction = {}
 
@@ -156,6 +157,16 @@ Interaction.sections[#Interaction.sections + 1] = function(game, tile, items)
     local target = game:playerAt(tile)
     if not target or target == human or not target.alive then return end
     local GOOD, BAD = { 0.3, 0.85, 0.45, 1 }, { 0.95, 0.35, 0.3, 1 }
+    if target.team then
+        items[#items + 1] = {
+            label = Teams.label(target.team),
+            icon = "Team.png",
+            info = true,
+            color = Teams.color(target.team),
+            sublabel = human:isTeammate(target) and "Teammate" or "Enemy",
+            sublabelColor = human:isTeammate(target) and GOOD or BAD
+        }
+    end
     if target:isNation() then
         local traits = Personality.of(target)
         items[#items + 1] = {
@@ -181,13 +192,15 @@ Interaction.sections[#Interaction.sections + 1] = function(game, tile, items)
             sublabel = Format.number(human.gold * human.attackRatio),
             action = function() game:submit({ type = "donate", player = human.id, target = target.id, kind = "gold" }) end
         }
-        items[#items + 1] = {
-            label = "Break Alliance",
-            icon = "Unlocked.png",
-            color = BAD,
-            action = function() game:submit({ type = "allianceBreak", player = human.id, target = target.id }) end
-        }
-    elseif not target:isBot() then
+        if not human:isTeammate(target) then
+            items[#items + 1] = {
+                label = "Break Alliance",
+                icon = "Unlocked.png",
+                color = BAD,
+                action = function() game:submit({ type = "allianceBreak", player = human.id, target = target.id }) end
+            }
+        end
+    elseif not target:isBot() and game.teamCount == 0 then
         Interaction.pactItem(game, target, items)
         local pending = target.allianceRequests[human.id] ~= nil
         local incoming = human.allianceRequests[target.id] ~= nil
@@ -208,7 +221,9 @@ Interaction.sections[#Interaction.sections + 1] = function(game, tile, items)
     end
     if not target:isBot() then
         Interaction.loanItems(game, target, items)
-        Interaction.coalitionItems(game, target, items)
+        if game.teamCount == 0 then
+            Interaction.coalitionItems(game, target, items)
+        end
     end
     local embargoed = human.embargo[target.id] ~= nil
     items[#items + 1] = {

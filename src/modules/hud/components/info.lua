@@ -13,6 +13,7 @@ local Supply = require("src.modules.game.systems.supply")
 local Personality = require("src.modules.ai.personality")
 local Coalitions = require("src.modules.game.systems.coalitions")
 local Economy = require("src.modules.game.systems.economy")
+local Teams = require("src.modules.game.systems.teams")
 
 function Info.draw(hud)
     local game = hud:game()
@@ -47,6 +48,9 @@ function Info.draw(hud)
         parts[#parts + 1] = owner.name
         if owner:isNation() then
             parts[#parts + 1] = Personality.of(owner).label
+        end
+        if owner.team then
+            parts[#parts + 1] = Teams.label(owner.team)
         end
         local coalition = Coalitions.of(game, owner)
         if coalition then

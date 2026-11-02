@@ -12,6 +12,7 @@ local Room = Class()
 
 local DIFFICULTIES = { easy = true, medium = true, hard = true }
 local DEFAULT_MAP = GameConfig.defaultMap
+local Teams = require("src.modules.game.systems.teams")
 local COLORS = #require("src.modules.player.palette").choices
 
 local function password(value)
@@ -33,7 +34,8 @@ local function sanitize(settings)
         nations = settings.nations ~= false,
         difficulty = DIFFICULTIES[settings.difficulty] and settings.difficulty or "medium",
         autoplay = settings.autoplay == true,
-        tutorial = settings.tutorial == true
+        tutorial = settings.tutorial == true,
+        teams = settings.tutorial == true and 0 or Teams.validCount(settings.teams)
     }
 end
 
@@ -74,7 +76,7 @@ end
 function Room:Info()
     local players = {}
     for _, client in ipairs(self.members) do
-        players[#players + 1] = { id = client.id, name = client.name, ready = client.ready == true, color = client.color, flag = client.flag }
+        players[#players + 1] = { id = client.id, name = client.name, ready = client.ready == true, color = client.color, flag = client.flag, team = client.team }
     end
     return {
         id = self.id,
@@ -168,6 +170,7 @@ function Room:Add(client, given)
         return false, "Wrong password"
     end
     client.ready = false
+    client.team = nil
     if client.color and self:colorTaken(client.color, client) then
         client.color = nil
     end
@@ -197,6 +200,8 @@ function Room:Profile(client, data)
     local flag = type(data.flag) == "string" and data.flag:lower():sub(1, 32) or ""
     client.color = color
     client.flag = flag:match("^[%w%-]+$") and flag or nil
+    local team = tonumber(data.team)
+    client.team = team and team == math.floor(team) and team >= 1 and team <= self.settings.teams and team or nil
     self:Broadcast("room", self:Info())
     return true
 end
@@ -269,6 +274,11 @@ function Room:Configure(client, settings)
         return false, "Game already started"
     end
     self.settings = sanitize(settings)
+    for _, member in ipairs(self.members) do
+        if member.team and member.team > self.settings.teams then
+            member.team = nil
+        end
+    end
     self:Broadcast("room", self:Info())
     return true
 end
@@ -276,7 +286,7 @@ end
 function Room:players()
     local players = {}
     for slot, entry in ipairs(self.slots) do
-        players[slot] = { name = entry.name, color = entry.color, flag = entry.flag }
+        players[slot] = { name = entry.name, color = entry.color, flag = entry.flag, team = entry.team }
     end
     return players
 end
@@ -353,7 +363,7 @@ function Room:Start(client)
     self.seed = math.random(1, 2147483646)
     for slot, member in ipairs(self.members) do
         member.slot = slot
-        self.slots[slot] = { name = member.name, color = member.color, flag = member.flag, token = UUID.getUUID(), client = member }
+        self.slots[slot] = { name = member.name, color = member.color, flag = member.flag, team = member.team, token = UUID.getUUID(), client = member }
     end
     local ok, game = pcall(Game, {
         map = self.settings.map,
@@ -362,6 +372,7 @@ function Room:Start(client)
         difficulty = self.settings.difficulty,
         autoplay = self.settings.autoplay,
         tutorial = self.settings.tutorial,
+        teams = self.settings.teams,
         seed = self.seed,
         humans = self:players(),
         headless = true,
@@ -500,7 +511,7 @@ function Room:advance()
     end
     if game.phase == "ended" then
         self.state = "ended"
-        self:Broadcast("ended", { tick = game.tick, winner = game.winner and game.winner.id })
+        self:Broadcast("ended", { tick = game.tick, winner = game.winner and game.winner.id, team = game.winningTeam })
         Logger:info("room", string.format("Room %s finished at tick %d", self.id, game.tick))
     end
 end

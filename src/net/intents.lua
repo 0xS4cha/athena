@@ -129,6 +129,15 @@ local RULES = {
         local ok, reason = Nukes.check(game, player, intent.kind, intent.tile)
         if not ok then return reason end
     end,
+    allianceRequest = function(game)
+        if game.teamCount > 0 then return "Teams are fixed" end
+    end,
+    pactRequest = function(game)
+        if game.teamCount > 0 then return "Teams are fixed" end
+    end,
+    allianceBreak = function(game, player, intent)
+        if player:isTeammate(game.players[intent.target]) then return "Teammate" end
+    end,
     donate = function(game, player, intent)
         local target = otherPlayer(game, player, intent.target)
         if not target or not player:isAlliedWith(target) then return "Not an ally" end

@@ -9,6 +9,7 @@ local Hash = require("src.core.hash")
 
 local SystemPaths = {
     "src.modules.game.systems.spawn",
+    "src.modules.game.systems.teams",
     "src.modules.game.systems.economy",
     "src.modules.game.systems.supply",
     "src.modules.game.systems.attack",
@@ -70,6 +71,7 @@ function Game:init(options)
     for slot, human in ipairs(humans) do
         local chosen = human.color and Palette.choices[human.color]
         local player = self:addPlayer(human.name or "Player", "human", human.flag, chosen or (slot ~= localSlot and Palette.color(slot) or nil))
+        player.team = human.team
         if slot == localSlot then
             self.human = player
         end

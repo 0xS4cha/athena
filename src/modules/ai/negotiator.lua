@@ -76,6 +76,7 @@ function Negotiator.considerPacts(game, player)
 end
 
 function Negotiator.seekPact(game, player, ctx)
+    if game.teamCount > 0 then return false end
     local traits = Personality.of(player)
     local enemies = Negotiator.enemies(game, player)
     local atWar = count(enemies) > 0

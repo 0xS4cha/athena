@@ -143,7 +143,7 @@ function GM.Multiplayer:setupAutoJoin(flags)
         elseif flags.room and flags.room ~= "new" then
             self:JoinRoom(tonumber(flags.room))
         else
-            self:CreateRoom({ map = flags.map, bots = flags.bots, nations = flags.nations ~= "off", difficulty = flags.difficulty })
+            self:CreateRoom({ map = flags.map, bots = flags.bots, nations = flags.nations ~= "off", difficulty = flags.difficulty, teams = tonumber(flags.teams) })
         end
     end)
     self:On("room", function(data)
@@ -230,6 +230,7 @@ function GM.Multiplayer:PlaySolo(settings, name)
         difficulty = settings.difficulty,
         autoplay = settings.autoplay,
         tutorial = settings.tutorial,
+        teams = settings.teams,
         name = settings.tutorial and "Tutorial" or "Solo",
         autostart = true
     }
@@ -248,6 +249,7 @@ function GM.Multiplayer:HostLan(settings, name)
         bots = settings.bots,
         nations = settings.nations,
         difficulty = settings.difficulty,
+        teams = settings.teams,
         name = (name or "Player") .. "'s LAN game"
     }
     self.error = nil
@@ -351,11 +353,15 @@ function GM.Multiplayer:JoinRoom(id, password)
     return self:Send("join", { id = id, password = password or self.password })
 end
 
-function GM.Multiplayer:SendProfile()
+function GM.Multiplayer:SendProfile(team)
     local settings = GM.Menu and GM.Menu.settings or {}
     local color = (settings.color or 0) > 0 and settings.color or nil
     local flag = settings.flag ~= "" and settings.flag or nil
-    return self:Send("profile", { color = color, flag = flag })
+    if team == nil then
+        local me = self:Me()
+        team = me and me.team or nil
+    end
+    return self:Send("profile", { color = color, flag = flag, team = team })
 end
 
 function GM.Multiplayer:SetReady(ready)
@@ -487,6 +493,7 @@ function GM.Multiplayer:startGame(data)
             difficulty = settings.difficulty,
             autoplay = settings.autoplay,
             tutorial = settings.tutorial,
+            teams = settings.teams,
             seed = data.seed,
             humans = data.players,
             localSlot = data.slot,

@@ -13,6 +13,7 @@ local SUITES = {
     "tests.audio_test",
     "tests.ai_test",
     "tests.coalition_test",
+    "tests.team_test",
     "tests.military_test"
 }
 

@@ -56,6 +56,7 @@ function love.load(args)
     parser:add_argument("room", { default = nil, type = "value" })
     parser:add_argument("players", { default = 1, type = "value" })
     parser:add_argument("name", { default = nil, type = "value" })
+    parser:add_argument("teams", { default = 0, type = "value" })
     flags = parser:parse(args)
     GM.Flags = flags
 
@@ -68,7 +69,8 @@ function love.load(args)
         seed = flags.seed,
         difficulty = flags.difficulty,
         autoplay = flags.autoplay,
-        nations = flags.nations ~= "off"
+        nations = flags.nations ~= "off",
+        teams = tonumber(flags.teams)
     }
 
     if flags.menu then

@@ -64,7 +64,7 @@ function Client:build(data)
     local s = data.settings
     self.slot, self.token, self.room = data.slot, data.token, data.room
     self.game = Game({
-        map = s.map, bots = s.bots, nations = s.nations, difficulty = s.difficulty, seed = data.seed,
+        map = s.map, bots = s.bots, nations = s.nations, difficulty = s.difficulty, teams = s.teams, seed = data.seed,
         humans = data.players, localSlot = data.slot, authority = false, headless = true
     })
     self.frames = {}

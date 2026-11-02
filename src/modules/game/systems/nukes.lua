@@ -50,6 +50,7 @@ function Nukes.check(game, player, kind, tile)
     local target = game:playerAt(tile)
     if def.needsPlayer and (not target or target == player) then return false, "Needs enemy" end
     if target == player then return false, "Own land" end
+    if player:isTeammate(target) then return false, "Teammate" end
     return true
 end
 

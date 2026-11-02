@@ -1,4 +1,5 @@
 local Class = require("src.core.class")
+local Teams = require("src.modules.game.systems.teams")
 local Config = require("src.config.game")
 local Palette = require("src.modules.player.palette")
 local Snapshot = require("src.net.snapshot")
@@ -154,6 +155,7 @@ function Lockstep:resume(tick)
 end
 
 function Lockstep:colorFor(player)
+    if player.team then return Teams.playerColor(player) end
     if player.id == self.slot then return Palette.human end
     if player:isBot() then return Palette.tribe end
     return Palette.color(player.id)
@@ -197,7 +199,7 @@ function Lockstep:desync(tick)
 end
 
 function Lockstep:serverEnded(data)
-    self.serverEnd = { tick = tonumber(data.tick) or 0, winner = tonumber(data.winner) }
+    self.serverEnd = { tick = tonumber(data.tick) or 0, winner = tonumber(data.winner), team = tonumber(data.team) }
 end
 
 function Lockstep:enforceEnd()
@@ -205,6 +207,7 @@ function Lockstep:enforceEnd()
     if not finish or game.phase == "ended" or game.tick < finish.tick or self:available() > 0 then return end
     Logger:warn("multiplayer", "The server ended the game at tick " .. finish.tick .. " before this client did")
     game.winner = finish.winner and game.players[finish.winner] or nil
+    game.winningTeam = finish.team
     game.phase = "ended"
     game.endTick = finish.tick
 end

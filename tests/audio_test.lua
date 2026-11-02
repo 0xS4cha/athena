@@ -41,7 +41,9 @@ return {
             T.equal(Cues.resolve(game, "attackLaunched", { attacker = b, target = c }), nil, "foreign attack")
             T.equal(Cues.resolve(game, "unitCompleted", { owner = a, kind = "city" }), "build", "own building")
             T.equal(Cues.resolve(game, "unitCompleted", { owner = b, kind = "city" }), nil, "foreign building")
+            game.winner = a
             T.equal(Cues.resolve(game, "gameEnded", a), "victory", "own win")
+            game.winner = b
             T.equal(Cues.resolve(game, "gameEnded", b), "defeat", "foreign win")
             T.equal(Cues.resolve(game, "unknownEvent"), nil, "unknown event")
             game.human = nil

@@ -98,6 +98,10 @@ function Player:isAlliedWith(other)
     return other ~= nil and other ~= self and self.allies[other.id] ~= nil
 end
 
+function Player:isTeammate(other)
+    return other ~= nil and other ~= self and self.team ~= nil and self.team == other.team
+end
+
 function Player:hasPact(other)
     return other ~= nil and other ~= self and self.pacts[other.id] ~= nil
 end

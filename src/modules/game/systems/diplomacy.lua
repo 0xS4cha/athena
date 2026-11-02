@@ -39,7 +39,7 @@ function Diplomacy.dissolve(game, a, b)
 end
 
 function Diplomacy.betray(game, traitor, victim)
-    if not traitor:isAlliedWith(victim) then return end
+    if not traitor:isAlliedWith(victim) or traitor:isTeammate(victim) then return end
     Diplomacy.dissolve(game, traitor, victim)
     traitor.traitorUntil = game.tick + Config.traitorTicks
     victim:changeRelation(traitor, -80)
@@ -57,7 +57,7 @@ function Diplomacy.betray(game, traitor, victim)
 end
 
 function Diplomacy.request(game, from, to)
-    if from == to or not to.alive or from:isAlliedWith(to) or to:isBot() then return end
+    if game.teamCount > 0 or from == to or not to.alive or from:isAlliedWith(to) or to:isBot() then return end
     if from.allianceRequests[to.id] then
         Diplomacy.reply(game, from, to, true)
         return
@@ -121,7 +121,7 @@ function Diplomacy.dissolvePact(game, a, b)
 end
 
 function Diplomacy.requestPact(game, from, to)
-    if from == to or not to.alive or to:isBot() or from:isAlliedWith(to) or from:hasPact(to) then return end
+    if game.teamCount > 0 or from == to or not to.alive or to:isBot() or from:isAlliedWith(to) or from:hasPact(to) then return end
     if from.pactRequests[to.id] then
         Diplomacy.replyPact(game, from, to, true)
         return
@@ -204,7 +204,7 @@ function Diplomacy.step(game)
     for _, player in ipairs(game.players) do
         for id, expires in pairs(player.allies) do
             local other = game.players[id]
-            if expires <= tick and player.coalition and player.coalition == other.coalition then
+            if expires <= tick and (player:isTeammate(other) or (player.coalition and player.coalition == other.coalition)) then
                 player.allies[id] = tick + Config.allianceTicks
             elseif expires <= tick then
                 Diplomacy.dissolve(game, player, other)

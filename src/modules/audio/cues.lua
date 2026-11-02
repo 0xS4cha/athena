@@ -1,4 +1,5 @@
 local Vision = require("src.modules.game.systems.vision")
+local Victory = require("src.modules.game.systems.victory")
 
 local Cues = {}
 
@@ -27,8 +28,8 @@ local RULES = {
         if player == game.human then return "defeat" end
         if by == game.human then return "conquest" end
     end,
-    gameEnded = function(game, winner)
-        return winner == game.human and "victory" or "defeat"
+    gameEnded = function(game)
+        return Victory.won(game, game.human) and "victory" or "defeat"
     end,
     unitCompleted = function(game, unit)
         if unit.owner == game.human and unit.kind ~= "nuke" then return "build" end

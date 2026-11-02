@@ -13,6 +13,7 @@ local Threats = require("src.modules.game.threats")
 local Diplomap = require("src.modules.game.diplomap")
 local Interaction = require("src.modules.game.interaction")
 local Nukes = require("src.modules.game.systems.nukes")
+local Yields = require("src.modules.game.yields")
 
 local Overlay = {}
 
@@ -191,6 +192,33 @@ function Overlay.drawBadge(unit, camera, alpha)
     end
 end
 
+local YIELD_MIN_SCALE = 2.5
+local YIELD_FADE = 1
+local YIELD_ICON = 10
+local YIELD_FONT = 10
+local YIELD_INK = { 0.04, 0.04, 0.07 }
+
+local function drawYield(game, camera, unit, ox, oy, footprint)
+    if unit.owner ~= game.human or game.options.spectator then return end
+    local alpha = math.min(1, (camera.scale - YIELD_MIN_SCALE) / YIELD_FADE)
+    if alpha <= 0 then return end
+    local value = Yields.of(game, unit.owner, unit)
+    if not value then return end
+    local amount = value.population or value.gold
+    local text = (amount < 0 and "-" or "+") .. Format.number(math.abs(amount)) .. (value.gold and "/s" or "")
+    local icon = value.gold and "Coin.png" or "Team.png"
+    local color = amount < 0 and Style.colors.bad or value.gold and Style.colors.gold or Style.colors.troops
+    local font = Style.font(YIELD_FONT)
+    local w = YIELD_ICON + 6 + font:getWidth(text)
+    local h = math.max(YIELD_ICON, font:getHeight()) + 2
+    local x, y = floor(ox + footprint / 2 - w / 2), floor(oy - h - 1)
+    love.graphics.setColor(YIELD_INK[1], YIELD_INK[2], YIELD_INK[3], alpha * 0.78)
+    love.graphics.rectangle("fill", x + 1, y, w - 2, h)
+    love.graphics.rectangle("fill", x, y + 1, w, h - 2)
+    Pixel.icon(icon, x + 2, y + floor((h - YIELD_ICON) / 2), YIELD_ICON, alpha)
+    Pixel.text(text, x + YIELD_ICON + 4, y + floor((h - font:getHeight()) / 2), YIELD_FONT, color, alpha)
+end
+
 local function drawProgress(x, y, width, scale, progress, color, alpha)
     local h = math.max(3, floor(scale * 0.8))
     local cells = Structures.SIZE
@@ -318,6 +346,7 @@ function Overlay.drawBuilding(game, camera, unit)
     if unit.blockaded or offline then
         Pixel.corners(ox, oy, footprint, footprint, BLOCKADE, detail * (0.55 + 0.45 * math.sin(time * 6)))
     end
+    drawYield(game, camera, unit, ox, oy, footprint)
 end
 
 function Overlay.drawRadarSweeps(game, camera)

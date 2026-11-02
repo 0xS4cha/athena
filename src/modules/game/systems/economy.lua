@@ -6,8 +6,8 @@ local Economy = {}
 
 function Economy.maxPopulation(game, player)
     local max = DMath.pow(player.tiles, Config.populationExponent) * Config.populationPerTile + Config.basePopulation
-    local housing = Economy.stacked(player.cities or 0, Config.cityPopulation, Config.cityDiminishing)
-        + Economy.stacked(Economy.activeFarms(game, player), Config.farmPopulation)
+    local cityHousing, farmHousing = Economy.housing(game, player)
+    local housing = cityHousing + farmHousing
     local capacity = Economy.housingCapacity(player)
     player.crowded = housing > capacity
     max = max + math.min(housing, capacity)
@@ -20,6 +20,11 @@ function Economy.maxPopulation(game, player)
         max = max * game:difficulty().population
     end
     return max
+end
+
+function Economy.housing(game, player)
+    return Economy.stacked(player.cities or 0, Config.cityPopulation, Config.cityDiminishing),
+        Economy.stacked(Economy.activeFarms(game, player), Config.farmPopulation)
 end
 
 function Economy.housingCapacity(player)

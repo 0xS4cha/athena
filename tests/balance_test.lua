@@ -2,6 +2,7 @@ local Config = require("src.config.game")
 local Economy = require("src.modules.game.systems.economy")
 local Rails = require("src.modules.game.systems.rails")
 local Units = require("src.modules.game.systems.units")
+local Yields = require("src.modules.game.yields")
 local T = require("tests.helpers")
 
 local function expandedGame()
@@ -142,6 +143,53 @@ return {
             T.expect(Economy.saturated(human, "mine"), "a mine beyond the limit is flagged")
             human.unitCounts.mine = 1
             T.expect(not Economy.saturated(human, "mine"), "a mine within the limit is not flagged")
+        end
+    },
+    {
+        name = "structure indicators add up to what the empire really earns",
+        run = function()
+            local game, human = expandedGame()
+            local tiles = spacedTiles(game, human, 8)
+            T.expect(#tiles == 8, "eight free tiles in the territory")
+            local function build(kind, tile)
+                local unit = Units.add(game, human, kind, tile)
+                Units.complete(game, unit)
+                return unit
+            end
+            local cities = { build("city", tiles[1]), build("city", tiles[2]) }
+            local farm = build("farm", tiles[3])
+            local mountainMine, desertMine = build("mine", tiles[4]), build("mine", tiles[5])
+            mountainMine.richness, desertMine.richness = 1.5, 1
+            local port, barracks = build("tradePort", tiles[6]), build("barracks", tiles[7])
+            local factory = build("factory", tiles[8])
+            human.biomeTiles[Config.biomes.plains.id] = Config.farmTiles * 10
+            human.biomeTiles[Config.biomes.mountain.id] = Config.mineTiles * 10
+            human.upkeepPaid = true
+            Economy.countBuildings(game)
+
+            local list = Yields.compute(game, human)
+            local cityHousing, farmHousing = Economy.housing(game, human)
+            local population = list[cities[1]].population + list[cities[2]].population + list[farm].population
+            T.expect(math.abs(population - math.min(cityHousing + farmHousing, Economy.housingCapacity(human))) < 1e-6, "population adds up to the housing")
+            T.equal(list[human.capital].population, Config.capitalPopulation, "capital population")
+
+            T.expect(math.abs(list[mountainMine].gold + list[desertMine].gold - Economy.mineIncome(game, human) * Config.tickRate) < 1e-6, "mines add up to the mine income")
+            T.expect(math.abs(list[mountainMine].gold / list[desertMine].gold - 1.5) < 1e-9, "a richer mine shows more gold")
+            T.equal(list[barracks].gold, -Config.barracksUpkeep * Config.tickRate, "barracks show their upkeep")
+            human.upkeepPaid = false
+            T.equal(Yields.compute(game, human)[barracks], nil, "unpaid upkeep shows nothing")
+            human.upkeepPaid = true
+
+            T.equal(list[port], nil, "no estimate before the first delivery")
+            port.tradeRoute = 120
+            T.expect(Yields.compute(game, human)[port].gold > 0, "a port with a route shows an estimate")
+            port.blockaded = true
+            T.equal(Yields.compute(game, human)[port], nil, "a blockaded port earns nothing")
+
+            T.expect(Rails.links(game, factory) > 0, "the factory is linked")
+            T.equal(list[factory], nil, "unfinished rails earn nothing")
+            for _, rail in ipairs(game.rails) do rail.built = #rail.tiles end
+            T.expect(Yields.compute(game, human)[factory].gold > 0, "finished rails earn gold")
         end
     }
 }

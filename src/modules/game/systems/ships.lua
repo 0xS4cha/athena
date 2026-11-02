@@ -182,6 +182,9 @@ function Ships.updateTrade(game, unit)
         if port.owner ~= unit.owner then
             port.owner.gold = port.owner.gold + gold
         end
+        if unit.fromPort then
+            unit.fromPort.tradeRoute = #unit.path
+        end
         game:emit("tradeCompleted", unit, port, gold)
     end
     if unit.fromPort then

@@ -1,3 +1,4 @@
+local GM = require("src.core.index")
 local UI = require("src.modules.hud.pixel")
 
 local Settings = { id = "settings" }
@@ -7,10 +8,11 @@ local SPEEDS = { "x1", "x2", "x4", "x8" }
 local function rows(menu)
     local s = menu.settings
     return {
+        { id = "soundVolume", label = "Sound volume", hint = "Effects are synthesized live, in the spirit of the pixel art", kind = "segments", options = GM.Audio.labels, value = s.soundVolume },
         { id = "fullscreen", label = "Fullscreen", hint = "Borderless desktop fullscreen", kind = "toggle", value = s.fullscreen },
         { id = "vsync", label = "VSync", hint = "Sync frames with your display", kind = "toggle", value = s.vsync },
         { id = "background", label = "Live battle", hint = "AI nations fight behind the menu", kind = "toggle", value = s.background },
-        { id = "battleSpeed", label = "Battle speed", hint = "Speed of the background battle", kind = "segments", value = s.battleSpeed },
+        { id = "battleSpeed", label = "Battle speed", hint = "Speed of the background battle", kind = "segments", options = SPEEDS, value = s.battleSpeed },
         { id = "particles", label = "Embers", hint = "Floating sparks over the menu", kind = "toggle", value = s.particles },
         { id = "advancedEvents", label = "Advanced events", hint = "Show every minor event in the in-game feed", kind = "toggle", value = s.advancedEvents },
         { id = "nextBattle", label = "Next battle", hint = "Jump to another battlefield", kind = "action", press = function() menu:nextBattle() end },
@@ -39,15 +41,16 @@ function Settings.build(menu)
             element.right = function() menu:setOption(row.id, true) end
         elseif row.kind == "segments" then
             local segX = element.x + element.w - 260
+            local count = #row.options
             element.press = function(_, mx)
                 if mx and mx >= segX then
-                    menu:setOption(row.id, math.max(1, math.min(#SPEEDS, math.floor((mx - segX) / (240 / #SPEEDS)) + 1)))
+                    menu:setOption(row.id, math.max(1, math.min(count, math.floor((mx - segX) / (240 / count)) + 1)))
                 elseif not mx then
-                    menu:setOption(row.id, menu.settings.battleSpeed % #SPEEDS + 1)
+                    menu:setOption(row.id, menu.settings[row.id] % count + 1)
                 end
             end
-            element.left = function() menu:setOption(row.id, math.max(1, menu.settings.battleSpeed - 1)) end
-            element.right = function() menu:setOption(row.id, math.min(#SPEEDS, menu.settings.battleSpeed + 1)) end
+            element.left = function() menu:setOption(row.id, math.max(1, menu.settings[row.id] - 1)) end
+            element.right = function() menu:setOption(row.id, math.min(count, menu.settings[row.id] + 1)) end
         else
             element.press = row.press
         end
@@ -68,7 +71,7 @@ function Settings.draw(menu, elements, p)
 
     UI.alpha = menu:stagger(p, 2)
     local count = #elements - 1
-    UI.panel(l.x, l.y, l.w, 70 + count * l.rowH, { title = "DISPLAY & MENU" })
+    UI.panel(l.x, l.y, l.w, 70 + count * l.rowH, { title = "SOUND, DISPLAY & MENU" })
 
     for k = 2, #elements do
         local element = elements[k]
@@ -89,7 +92,7 @@ function Settings.draw(menu, elements, p)
         if row.kind == "toggle" then
             UI.toggle("toggle:" .. row.id, x + w - u * 20, y + math.floor((h - u * 7) / 2), row.value, menu.focus == row.id)
         elseif row.kind == "segments" then
-            UI.segments("seg:" .. row.id, x + w - 260, y + 10, 240, h - 20, SPEEDS, row.value, { hot = menu.focus == row.id, size = 12 })
+            UI.segments("seg:" .. row.id, x + w - 260, y + 10, 240, h - 20, row.options, row.value, { hot = menu.focus == row.id, size = 12 })
         else
             UI.color(UI.colors.gold, 0.6 + 0.4 * hot)
             UI.arrow(x + w - u * 12 + math.floor(hot * 2) * u, y + math.floor(h / 2), 4, 1)

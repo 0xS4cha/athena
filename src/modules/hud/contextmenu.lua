@@ -90,12 +90,16 @@ function ContextMenu:update()
     end
     if not self.visible then return end
     local mx, my = love.mouse.getPosition()
+    local previous = self.hoveredIdx
     self.hoveredIdx = nil
     if Style.inside(mx, my, self.x, self.y, self.width, self:height()) then
         local localY = my - (self.y + Style.headerHeight + 4)
         if localY >= 0 then
             local idx = math.floor(localY / self.itemHeight) + 1
             if idx >= 1 and idx <= #self.items then
+                if idx ~= previous and not self.items[idx].disabled then
+                    GM.Audio:Play("hover")
+                end
                 self.hoveredIdx = idx
                 if game then
                     game.nukeHover = self.items[idx].preview
@@ -168,6 +172,7 @@ end
 
 function ContextMenu:activate(item)
     if item.disabled or item.info then return end
+    GM.Audio:Play("click")
     if item.back then
         self:pop()
         return

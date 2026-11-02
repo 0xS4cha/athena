@@ -18,6 +18,14 @@ local function buttons(hud)
         { label = "Reset Panel Positions", icon = "Restart.png", action = function() hud:resetPositions() end }
     }
     if GM.Menu then
+        local volume = GM.Menu.settings.soundVolume
+        list[#list + 1] = {
+            label = "Sound: " .. GM.Audio.labels[volume],
+            icon = volume > 1 and "SpeakerOn.png" or "SpeakerMute.png",
+            action = function() GM.Menu:setOption("soundVolume", volume % #GM.Audio.labels + 1) end
+        }
+    end
+    if GM.Menu then
         local advanced = GM.Menu.settings.advancedEvents
         list[#list + 1] = {
             label = "Advanced Events: " .. (advanced and "On" or "Off"),

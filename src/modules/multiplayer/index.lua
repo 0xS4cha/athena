@@ -385,6 +385,9 @@ function GM.Multiplayer:receiveChat(data, time)
     if #chat > MAX_CHAT then
         table.remove(chat, 1)
     end
+    if time == nil and data.id ~= self.id then
+        GM.Audio:Play("chat")
+    end
 end
 
 function GM.Multiplayer:Me()

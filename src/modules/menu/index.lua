@@ -12,7 +12,7 @@ GM.Menu = {}
 GM.Modules:Register("Menu", 90)
 
 local CONFIG_FILE = "menu_config.txt"
-local SETTING_KEYS = { "map", "bots", "nations", "difficulty", "lan", "name", "color", "flag", "server", "fullscreen", "vsync", "background", "battleSpeed", "particles", "advancedEvents" }
+local SETTING_KEYS = { "map", "bots", "nations", "difficulty", "lan", "name", "color", "flag", "server", "fullscreen", "vsync", "background", "battleSpeed", "particles", "advancedEvents", "soundVolume" }
 local SWITCH_IN = 0.6
 local SWITCH_OUT = 0.22
 local WIPE_SECONDS = 0.65
@@ -50,7 +50,8 @@ function GM.Menu:Initialize()
         background = true,
         battleSpeed = 2,
         particles = true,
-        advancedEvents = false
+        advancedEvents = false,
+        soundVolume = 4
     }
     self:loadSettings()
     self.background = Background()
@@ -294,6 +295,7 @@ function GM.Menu:start()
         return
     end
     self.wipe = { phase = "cover", start = love.timer.getTime(), label = map.name }
+    GM.Audio:Play("launch")
     GM.Multiplayer:PlaySolo(settings, name)
 end
 
@@ -319,6 +321,7 @@ function GM.Menu:Launch(label, action)
         return
     end
     self.wipe = { phase = "cover", start = love.timer.getTime(), label = label, action = action }
+    GM.Audio:Play("launch")
 end
 
 function GM.Menu:CancelLaunch(reason)
@@ -471,6 +474,9 @@ function GM.Menu:Think(dt)
                 hovered = element.id
             end
         end
+        if hovered and hovered ~= self.focus then
+            GM.Audio:Play("hover")
+        end
         self.focus = hovered
     end
     if self.dragging then
@@ -502,6 +508,7 @@ function GM.Menu:MousePressed(x, y, button)
             if element.press then
                 element.press(self, x, y)
                 self:saveSettings()
+                GM.Audio:Play("click")
             end
             return
         end
@@ -574,9 +581,11 @@ function GM.Menu:KeyPressed(key)
     elseif (key == "left" or key == "right") and focused and focused[key] then
         focused[key](self)
         self:saveSettings()
+        GM.Audio:Play("hover")
     elseif (key == "return" or key == "kpenter") and focused and focused.press then
         focused.press(self)
         self:saveSettings()
+        GM.Audio:Play("click")
     elseif key == "tab" then
         local fields = {}
         for _, element in ipairs(elements) do

@@ -248,6 +248,7 @@ function Hud:MousePressed(x, y, button)
                 end
             end
             if component.mousePressed then
+                if button == 1 then GM.Audio:Play("click") end
                 if component.size then
                     local px, py, pw, ph = self:rect(component)
                     component.mousePressed(self, x, y, button, px, py, pw, ph)

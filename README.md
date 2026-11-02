@@ -2,11 +2,6 @@
 
 A real-time territory conquest game inspired by [OpenFront.io](https://openfront.io), written in Lua with Love2D.
 
-## Authors
-
-- [@0xS4cha](https://github.com/0xS4cha)
-- [@Bananoo](https://github.com/B4nJuice)
-
 ## Description
 
 Athena is a clone of OpenFront. You spawn on one of the 100+ bundled maps alongside AI nations, bots and other players, then expand, trade, wage war, and launch nukes until one empire controls 80% of the land.

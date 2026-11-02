@@ -1,5 +1,6 @@
 local Attack = require("src.modules.game.systems.attack")
 local Units = require("src.modules.game.systems.units")
+local Economy = require("src.modules.game.systems.economy")
 local Ships = require("src.modules.game.systems.ships")
 local Nukes = require("src.modules.game.systems.nukes")
 local Loans = require("src.modules.game.systems.loans")
@@ -50,13 +51,14 @@ function Interaction.unitItem(game, kind, tile)
     local def = Config.units[kind]
     local ok, reason = Units.check(game, human, kind, tile)
     local crowded = ok and human.crowded and (kind == "city" or kind == "farm")
+    local warning = ok and (crowded and "No housing" or Economy.saturated(human, kind) and def.saturatedHint) or nil
     local sublabel = ok and Format.number(Units.cost(game, human, kind)) or reason
     return {
         label = def.label,
         icon = def.icon,
         sprite = kind,
-        sublabel = crowded and (sublabel .. "  No housing") or sublabel,
-        sublabelColor = not ok and { 0.95, 0.35, 0.3, 1 } or crowded and { 1, 0.82, 0.25, 1 } or nil,
+        sublabel = warning and (sublabel .. "  " .. warning) or sublabel,
+        sublabelColor = not ok and { 0.95, 0.35, 0.3, 1 } or warning and { 1, 0.82, 0.25, 1 } or nil,
         disabled = not ok,
         action = function()
             game:submit({ type = "build", player = human.id, unit = kind, tile = tile }, { tile = tile })

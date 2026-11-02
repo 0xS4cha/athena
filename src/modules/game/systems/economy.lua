@@ -7,7 +7,7 @@ local Economy = {}
 function Economy.maxPopulation(game, player)
     local max = DMath.pow(player.tiles, Config.populationExponent) * Config.populationPerTile + Config.basePopulation
     local housing = Economy.stacked(player.cities or 0, Config.cityPopulation, Config.cityDiminishing)
-        + Economy.built(game, player, "farm") * Config.farmPopulation
+        + Economy.stacked(Economy.activeFarms(game, player), Config.farmPopulation)
     local capacity = Economy.housingCapacity(player)
     player.crowded = housing > capacity
     max = max + math.min(housing, capacity)
@@ -120,9 +120,30 @@ function Economy.built(game, player, kind)
     return owned and owned[kind] or 0
 end
 
+function Economy.farmLimit(player)
+    return math.max(1, player.biomeTiles[Config.biomes.plains.id] / Config.farmTiles)
+end
+
+function Economy.mineLimit(player)
+    local rich = player.biomeTiles[Config.biomes.mountain.id] + player.biomeTiles[Config.biomes.desert.id]
+    return math.max(1, rich / Config.mineTiles)
+end
+
+function Economy.activeFarms(game, player)
+    return math.min(Economy.built(game, player, "farm"), Economy.farmLimit(player))
+end
+
+function Economy.saturated(player, kind)
+    if kind == "farm" then return player:unitCount(kind) >= Economy.farmLimit(player) end
+    if kind == "mine" then return player:unitCount(kind) >= Economy.mineLimit(player) end
+    return false
+end
+
 function Economy.mineIncome(game, player)
-    local owned = game.buildingCounts and game.buildingCounts[player.id]
-    return owned and owned.mineGold or 0
+    local count = Economy.built(game, player, "mine")
+    if count == 0 then return 0 end
+    local average = game.buildingCounts[player.id].mineGold / count
+    return Economy.stacked(math.min(count, Economy.mineLimit(player)), average, Config.mineDiminishing)
 end
 
 function Economy.stacked(count, per, exponent)
@@ -152,7 +173,7 @@ function Economy.updatePlayer(game, player)
     player.upkeepPaid = upkeep == 0 or paid
     local recruit = 1
     if growth > 0 then
-        recruit = recruit + Economy.stacked(Economy.built(game, player, "farm"), Config.farmGrowth)
+        recruit = recruit + Economy.stacked(Economy.activeFarms(game, player), Config.farmGrowth)
         if paid then
             recruit = recruit + Economy.stacked(Economy.built(game, player, "barracks"), Config.barracksRecruit)
         end

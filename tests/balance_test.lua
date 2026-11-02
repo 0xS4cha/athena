@@ -92,5 +92,56 @@ return {
             human.administration = 0.5
             T.expect(math.abs(Economy.goldRate(game, human) - full * 0.5) < 1e-9, "gold scales with the administration")
         end
+    },
+    {
+        name = "farms have diminishing returns and need plains",
+        run = function()
+            local game, human = expandedGame()
+            local plains = Config.biomes.plains.id
+            human.cities = 0
+            human.biomeTiles[plains] = Config.farmTiles * 100
+            game.buildingCounts = { [human.id] = {} }
+            local base = Economy.maxPopulation(game, human)
+            game.buildingCounts[human.id].farm = 1
+            T.expect(math.abs(Economy.maxPopulation(game, human) - base - Config.farmPopulation) < 1e-6, "the first farm pays in full")
+            game.buildingCounts[human.id].farm = 4
+            local four = Economy.maxPopulation(game, human) - base
+            T.expect(four < 4 * Config.farmPopulation, "extra farms have diminishing returns")
+            T.expect(four > Config.farmPopulation, "extra farms still help")
+
+            human.biomeTiles[plains] = Config.farmTiles * 2
+            T.equal(Economy.activeFarms(game, human), 2, "plains limit the working farms")
+            human.biomeTiles[plains] = 1
+            T.equal(Economy.activeFarms(game, human), 1, "the first farm always works")
+            T.expect(Economy.maxPopulation(game, human) - base - Config.farmPopulation < 1e-6, "idle farms bring no population")
+        end
+    },
+    {
+        name = "mines have diminishing returns and need rich land",
+        run = function()
+            local game, human = expandedGame()
+            local mountain, desert = Config.biomes.mountain.id, Config.biomes.desert.id
+            local gold = Config.units.mine.gold
+            human.biomeTiles[mountain], human.biomeTiles[desert] = Config.mineTiles * 50, Config.mineTiles * 50
+            game.buildingCounts = { [human.id] = {} }
+            T.equal(Economy.mineIncome(game, human), 0, "no mine, no income")
+            game.buildingCounts[human.id] = { mine = 1, mineGold = gold * 1.5 }
+            T.equal(Economy.mineIncome(game, human), gold * 1.5, "the first mine pays in full with its richness")
+            game.buildingCounts[human.id] = { mine = 20, mineGold = gold * 20 }
+            local twenty = Economy.mineIncome(game, human)
+            T.expect(twenty < gold * 20 * 0.4, "twenty mines pay much less than twenty times one")
+            T.expect(twenty > gold, "more mines still pay more")
+
+            human.biomeTiles[mountain], human.biomeTiles[desert] = 0, Config.mineTiles * 2
+            game.buildingCounts[human.id] = { mine = 2, mineGold = gold * 2 }
+            local two = Economy.mineIncome(game, human)
+            game.buildingCounts[human.id] = { mine = 20, mineGold = gold * 20 }
+            T.expect(math.abs(Economy.mineIncome(game, human) - two) < 1e-9, "rich land limits the working mines")
+            T.expect(Economy.saturated(human, "city") == false, "other buildings are never saturated")
+            human.unitCounts.mine = 2
+            T.expect(Economy.saturated(human, "mine"), "a mine beyond the limit is flagged")
+            human.unitCounts.mine = 1
+            T.expect(not Economy.saturated(human, "mine"), "a mine within the limit is not flagged")
+        end
     }
 }

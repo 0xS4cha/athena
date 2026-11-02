@@ -66,8 +66,8 @@ New to the game? Press **Tutorial** in the main menu: it starts a solo game on I
   - Trade Port: sends trade ships to nearby trade ports, so both sides earn gold. It is also a rail station.
   - Military Port: launches invasions overseas and builds warships.
   - Factory: lays pixel rail tracks across your own land to its 3 nearest cities and trade ports; trains generate gold. Each train pays less as your rail network grows, so stacking factories next to many cities no longer prints money.
-  - Farm: only on plains. Raises your maximum population and speeds up growth (diminishing with each extra farm), with no upkeep.
-  - Mine: only on mountains or deserts. Produces a steady flow of gold, 50% more on mountains, so the biomes that are hardest to conquer finally pay off.
+  - Farm: only on plains. Raises your maximum population and speeds up growth, both diminishing with each extra farm and within your housing capacity, with no upkeep. Your plains feed one farm per 2,500 tiles (the first always works): extra farms do nothing until you own more plains, and the build menu warns `No free plains`.
+  - Mine: only on mountains or deserts. Produces a steady flow of gold, 50% more on mountains, so the biomes that are hardest to conquer finally pay off. Each extra mine pays less, and your mountains and deserts hold one working mine per 2,000 tiles (the first always works): extra mines stay idle until you own more, and the build menu warns `No free ore`.
   - Barracks: speeds up population growth, trains your armies (each barracks lowers conquest costs, up to -25%) and extends your supply lines. It costs gold upkeep every tick; without the gold to pay, the bonuses stop.
   - Radar: sweeps a 110-tile radius (165 on a mountain) and leaves fading echoes of every enemy structure, ship and nuke its beam passes over. It is the only way to spot enemy missile silos and SAM launchers. Radars share their picture with your allies, are visible to enemy radars from twice their range, cost gold upkeep and are destroyed when captured.
   - Defense Post: raises the cost of attacking nearby tiles.
@@ -252,7 +252,7 @@ The suite runs headless and exits with code 1 when a case fails, so the CI runs 
 - `intents_test`: the server sanitizes intents (sender slot, stripped fields, quantized ratios) and enforces the game rules.
 - `determinism_test`: a server with the AI, a client and two clients restored from snapshots keep the same state hash for 700 ticks; the AI only runs on the authority.
 - `network_test`: real ENet clients against an in-process server follow the frames without desync, get refused intents answered, catch up after a short disconnection and resynchronize or rejoin from a snapshot.
-- `balance_test`: diminishing cities and the housing cap, the factory link limit, the diminishing train income and the administration falloff.
+- `balance_test`: diminishing cities and the housing cap, the factory link limit, the diminishing train income, the administration falloff, and the diminishing, land-limited farms and mines.
 - `ai_test`: AI personalities are the same on the server and every client; AI lenders, pact negotiations, pact notices before an attack, and borrowing and early repayment.
 - `military_test`: bunker shelter and direct hits, submarine stealth, sonar detection, depth charges and torpedoes.
 - `coalition_test`: coalition founding, invitations, attack and defense bonuses, permanent alliances, desertion, dissolution, server validation and snapshots.

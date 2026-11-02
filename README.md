@@ -103,8 +103,16 @@ New to the game? Press **Tutorial** in the main menu: it starts a solo game on I
   - The Coalition panel lists the members, the objective and the bonus. Leaving in peace costs nothing, but deserting a war coalition while its target stands marks you as a traitor and breaks your alliances with the members.
   - A war coalition dissolves once its target falls, or drops under 4% of the land without being the leader anymore; a coalition that finds no member dissolves on its own. There is no shared victory: the members become rivals again.
   - AI nations found coalitions against the leader they fear or hate (Diplomats most of all), invite the nations that border or dislike the target, join the coalitions whose target threatens them, and focus their attacks and nukes on it. Threatened Guardians found defensive coalitions with the other neighbours of their threat. Coalition members show a coloured mark in the leaderboard, coalition targets a skull, and hovering a nation shows its coalition.
+- **Team games**: pick 2, 3 or 4 teams in New Game or in the lobby. In the lobby every player chooses a side or stays on Auto, which fills the smallest team. Nations fill the teams evenly, grouped by position so that each team starts as a bloc, and every territory takes a shade of its team color. Tribes stay out of the teams.
+  - Teammates are allied for the whole game: they share their vision, can donate troops and gold, and can neither attack, nuke nor betray each other.
+  - Sides are fixed: alliances, pacts and coalitions are disabled. Loans, embargoes and targets still work, and a nuke aimed at an enemy can still hurt a teammate next to it.
+  - A team wins when its members hold 80% of the land together, or when it is the last team standing, even if tribes remain. Every member wins, even one already eliminated. The Teams panel shows the land of each team against that goal and how many members are alive.
 - **Victory**: control 80% of the land, or be the last nation standing.
 - **End of game stats**: the victory and defeat screens chart your share of the land over time against your three strongest rivals, and list your peak and final territory, tiles captured, attacks launched, buildings, nukes launched and nations eliminated. The history is part of the simulation (sampled every 5 seconds), so it survives reconnections and snapshots.
+
+## Sound
+
+Every sound is synthesized when the game starts, with no audio file: square, triangle, saw, sine and noise layers shaped by an envelope (`src/modules/audio/synth.lua`), described as recipes in `src/modules/audio/sounds.lua`. The simulation only reports events to an observer, which `src/modules/audio/cues.lua` turns into sounds for the local player, so audio can never affect determinism and the fog stays intact: an enemy nuke is only heard when it explodes within your vision. Set the volume in the Settings screen or from the pause menu.
 
 ## Networking
 
@@ -171,6 +179,7 @@ Drag a panel by its header to move it. Positions are saved in `hud_config.txt`, 
 | `--map assets/maps/europe/` | Map to use with `--autostart` or `--ci` |
 | `--bots 100` | Number of bots (wild tribes) |
 | `--nations on\|off` | Spawn the AI nations listed in the map manifest |
+| `--teams 2` | Number of teams: 2, 3 or 4, or 0 for a free for all |
 | `--difficulty easy\|medium\|hard` | Nation AI difficulty |
 | `--seed 42` | RNG seed |
 | `--autostart` | Skip the menu and start a solo game on the local server |
@@ -220,7 +229,8 @@ love . --ci --autoplay --ticks 6000 --seed 42 --screenshot shot.png
       │  ├─ interaction.lua     # Left click and context menu actions
       │  ├─ overlay.lua         # Labels, buildings, ships, rails, nukes
       │  └─ systems/            # spawn, economy, attack, units, ships, rails,
-      │                         # nukes, diplomacy, ai, victory
+      │                         # nukes, diplomacy, teams, ai, victory
+      ├─ audio/                 # Sound synthesizer, recipes and event cues
       ├─ ai/                    # bot, nation, builder, navy, strategist, diplomat (server only)
       ├─ multiplayer/           # Connection, local server thread, client tick-lockstep
       └─ hud/                   # Style, context menu, panels
@@ -255,6 +265,8 @@ The suite runs headless and exits with code 1 when a case fails, so the CI runs 
 - `balance_test`: diminishing cities and the housing cap, the factory link limit, the diminishing train income, the administration falloff, the diminishing, land-limited farms and mines, and the indicators of what each structure brings.
 - `ai_test`: AI personalities are the same on the server and every client; AI lenders, pact negotiations, pact notices before an attack, and borrowing and early repayment.
 - `military_test`: bunker shelter and direct hits, submarine stealth, sonar detection, depth charges and torpedoes.
+- `audio_test`: every sound renders audible, bounded and identical each time, events only sound for the local player, and observing the simulation does not change it.
+- `team_test`: team assignment and balance, permanent alliances, refused betrayals, pacts, coalitions and nukes between teammates, shared victory, determinism and snapshots, and picking a side in the lobby.
 - `coalition_test`: coalition founding, invitations, attack and defense bonuses, permanent alliances, desertion, dissolution, server validation and snapshots.
 - `hud_test`: the build bar shows the bound keys, what you can afford and the building being placed.
 - `lobby_test`: room passwords, unique colors, flags, kicks, the ready check, and the chat (history, sanitizing, rate limit, ally messages).

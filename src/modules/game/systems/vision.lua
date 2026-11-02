@@ -254,6 +254,7 @@ local function detectNukes(game, player)
             and (Vision.inRadar(game, player, unit.x, unit.y) or Vision.passive(game, player, unit.x, unit.y)) then
             unit.alertTick = game.tick
             alerts[#alerts + 1] = unit
+            game:emit("nukeDetected", unit)
             local def = Config.nukes[unit.nukeKind]
             local seconds = math.max(0, unit.duration - unit.elapsed) / Config.tickRate
             game:notify(player, string.format("%s incoming from %s! Impact in %.1fs.", def.label, unit.owner.name, seconds), { color = { 1, 0.3, 0.2, 1 }, duration = 200 })

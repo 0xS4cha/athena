@@ -18,7 +18,7 @@ local LOCAL_FIELDS = {
     map = true, renderer = true, handlers = true, intentHandlers = true, options = true, human = true,
     events = true, eventSerial = true, accumulator = true, speedIndex = true, paused = true, lockstep = true,
     pathfinder = true, echoes = true, nukeAlerts = true, radarCache = true, seed = true, authority = true,
-    aiRng = true, commandSink = true, headless = true, combat = true, tradeRoutes = true
+    aiRng = true, commandSink = true, headless = true, combat = true, tradeRoutes = true, observer = true
 }
 
 local PLAYER_LOCAL_FIELDS = {

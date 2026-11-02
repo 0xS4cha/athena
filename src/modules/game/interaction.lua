@@ -43,6 +43,7 @@ function Interaction.click(game, tile)
         game:submit({ type = "boat", player = human.id, tile = tile, ratio = human.attackRatio }, { tile = tile })
         return
     end
+    game:emit("refused")
     game:addEvent("Cannot reach " .. (target and target.name or "this land") .. ": " .. reason .. ".")
 end
 
@@ -447,6 +448,7 @@ function Interaction.placeBuild(game, tile)
     local def = Config.units[aim.kind]
     local ok, reason = Units.check(game, human, aim.kind, tile)
     if not ok then
+        game:emit("refused")
         game:addEvent("Cannot build " .. def.label .. ": " .. reason .. ".", { color = { 0.95, 0.35, 0.3, 1 } })
         return true
     end
@@ -471,6 +473,7 @@ function Interaction.fireAim(game, tile)
     local human = game.human
     local ok, reason = Nukes.check(game, human, aim.kind, tile)
     if not ok then
+        game:emit("refused")
         game:addEvent("Cannot launch: " .. reason .. ".", { color = { 0.95, 0.35, 0.3, 1 } })
         return true
     end

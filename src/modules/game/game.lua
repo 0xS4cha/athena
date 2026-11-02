@@ -217,6 +217,9 @@ function Game:emit(name, ...)
     for k = 1, #list do
         list[k](self, ...)
     end
+    if self.observer then
+        self.observer(name, ...)
+    end
 end
 
 function Game:pushIntent(intent)
@@ -266,6 +269,9 @@ function Game:addEvent(text, options)
         expires = self.tick + (options.duration or Config.eventTicks)
     }
     table.insert(self.events, event)
+    if options.actions then
+        self:emit("requestReceived", event)
+    end
     if #self.events > Config.maxEvents then
         for k, old in ipairs(self.events) do
             if not old.actions then

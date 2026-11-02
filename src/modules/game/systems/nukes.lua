@@ -215,6 +215,7 @@ function Nukes.launch(game, player, kind, tile)
     player.gold = player.gold - def.cost
     silo.cooldown = Config.units.silo.cooldownTicks
     local unit = Nukes.spawn(game, player, kind, silo.x, silo.y, tile)
+    game:emit("nukeFired", unit, player)
     local target = game:playerAt(tile)
     if target then
         target:changeRelation(player, -100)
@@ -291,6 +292,7 @@ function Nukes.update(game, nuke)
         local sam = Nukes.interceptor(game, nuke)
         if sam then
             sam.cooldown = Config.units.sam.cooldownTicks
+            game:emit("nukeIntercepted", nuke, sam)
             game:notify(nuke.owner, "Your " .. Config.nukes[nuke.nukeKind].label .. " was intercepted by a SAM.", { color = { 0.95, 0.5, 0.3, 1 } })
             game:notify(sam.owner, "Your SAM intercepted a " .. Config.nukes[nuke.nukeKind].label .. ".", { color = { 0.3, 0.85, 0.45, 1 }, minor = true })
             table.insert(game.explosions, { x = nuke.x, y = nuke.y, radius = 6, tick = game.tick })

@@ -18,6 +18,7 @@ end
 function GM.Session:Start(options)
     self:Stop()
     local game = Game(options)
+    GM.Audio:Attach(game)
     if options.lockstep then
         options.lockstep:attach(game)
     end

@@ -95,6 +95,7 @@ function Lockstep:reject(data)
         self.pending[seq] = nil
     end
     if self.game and data.reason then
+        self.game:emit("refused")
         self.game:addEvent("Action refused by the server: " .. tostring(data.reason) .. ".", { color = BAD, minor = true })
     end
 end

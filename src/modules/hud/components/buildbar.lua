@@ -11,7 +11,8 @@ local ICON = 16
 local CELL = 22
 local GAP = 2
 local KEY_FONT = 10
-local MARGIN = 12
+local LEFT = 15
+local BOTTOM = 44
 local DIM = 0.4
 
 function BuildBar.entries(game)
@@ -43,7 +44,7 @@ function BuildBar.draw(hud)
     local font = Style.font(KEY_FONT)
     local h = ICON + font:getHeight() + 6
     local _, H = love.graphics.getDimensions()
-    local x, y = MARGIN, H - h - MARGIN
+    local x, y = LEFT, H - h - BOTTOM
     for _, entry in ipairs(BuildBar.entries(game)) do
         local w = math.max(CELL, font:getWidth(entry.key) + 6)
         local alpha = (entry.affordable or entry.active) and 1 or DIM

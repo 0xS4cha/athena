@@ -43,7 +43,7 @@ local PAGES = {
         lines = {
             "Right click another nation to request an alliance, send gold or troops, embargo or mark a target.",
             "Alliances expire after five minutes. Breaking one marks you as a traitor and halves your defense.",
-            "Win by holding 80% of the land, or by being the last nation standing."
+            "Win by holding 80% of the land, or by being the last nation standing. Modes and Rules can change this."
         }
     },
     { title = "CONTROLS", icon = "Keyboard.png", color = UI.colors.hover, controls = true }

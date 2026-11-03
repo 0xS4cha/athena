@@ -45,7 +45,7 @@ love .
 
 ## Gameplay
 
-New to the game? Press **Tutorial** in the main menu: it starts a solo game on Iceland against a few easy tribes, with a longer spawn phase and enough gold for a first city. A panel walks you through nine steps (spawning, starting, expanding, balancing troops and workers, sizing attacks, building a city, attacking a tribe and reading the map layers); each step completes on its own as soon as you do it, and can be skipped.
+New to the game? Press **Tutorial** in the main menu: it starts a solo game on Iceland against a few easy tribes, with a longer spawn phase and enough gold for a first city and a military port. A panel walks you through 17 steps in four chapters (basics, economy, war and the wider world). Steps that ask for an action complete on their own as soon as you do it and can be skipped; the others wait for **Next** or `Enter`, and **Back** returns to an earlier step. A gold arrow points at the place to click and a gold frame surrounds the panel being explained. The main menu remembers once you have finished it.
 
 - **Spawn phase**: click anywhere on land to choose your starting location, then press `Space` or wait for the countdown.
 - **Population**: your maximum population grows with your territory and your cities. Growth is fastest when you are far from the cap.
@@ -108,7 +108,42 @@ New to the game? Press **Tutorial** in the main menu: it starts a solo game on I
   - Sides are fixed: alliances, pacts and coalitions are disabled. Loans, embargoes and targets still work, and a nuke aimed at an enemy can still hurt a teammate next to it.
   - A team wins when its members hold 80% of the land together, or when it is the last team standing, even if tribes remain. Every member wins, even one already eliminated. The Teams panel shows the land of each team against that goal and how many members are alive.
 - **Victory**: control 80% of the land, or be the last nation standing.
+- **Surrender**: the pause menu has a Surrender button (click it twice to confirm). Your nation leaves the game: its land becomes wilderness, its buildings, ships and attacks disappear, and you can keep watching. Teammates keep fighting.
+- **Rematch**: at the end of a multiplayer game, everyone still in the room can vote for a rematch. A new game starts on the same settings, with a new seed, as soon as all of them agree. Solo games have Play Again.
 - **End of game stats**: the victory and defeat screens chart your share of the land over time against your three strongest rivals, and list your peak and final territory, tiles captured, attacks launched, buildings, nukes launched and nations eliminated. The history is part of the simulation (sampled every 5 seconds), so it survives reconnections and snapshots.
+
+## Game Modes and Rules
+
+The **Rules** button in New Game and in the lobby opens the mode and the custom rules. In a lobby only the host can change them; guests can read them. Picking a mode fills in the rules, and changing a rule switches to Custom (or to the mode it now matches).
+
+| Mode | Rules |
+| --- | --- |
+| Classic | The standard rules |
+| Blitz | 60% of the land to win, 20 minute limit, 1M gold, army x5, income x2, 5 s spawn |
+| Conventional | No nukes, missile silos or SAM launchers |
+| Anarchy | No alliances, pacts or coalitions |
+| Annihilation | 100% of the land: only the last nation standing wins |
+
+| Rule | Values | Effect |
+| --- | --- | --- |
+| Land to win | 50% to 100% | Share of the land that wins the game, for a player or a team |
+| Time limit | None, 10, 20, 30, 60 min | The largest empire or team wins when it runs out; the clock counts down |
+| Starting gold | 0 to 5M | Gold of every player and nation |
+| Starting army | x1, x2, x5, x10 | Multiplies the first troops and workers |
+| Income | x0.5 to x4 | Multiplies the gold earned by workers |
+| Spawn time | 5 to 60 s | Length of the spawn phase |
+| Nukes | On, Off | Removes silos, SAM launchers and nukes, for the AI too |
+| Diplomacy | On, Off | Removes alliances, pacts and coalitions, for the AI too |
+
+The server sanitizes the rules against this list and the simulation enforces them, so every client agrees. The tutorial always uses the classic rules.
+
+## Replays
+
+Every game lasting at least 30 seconds is saved when it ends or when you leave it, in `replays/` in the save directory; the last 20 are kept. The tutorial is not recorded, and neither is a game the client restored from a snapshot, since part of it is missing.
+
+A replay stores the seed, the settings and the frames that carry commands or a state hash, zlib compressed. Since the simulation is deterministic, watching one simply runs the game again from these commands and compares the recorded hashes; a mismatch shows a warning instead of silently diverging. A replay recorded with another network version cannot be opened.
+
+Press **Replays** in the main menu, or **Watch Replay** on the end screen. The whole map is visible, the clock controls pause and speed, and the bar at the bottom jumps 30 seconds or to any point of the timeline. Going back rebuilds the game from the start, so it takes a moment on long games.
 
 ## Sound
 
@@ -183,6 +218,8 @@ Drag a panel by its header to move it. Positions are saved in `hud_config.txt`, 
 | `--difficulty easy\|medium\|hard` | Nation AI difficulty |
 | `--seed 42` | RNG seed |
 | `--autostart` | Skip the menu and start a solo game on the local server |
+| `--mode blitz` | Game mode to use with `--autostart`, `--ci` or `--connect` |
+| `--replay <file>` | Watch a file of the `replays/` save directory |
 | `--server` | Run a headless dedicated server instead of the game |
 | `--port 6789` | Port of the dedicated server |
 | `--connect host:port` | Connect to a server, create a room (or join `--room <id>`, `--room rejoin`) and start it once `--players` players are in |
@@ -218,7 +255,7 @@ love . --ci --autoplay --ticks 6000 --seed 42 --screenshot shot.png
    └─ modules/
       ├─ index.lua              # Module loader and callback dispatch
       ├─ session/               # Starts and stops games, camera, world input
-      ├─ menu/                  # Main menu
+      ├─ menu/                  # Main menu; screens/multiplayer/ holds the connect, browse and lobby phases
       ├─ map/
       │  ├─ map.lua             # FFI tile arrays and spatial helpers
       │  ├─ renderer.lua        # Terrain and territory images
@@ -227,9 +264,12 @@ love . --ci --autoplay --ticks 6000 --seed 42 --screenshot shot.png
       ├─ game/
       │  ├─ game.lua            # Tick loop, intents, events, ownership changes
       │  ├─ interaction.lua     # Left click and context menu actions
-      │  ├─ overlay.lua         # Labels, buildings, ships, rails, nukes
+      │  ├─ rules.lua           # Game modes and custom rules
+      │  ├─ overlay.lua         # Draws the map overlay from overlay/
+      │  ├─ overlay/            # labels, buildings, radar, nukes, orders, threats, units, battle
       │  └─ systems/            # spawn, economy, attack, units, ships, rails,
       │                         # nukes, diplomacy, teams, ai, victory
+      ├─ replay/                # Replay files, recorder and player
       ├─ audio/                 # Sound synthesizer, recipes and event cues
       ├─ ai/                    # bot, nation, builder, navy, strategist, diplomat (server only)
       ├─ multiplayer/           # Connection, local server thread, client tick-lockstep
@@ -268,7 +308,11 @@ The suite runs headless and exits with code 1 when a case fails, so the CI runs 
 - `audio_test`: every sound renders audible, bounded and identical each time, events only sound for the local player, and observing the simulation does not change it.
 - `team_test`: team assignment and balance, permanent alliances, refused betrayals, pacts, coalitions and nukes between teammates, shared victory, determinism and snapshots, and picking a side in the lobby.
 - `coalition_test`: coalition founding, invitations, attack and defense bonuses, permanent alliances, desertion, dissolution, server validation and snapshots.
-- `hud_test`: the build bar shows the bound keys, what you can afford and the building being placed.
+- `hud_test`: the build bar shows the bound keys, what you can afford and the building being placed; the tutorial steps, navigation and markers.
+- `surrender_test`: land, buildings, ships and attacks of a surrendering player, server validation, last player and team victories, determinism and snapshots.
+- `rematch_test`: votes and cancellations, a fresh synchronized game, a voter left alone, and refusal during a game.
+- `rules_test`: sanitizing and presets, starting resources, income, disabled nukes and diplomacy (AI included), win ratio, time limit, and rules in a real room.
+- `replay_test`: a replay rebuilds the exact game through its file, with rules, teams and a surrender; controls and seeking; games that are not saved, pruning, damaged, foreign and tampered files, and hash mismatches.
 - `lobby_test`: room passwords, unique colors, flags, kicks, the ready check, and the chat (history, sanitizing, rate limit, ally messages).
 
 ## Map Format

@@ -7,6 +7,7 @@ local Lockstep = require("src.modules.multiplayer.lockstep")
 local LocalServer = require("src.modules.multiplayer.localserver")
 local Lan = require("src.modules.multiplayer.lan")
 local Address = require("src.net.address")
+local Recorder = require("src.modules.replay.recorder")
 
 GM.Multiplayer = {}
 
@@ -497,7 +498,13 @@ function GM.Multiplayer:startGame(data)
     self.solo = nil
     self.rematch = { votes = 0, total = 0, voted = false }
 
-    local lockstep = Lockstep(self, { room = data.room, slot = data.slot, hashTicks = data.hashTicks, controls = data.controls })
+    local lockstep = Lockstep(self, {
+        room = data.room,
+        slot = data.slot,
+        hashTicks = data.hashTicks,
+        controls = data.controls,
+        recorder = Recorder({ seed = data.seed, settings = settings, players = data.players, slot = data.slot })
+    })
     self.lockstep = lockstep
     local function launch()
         if self.lockstep ~= lockstep then return end
@@ -660,6 +667,9 @@ function GM.Multiplayer:Poll()
 end
 
 function GM.Multiplayer:Shutdown()
+    if self.lockstep then
+        self.lockstep:saveReplay()
+    end
     self:Disconnect()
     self.localServer:Stop()
     self.lan:Close()

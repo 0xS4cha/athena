@@ -25,6 +25,7 @@ Hud.componentPaths = {
     "src.modules.hud.components.teams",
     "src.modules.hud.components.events",
     "src.modules.hud.components.tutorial",
+    "src.modules.hud.components.replaybar",
     "src.modules.hud.components.nukepreview",
     "src.modules.hud.components.chat",
     "src.modules.hud.components.settings",

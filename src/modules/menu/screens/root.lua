@@ -30,15 +30,16 @@ function Root.build(menu)
     local summary = string.format("%s  -  %d bots  -  %s", map and map.name or "?", s.bots, s.difficulty:sub(1, 1):upper() .. s.difficulty:sub(2))
     local list = {
         { id = "play", label = "PLAY", sublabel = summary, icon = "Play.png", primary = true, h = 74, press = function() menu:switch("play", 1) end },
-        { id = "multiplayer", label = "MULTIPLAYER", icon = "Team.png", h = 54, press = function() menu:switch("multiplayer", 1) end },
-        { id = "tutorial", label = "TUTORIAL", icon = "Lightbulb.png", h = 54, press = function() menu:startTutorial() end },
-        { id = "howto", label = "HOW TO PLAY", icon = "Book.png", h = 54, press = function() menu:switch("howto", 1) end },
-        { id = "settings", label = "SETTINGS", icon = "Gear.png", h = 54, press = function() menu:switch("settings", 1) end },
-        { id = "quit", label = "QUIT", icon = "Exit.png", h = 54, press = function() love.event.quit() end }
+        { id = "multiplayer", label = "MULTIPLAYER", icon = "Team.png", h = 46, press = function() menu:switch("multiplayer", 1) end },
+        { id = "tutorial", label = "TUTORIAL", icon = "Lightbulb.png", h = 46, press = function() menu:startTutorial() end },
+        { id = "replays", label = "REPLAYS", icon = "Eye.png", h = 46, press = function() menu:switch("replays", 1) end },
+        { id = "howto", label = "HOW TO PLAY", icon = "Book.png", h = 46, press = function() menu:switch("howto", 1) end },
+        { id = "settings", label = "SETTINGS", icon = "Gear.png", h = 46, press = function() menu:switch("settings", 1) end },
+        { id = "quit", label = "QUIT", icon = "Exit.png", h = 46, press = function() love.event.quit() end }
     }
     for _, element in ipairs(list) do
         element.x, element.y, element.w = M + 24, y, w
-        y = y + element.h + 16
+        y = y + element.h + 12
     end
     local W, H = love.graphics.getDimensions()
     list[#list + 1] = {

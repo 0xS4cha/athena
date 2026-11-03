@@ -28,6 +28,10 @@ local function drawNetwork(game, y, time)
 end
 
 local function drawSpawn(game, time)
+    if game.options.replay then
+        centered("Replay  -  the nations are choosing their land", 16, 18, Style.colors.text, { corners = true, accent = Style.colors.gold })
+        return
+    end
     local u = Pixel.unit
     local seconds = math.ceil(game.spawnTicksLeft / Config.tickRate)
     local y = centered("Choose your starting location", 16, 18, Style.colors.text, { corners = true, accent = Style.colors.gold })

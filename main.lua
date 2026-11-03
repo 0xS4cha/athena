@@ -58,6 +58,7 @@ function love.load(args)
     parser:add_argument("name", { default = nil, type = "value" })
     parser:add_argument("teams", { default = 0, type = "value" })
     parser:add_argument("mode", { default = "classic", type = "value" })
+    parser:add_argument("replay", { default = nil, type = "value" })
     flags = parser:parse(args)
     GM.Flags = flags
 
@@ -137,6 +138,10 @@ function love.load(args)
     end
 
     GM.Menu:Open()
+    if flags.replay then
+        local ok, err = GM.Replay:Watch(flags.replay)
+        if not ok then Logger:error("replay", err) end
+    end
     if flags.autostart and not flags.connect then
         GM.Menu:Launch(options.map, nil)
         GM.Multiplayer:PlaySolo(options, flags.name)

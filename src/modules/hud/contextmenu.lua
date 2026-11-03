@@ -224,7 +224,7 @@ function ContextMenu:mouseReleased(x, y, button)
     if dx * dx + dy * dy >= 36 then return end
     local game = self.hud:game()
     local camera = self.hud:camera()
-    if not game or not camera then return end
+    if not game or not camera or game.options.spectator then return end
     for _, component in ipairs(self.hud.components) do
         if self.hud:hits(component, x, y) then return end
     end

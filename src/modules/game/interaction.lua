@@ -13,6 +13,7 @@ local Teams = require("src.modules.game.systems.teams")
 local Interaction = {}
 
 function Interaction.click(game, tile)
+    if game.options.spectator then return end
     local human = game.human
     local map = game.map
     if game.phase == "spawn" then
@@ -422,7 +423,7 @@ end
 
 function Interaction.hotkey(game, action)
     local human = game.human
-    if game.phase ~= "playing" or not human.alive then return end
+    if game.phase ~= "playing" or not human.alive or game.options.spectator then return end
     if action.group == "nuke" then
         game.buildAim = nil
         if human:unitCount("silo") == 0 then

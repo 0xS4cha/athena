@@ -131,7 +131,7 @@ function Vision.detects(game, player, unit)
 end
 
 function Vision.live(game, player, unit)
-    if unit.owner:isFriendly(player) then
+    if game.options.spectator or unit.owner:isFriendly(player) then
         return true
     end
     if unit.kind == "submarine" then

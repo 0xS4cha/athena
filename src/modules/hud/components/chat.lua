@@ -23,7 +23,7 @@ end
 
 local function enabled(hud)
     local game = hud:game()
-    return game.lockstep ~= nil and #(game.options.humans or {}) > 1
+    return game.lockstep ~= nil and not game.options.replay and #(game.options.humans or {}) > 1
 end
 
 local function width()

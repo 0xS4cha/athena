@@ -48,8 +48,9 @@ local function sliders(hud)
 end
 
 function Control.visible(hud)
-    local human = hud:game().human
-    return human.spawned and human.alive
+    local game = hud:game()
+    local human = game.human
+    return human.spawned and human.alive and not game.options.spectator
 end
 
 local function attackRows(hud)

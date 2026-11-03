@@ -33,6 +33,8 @@ function Lockstep:init(connection, options)
     self.finished = false
     self.resyncing = false
     self.verified = 0
+    self.recorder = options.recorder
+    self.replayFile = nil
 end
 
 function Lockstep:attach(game)
@@ -41,7 +43,15 @@ function Lockstep:attach(game)
     self:applyControls(self.controls)
 end
 
+function Lockstep:saveReplay()
+    if not self.replayFile and self.recorder and self.game then
+        self.replayFile = self.recorder:save(self.game)
+    end
+    return self.replayFile
+end
+
 function Lockstep:detach()
+    self:saveReplay()
     if self.connection.lockstep == self then
         self.connection:LeaveGame(self)
     end
@@ -170,6 +180,9 @@ function Lockstep:applySnapshot(tick, data)
         self.connection:notify("Could not load the server state.")
         return false
     end
+    if self.recorder then
+        self.recorder:invalidate()
+    end
     for t in pairs(self.frames) do
         if t < restored then self.frames[t] = nil end
     end
@@ -249,6 +262,9 @@ function Lockstep:step()
     local game = self.game
     local frame = self.frames[game.tick]
     self.frames[game.tick] = nil
+    if self.recorder then
+        self.recorder:add(frame)
+    end
     for _, intent in ipairs(frame.c or {}) do
         game:pushIntent(intent)
         if intent.seq and intent.player == self.slot then
@@ -288,6 +304,7 @@ function Lockstep:update()
     if game.phase == "ended" then
         if not self.finished then
             self.finished = true
+            self:saveReplay()
             self.connection:Finished(self)
         end
         return

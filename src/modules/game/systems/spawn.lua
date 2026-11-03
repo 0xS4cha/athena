@@ -115,7 +115,7 @@ end
 function Spawn.finish(game)
     for _, human in ipairs(game.players) do
         if human:isHuman() and not human.spawned then
-            local tile = not (human == game.human and game.options.spectator) and Spawn.randomTile(game)
+            local tile = not (human == game.human and game.options.spectator and not game.options.replay) and Spawn.randomTile(game)
             if tile then
                 Spawn.place(game, human, tile)
             else

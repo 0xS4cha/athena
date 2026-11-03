@@ -30,7 +30,7 @@ end
 
 function Ping.visible(hud)
     local game = hud:game()
-    return game.lockstep ~= nil and game.phase ~= "spawn" and net():ShowsPing()
+    return game.lockstep ~= nil and not game.options.replay and game.phase ~= "spawn" and net():ShowsPing()
 end
 
 function Ping.draw(hud, x, y)

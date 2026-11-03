@@ -29,7 +29,7 @@ local function state(hud)
     if game.phase == "ended" then
         return Victory.won(game, game.human) and "victory" or "ended"
     end
-    if not game.human.alive and game.phase == "playing" and not hud.spectating then
+    if not game.human.alive and game.phase == "playing" and not hud.spectating and not game.options.replay then
         return "defeat"
     end
     return nil
@@ -38,10 +38,25 @@ end
 local function buttons(hud)
     local game = hud:game()
     local list = {}
+    if game.options.replay then
+        list[#list + 1] = { label = "Watch Again", icon = "Restart.png", primary = true, action = function() game.lockstep:seek(0) end }
+    elseif game.lockstep and game.lockstep.replayFile then
+        list[#list + 1] = {
+            label = "Watch Replay",
+            icon = "Eye.png",
+            action = function()
+                hud.spectating = false
+                local ok, err = GM.Replay:Watch(game.lockstep.replayFile)
+                if not ok then
+                    game:addEvent(err, { color = Style.colors.bad })
+                end
+            end
+        }
+    end
     if state(hud) == "defeat" then
         list[#list + 1] = { label = "Keep Watching", icon = "Eye.png", action = function() hud.spectating = true end }
     end
-    if not game.lockstep or game.lockstep:canControl() then
+    if not game.options.replay and (not game.lockstep or game.lockstep:canControl()) then
         list[#list + 1] = {
             label = "Play Again",
             icon = "Restart.png",
@@ -63,7 +78,7 @@ local function buttons(hud)
             end
         }
     end
-    if game.lockstep and not game.lockstep:canControl() and GM.Multiplayer:CanRematch() then
+    if not game.options.replay and game.lockstep and not game.lockstep:canControl() and GM.Multiplayer:CanRematch() then
         local rematch = GM.Multiplayer.rematch
         local progress = rematch.total > 0 and string.format("  %d/%d", rematch.votes, rematch.total) or ""
         list[#list + 1] = {

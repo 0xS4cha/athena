@@ -26,7 +26,8 @@ local Screens = {
     settings = require("src.modules.menu.screens.settings"),
     keybinds = require("src.modules.menu.screens.keybinds"),
     howto = require("src.modules.menu.screens.howto"),
-    rules = require("src.modules.menu.screens.rules")
+    rules = require("src.modules.menu.screens.rules"),
+    replays = require("src.modules.menu.screens.replays")
 }
 
 function GM.Menu:Initialize()

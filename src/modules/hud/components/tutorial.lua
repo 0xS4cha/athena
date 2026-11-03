@@ -107,7 +107,7 @@ end
 
 function Tutorial.visible(hud)
     local game = hud:game()
-    if not game.options.tutorial or not game.human or game.phase == "ended" then return false end
+    if not game.options.tutorial or game.options.replay or not game.human or game.phase == "ended" then return false end
     return not state(hud).closed
 end
 

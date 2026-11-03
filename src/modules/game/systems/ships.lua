@@ -78,7 +78,7 @@ function Ships.militaryPorts(game, player)
 end
 
 function Ships.boatLimit(game, player)
-    return math.min(Config.maxBoats, #Ships.militaryPorts(game, player) * Config.boatsPerMilitaryPort)
+    return math.min(Config.maxBoats + player:tech("boats"), #Ships.militaryPorts(game, player) * Config.boatsPerMilitaryPort + player:tech("boats"))
 end
 
 function Ships.launchTile(game, player, destination)
@@ -117,7 +117,7 @@ function Ships.canSendBoat(game, player, tile)
 end
 
 function Ships.updateTransport(game, unit)
-    if not Ships.advance(game, unit, Config.boatSpeed) then return end
+    if not Ships.advance(game, unit, Config.boatSpeed * (1 + unit.owner:tech("boatSpeed"))) then return end
     local player = unit.owner
     local map = game.map
     local tile = unit.path[#unit.path]
@@ -178,9 +178,9 @@ function Ships.updateTrade(game, unit)
     local port = unit.toPort
     if port and not port.dead and not port.blockaded and Ships.canTrade(unit.owner, port.owner) then
         local gold = Config.tradeBaseGold + #unit.path * Config.tradeGoldPerTile
-        unit.owner.gold = unit.owner.gold + gold
+        unit.owner.gold = unit.owner.gold + gold * (1 + unit.owner:tech("tradeGold"))
         if port.owner ~= unit.owner then
-            port.owner.gold = port.owner.gold + gold
+            port.owner.gold = port.owner.gold + gold * (1 + port.owner:tech("tradeGold"))
         end
         if unit.fromPort then
             unit.fromPort.tradeRoute = #unit.path
@@ -336,7 +336,7 @@ function Ships.strike(game, warship, target)
         game:notify(warship.owner, string.format("Your %s sank a %s from %s.", label, ship, target.owner.name), { color = GOOD, minor = true })
         Units.remove(game, target)
     else
-        local damage = def.damage * (target.kind == "submarine" and (def.antiSubmarine or 1) or 1)
+        local damage = def.damage * (target.kind == "submarine" and (def.antiSubmarine or 1) or 1) * (1 + warship.owner:tech("navalDamage"))
         target.health = target.health - damage
         if target.health <= 0 then
             local lost = string.lower(Config.units[target.kind].label)
@@ -462,7 +462,8 @@ function Ships.unitCompleted(game, unit)
         unit.tile = water
         unit.home = water
         unit.x, unit.y = x + 0.5, y + 0.5
-        unit.health = Config.units[unit.kind].health
+        unit.maxHealth = Config.units[unit.kind].health * (1 + unit.owner:tech("navalHealth"))
+        unit.health = unit.maxHealth
         unit.update = Ships.updateHunter
     end
 end

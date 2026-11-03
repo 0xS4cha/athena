@@ -4,6 +4,8 @@ local Units = require("src.modules.game.systems.units")
 local Ships = require("src.modules.game.systems.ships")
 local Nukes = require("src.modules.game.systems.nukes")
 local Coalitions = require("src.modules.game.systems.coalitions")
+local Research = require("src.modules.game.systems.research")
+local ResearchData = require("src.config.research")
 
 local Intents = {}
 
@@ -50,7 +52,8 @@ local FIELDS = {
     amount = function(v) return LOAN_AMOUNTS[v] and v or nil end,
     rate = function(v) return LOAN_RATES[v] and v or nil end,
     coalitionKind = function(v) return COALITION_KINDS[v] and v or nil end,
-    coalition = integer
+    coalition = integer,
+    tech = function(v) return ResearchData.byId[v] and v or nil end
 }
 
 local SCHEMAS = {
@@ -82,7 +85,9 @@ local SCHEMAS = {
     coalitionInvite = { target = "target" },
     coalitionReply = { coalition = "coalition", accept = "accept" },
     coalitionLeave = {},
-    surrender = {}
+    surrender = {},
+    researchQueue = { tech = "tech", first = "enabled?" },
+    researchCancel = { tech = "tech" }
 }
 
 local function otherPlayer(game, player, id)
@@ -156,6 +161,10 @@ local RULES = {
     end,
     coalitionLeave = function(game, player)
         if not player.coalition then return "No coalition" end
+    end,
+    researchQueue = function(game, player, intent)
+        local ok, reason = Research.canPlan(game, player, intent.tech)
+        if not ok then return reason end
     end,
     surrender = function(game, player)
         if game.phase ~= "playing" or not player.alive then return "Not now" end

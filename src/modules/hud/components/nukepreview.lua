@@ -51,7 +51,7 @@ local function rows(game, preview)
     if preview.sheltered then
         list[#list + 1] = { "Shelter", string.format("Bunker: -%d%% casualties", math.floor(Config.units.bunker.shelter * 100 + 0.5)), Style.colors.bad }
     end
-    list[#list + 1] = { "Cost", Format.number(def.cost) .. " gold", game.human.gold >= def.cost and Style.colors.text or Style.colors.bad }
+    list[#list + 1] = { "Cost", Format.number(def.cost * (1 + game.human:tech("nukeCost"))) .. " gold", game.human.gold >= def.cost * (1 + game.human:tech("nukeCost")) and Style.colors.text or Style.colors.bad }
     return list
 end
 

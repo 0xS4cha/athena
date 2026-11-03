@@ -201,7 +201,7 @@ function Strategist.behavior(game, player, ctx)
     for _, kind in ipairs({ "mirv", "hydrogen", "atom" }) do
         local def = Config.nukes[kind]
         local allowed = kind ~= "mirv" or victim.tiles / game.map.landCount > 0.3
-        if allowed and player.gold > def.cost + reserve and Nukes.check(game, player, kind, tile) then
+        if allowed and player.gold > Nukes.cost(player, kind) + reserve and Nukes.check(game, player, kind, tile) then
             game:command({ type = "nuke", player = player.id, kind = kind, tile = tile })
             remember(game, player, tile, kind)
             return true

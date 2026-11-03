@@ -43,6 +43,12 @@ function Player:init(id, name, kind, color, flag)
     self.coalitionEvents = {}
     self.relations = {}
     self.traitorUntil = -1
+    self.research = { known = {}, queue = {}, progress = {}, costs = {}, count = 0 }
+    self.techBonus = {}
+end
+
+function Player:tech(key)
+    return self.techBonus[key] or 0
 end
 
 function Player:setColor(color)

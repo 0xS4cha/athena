@@ -107,7 +107,7 @@ function Rails.step(game)
                 rail.progress = 0
                 rail.direction = -rail.direction
                 local owner = rail.a.owner
-                owner.gold = owner.gold + Rails.trainGold(rail, active[owner.id])
+                owner.gold = owner.gold + Rails.trainGold(rail, active[owner.id]) * (1 + owner:tech("tradeGold"))
             end
         end
     end

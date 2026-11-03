@@ -28,11 +28,11 @@ function Economy.housing(game, player)
 end
 
 function Economy.housingCapacity(player)
-    return Config.housingBase + player.tiles * Config.housingPerTile
+    return (Config.housingBase + player.tiles * Config.housingPerTile) * (1 + player:tech("housing"))
 end
 
 function Economy.goldRate(game, player)
-    local rate = math.sqrt(math.max(0, player.workers) * player.tiles) / Config.goldDivisor * (player.administration or 1) * game.rules.income
+    local rate = math.sqrt(math.max(0, player.workers) * player.tiles) / Config.goldDivisor * (player.administration or 1) * game.rules.income * (1 + player:tech("income"))
     if player:isBot() then
         rate = rate * Config.botGoldFactor
     elseif player:isNation() then
@@ -41,7 +41,7 @@ function Economy.goldRate(game, player)
     return rate
 end
 
-function Economy.efficiencyAt(points, x, y)
+function Economy.efficiencyAt(points, x, y, bonus)
     if not points or #points == 0 then return nil end
     local best = math.huge
     for k = 1, #points, 2 do
@@ -50,8 +50,9 @@ function Economy.efficiencyAt(points, x, y)
         if d < best then best = d end
     end
     local d = math.sqrt(best)
-    if d <= Config.adminRange then return 1 end
-    return math.max(Config.adminFloor, 1 - (d - Config.adminRange) / Config.adminFalloff)
+    local range = Config.adminRange + (bonus or 0)
+    if d <= range then return 1 end
+    return math.max(Config.adminFloor, 1 - (d - range) / Config.adminFalloff)
 end
 
 local function sampleAdministration(game, player, points)
@@ -67,7 +68,7 @@ local function sampleAdministration(game, player, points)
         local oy = (math.floor(h / 2001) % 2001) / 1000 - 1
         local x, y = math.floor(cx + ox * sx), math.floor(cy + oy * sy)
         if map:isValid(x, y) and map.owner[map:index(x, y)] == player.id then
-            total = total + Economy.efficiencyAt(points, x + 0.5, y + 0.5)
+            total = total + Economy.efficiencyAt(points, x + 0.5, y + 0.5, player:tech("adminRange"))
             count = count + 1
         end
     end
@@ -148,7 +149,7 @@ function Economy.mineIncome(game, player)
     local count = Economy.built(game, player, "mine")
     if count == 0 then return 0 end
     local average = game.buildingCounts[player.id].mineGold / count
-    return Economy.stacked(math.min(count, Economy.mineLimit(player)), average, Config.mineDiminishing)
+    return Economy.stacked(math.min(count, Economy.mineLimit(player)), average, Config.mineDiminishing) * (1 + player:tech("mineIncome"))
 end
 
 function Economy.stacked(count, per, exponent)
@@ -157,7 +158,7 @@ function Economy.stacked(count, per, exponent)
 end
 
 function Economy.upkeep(game, player)
-    return Economy.built(game, player, "barracks") * Config.barracksUpkeep + Economy.built(game, player, "radar") * Config.radarUpkeep
+    return (Economy.built(game, player, "barracks") * Config.barracksUpkeep + Economy.built(game, player, "radar") * Config.radarUpkeep) * (1 + player:tech("upkeep"))
 end
 
 function Economy.training(game, player)

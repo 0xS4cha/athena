@@ -160,7 +160,7 @@ Overlay.unitDrawers = {
 }
 
 function Overlay.drawHealth(camera, unit)
-    local max = Config.units[unit.kind].health
+    local max = unit.maxHealth or Config.units[unit.kind].health
     if unit.health and unit.health < max and camera.scale >= 2 then
         local size = camera.scale
         local tx, ty = math.floor(unit.x), math.floor(unit.y)

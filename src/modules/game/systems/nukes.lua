@@ -40,6 +40,14 @@ function Nukes.shelter(game, player, x, y)
     return nil
 end
 
+function Nukes.cost(player, kind)
+    return Config.nukes[kind].cost * (1 + player:tech("nukeCost"))
+end
+
+function Nukes.samRange(sam)
+    return Config.units.sam.range * (1 + sam.owner:tech("samRange"))
+end
+
 function Nukes.check(game, player, kind, tile)
     local def = Config.nukes[kind]
     if not def then return false, "Unknown" end
@@ -47,7 +55,7 @@ function Nukes.check(game, player, kind, tile)
     if game.phase ~= "playing" or not player.alive then return false, "Not now" end
     if player:unitCount("silo") == 0 then return false, "Needs silo" end
     if not Nukes.readySilo(game, player, tile) then return false, "Reloading" end
-    if player.gold < def.cost then return false, "No gold" end
+    if player.gold < Nukes.cost(player, kind) then return false, "No gold" end
     local target = game:playerAt(tile)
     if def.needsPlayer and (not target or target == player) then return false, "Needs enemy" end
     if target == player then return false, "Own land" end
@@ -116,7 +124,7 @@ function Nukes.preview(game, player, kind, tile)
     result.silo = silo
     if silo then
         local distance = math.sqrt(sq(cx - silo.x) + sq(cy - silo.y))
-        result.flight = math.max(15, math.floor(distance / def.speed)) / Config.tickRate
+        result.flight = math.max(15, math.floor(distance / (def.speed * (1 + player:tech("nukeSpeed"))))) / Config.tickRate
     end
     local function tally(i, chance)
         local owner = map.owner[i]
@@ -202,7 +210,7 @@ function Nukes.spawn(game, player, kind, fromX, fromY, tile)
         toY = ty,
         target = tile,
         elapsed = 0,
-        duration = math.max(15, math.floor(distance / def.speed)),
+        duration = math.max(15, math.floor(distance / (def.speed * (1 + player:tech("nukeSpeed"))))),
         update = Nukes.update
     })
     unit.x, unit.y = fromX, fromY
@@ -214,8 +222,8 @@ function Nukes.launch(game, player, kind, tile)
     if not ok then return nil end
     local def = Config.nukes[kind]
     local silo = Nukes.readySilo(game, player, tile)
-    player.gold = player.gold - def.cost
-    silo.cooldown = Config.units.silo.cooldownTicks
+    player.gold = player.gold - Nukes.cost(player, kind)
+    silo.cooldown = Config.units.silo.cooldownTicks * (1 + player:tech("siloReload"))
     local unit = Nukes.spawn(game, player, kind, silo.x, silo.y, tile)
     game:emit("nukeFired", unit, player)
     local target = game:playerAt(tile)
@@ -249,7 +257,7 @@ end
 
 function Nukes.covers(sam, kind, cx, cy)
     local def = Config.nukes[kind]
-    local range = Config.units.sam.range
+    local range = Nukes.samRange(sam)
     if kind == "mirv" then
         local dx = math.max(0, math.abs(sam.x - cx) - def.spread)
         local dy = math.max(0, math.abs(sam.y - cy) - def.spread)
@@ -263,7 +271,7 @@ function Nukes.crossesRange(sam, fromX, fromY, toX, toY)
     local len2 = dx * dx + dy * dy
     local t = len2 > 0 and ((sam.x - fromX) * dx + (sam.y - fromY) * dy) / len2 or 1
     t = math.max(INTERCEPT_START, math.min(1, t))
-    return sq(fromX + dx * t - sam.x) + sq(fromY + dy * t - sam.y) <= sq(Config.units.sam.range)
+    return sq(fromX + dx * t - sam.x) + sq(fromY + dy * t - sam.y) <= sq(Nukes.samRange(sam))
 end
 
 function Nukes.interceptor(game, nuke)
@@ -271,11 +279,10 @@ function Nukes.interceptor(game, nuke)
         nuke.impactOwners = Nukes.impactOwners(game, nuke.nukeKind, nuke.toX, nuke.toY)
     end
     local touched = nuke.impactOwners
-    local r2 = sq(Config.units.sam.range)
     for _, unit in ipairs(game.units) do
         if unit.kind == "sam" and unit.buildLeft == 0 and unit.cooldown == 0 and not unit.dead
             and unit.owner ~= nuke.owner and not unit.owner:isAlliedWith(nuke.owner)
-            and sq(unit.x - nuke.x) + sq(unit.y - nuke.y) <= r2
+            and sq(unit.x - nuke.x) + sq(unit.y - nuke.y) <= sq(Nukes.samRange(unit))
             and touched[unit.owner.id] and Nukes.covers(unit, nuke.nukeKind, nuke.toX, nuke.toY) then
             return unit
         end
@@ -293,7 +300,7 @@ function Nukes.update(game, nuke)
     if nuke.nukeKind ~= "warhead" and t > INTERCEPT_START then
         local sam = Nukes.interceptor(game, nuke)
         if sam then
-            sam.cooldown = Config.units.sam.cooldownTicks
+            sam.cooldown = Config.units.sam.cooldownTicks * (1 + sam.owner:tech("samReload"))
             game:emit("nukeIntercepted", nuke, sam)
             game:notify(nuke.owner, "Your " .. Config.nukes[nuke.nukeKind].label .. " was intercepted by a SAM.", { color = { 0.95, 0.5, 0.3, 1 } })
             game:notify(sam.owner, "Your SAM intercepted a " .. Config.nukes[nuke.nukeKind].label .. ".", { color = { 0.3, 0.85, 0.45, 1 }, minor = true })
@@ -378,7 +385,7 @@ function Nukes.detonate(game, attacker, cx, cy, def)
         local player = game.players[id]
         local fraction = math.min(1, count / math.max(1, player.tiles + count) * Config.nukeTroopKill)
         if Nukes.shelter(game, player, cx, cy) then
-            fraction = fraction * (1 - Config.units.bunker.shelter)
+            fraction = fraction * (1 - math.min(0.9, Config.units.bunker.shelter + player:tech("bunkerShelter")))
         end
         player.troops = player.troops * (1 - fraction)
         player.workers = player.workers * (1 - fraction)

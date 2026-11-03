@@ -16,6 +16,7 @@ local SystemPaths = {
     "src.modules.game.systems.attack",
     "src.modules.game.systems.units",
     "src.modules.game.systems.capital",
+    "src.modules.game.systems.research",
     "src.modules.game.systems.ships",
     "src.modules.game.systems.rails",
     "src.modules.game.systems.nukes",
@@ -321,6 +322,7 @@ function Game:checksum()
         h = Hash.combine(h, floor(p.troops))
         h = Hash.combine(h, floor(p.workers))
         h = Hash.combine(h, floor(p.gold))
+        h = Hash.combine(h, p.research.count)
     end
     h = Hash.combine(h, #(self.units or {}))
     h = Hash.combine(h, #(self.attacks or {}))

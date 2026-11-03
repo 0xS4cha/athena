@@ -26,7 +26,13 @@ function Units.cost(game, player, kind)
     elseif def.scale == "linear" then
         cost = def.cost * (n + 1)
     end
-    return math.min(def.cap, cost)
+    cost = math.min(def.cap, cost)
+    if def.naval then
+        return cost * (1 + player:tech("navalCost"))
+    elseif kind == "sam" then
+        return cost * (1 + player:tech("buildCost") + player:tech("samCost"))
+    end
+    return cost * (1 + player:tech("buildCost"))
 end
 
 function Units.list(game, player, kind)

@@ -1,7 +1,7 @@
 local GameConfig = require("src.config.game")
 
 local CONFIG = {
-    version = 5,
+    version = 6,
     address = "*",
     port = 6789,
     localAddress = "127.0.0.1",

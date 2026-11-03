@@ -174,6 +174,13 @@ local STEPS = {
     },
     {
         chapter = "WORLD",
+        title = "Research",
+        text = "Press E or click this button to open the research tree. Technologies are paid over time, and each branch asks you to choose one doctrine. Plan your empire's identity.",
+        highlight = "researchbar",
+        info = true
+    },
+    {
+        chapter = "WORLD",
         title = "Nukes",
         text = "A missile silo launches nukes at what you right-click. SAM launchers intercept them, bunkers shelter you, and radars reveal hidden silos and warn you of launches.",
         info = true

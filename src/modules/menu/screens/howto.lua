@@ -46,6 +46,14 @@ local PAGES = {
             "Win by holding 80% of the land, or by being the last nation standing. Modes and Rules can change this."
         }
     },
+    {
+        title = "RESEARCH", icon = "Lightbulb.png", color = UI.colors.gold,
+        lines = {
+            "Press E to open the research tree. Queue technologies: they are paid little by little while they run.",
+            "Each branch has one doctrine to choose: a strong bonus with a real drawback, and you cannot have both.",
+            "Allies share their knowledge with a discount, and capturing a capital steals plans from your enemy."
+        }
+    },
     { title = "CONTROLS", icon = "Keyboard.png", color = UI.colors.hover, controls = true }
 }
 

@@ -103,7 +103,7 @@ function Attack.terrainMultiplier(game, i, attacker)
     local name = map:terrainType(i)
     local mult = attacker and Attack.biomeMultiplier(attacker, name) or Config.biomes[name].cost
     if map.fallout[i] > 0 then
-        mult = mult * Config.falloutCost
+        mult = mult * (1 + (Config.falloutCost - 1) * (1 + (attacker and attacker:tech("fallout") or 0)))
     end
     return mult
 end
@@ -111,7 +111,7 @@ end
 function Attack.cost(game, attack, i)
     local terrain = Attack.terrainMultiplier(game, i, attack.attacker)
     if attack.attacker then
-        terrain = terrain * Supply.multiplier(game, attack.attacker, i) * (1 - Economy.training(game, attack.attacker))
+        terrain = terrain * Supply.multiplier(game, attack.attacker, i) * (1 - Economy.training(game, attack.attacker)) * (1 + attack.attacker:tech("conquest"))
     end
     local target = attack.target
     if not target then
@@ -128,12 +128,14 @@ function Attack.cost(game, attack, i)
     if target.traitorUntil > game.tick then
         defense = defense * Config.traitorDefense
     end
+    defense = defense * (1 + target:tech("defense"))
     return (Config.playerTileCost + density * Config.densityCost) * terrain * defense, density * Config.defenderLoss
 end
 
 function Attack.tilesPerTick(attack)
     local divisor = attack.target and Config.playerSpeedDivisor or Config.neutralSpeedDivisor
-    return math.max(1, math.min(Config.maxTilesPerTick, math.floor(math.sqrt(attack.troops) / divisor)))
+    local speed = 1 + (attack.attacker and attack.attacker:tech("attackSpeed") or 0)
+    return math.max(1, math.min(Config.maxTilesPerTick, math.floor(math.sqrt(attack.troops) / divisor * speed)))
 end
 
 function Attack.find(game, attacker, targetId)
@@ -338,7 +340,7 @@ Attack.intents = {
     retreat = function(game, intent)
         for _, attack in ipairs(game.attacks) do
             if attack.id == intent.attack and attack.attacker.id == intent.player then
-                Attack.finish(game, attack, Config.retreatRefund)
+                Attack.finish(game, attack, Config.retreatRefund + attack.attacker:tech("retreat"))
             end
         end
     end

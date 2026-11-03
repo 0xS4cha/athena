@@ -27,7 +27,7 @@ local DEFAULTS = {
 Keybinds.reserved = {
     escape = true, space = true, ["return"] = true, kpenter = true, tab = true,
     backspace = true, delete = true, up = true, down = true, left = true, right = true,
-    p = true, h = true, ["="] = true, ["-"] = true, ["kp+"] = true, ["kp-"] = true,
+    p = true, h = true, e = true, ["="] = true, ["-"] = true, ["kp+"] = true, ["kp-"] = true,
     ["1"] = true, ["2"] = true, ["3"] = true, ["4"] = true, ["5"] = true, ["6"] = true, ["7"] = true
 }
 

@@ -36,7 +36,7 @@ end
 
 function BuildBar.visible(hud)
     local game = hud:game()
-    return game.phase == "playing" and game.human.alive and not game.options.spectator and not hud.spectating
+    return game.phase == "playing" and game.human.alive and not game.options.spectator and not hud.spectating and not hud.researchOpen
 end
 
 function BuildBar.bounds(game)

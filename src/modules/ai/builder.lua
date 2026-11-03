@@ -25,7 +25,7 @@ local function remoteTile(game, player)
         local tile = randomOwnTile(game, player, function(i) return Units.isSpaced(game, i) end, 1.3)
         if tile then
             local x, y = game.map:coords(tile)
-            local efficiency = Economy.efficiencyAt(player.adminPoints, x + 0.5, y + 0.5) or 1
+            local efficiency = Economy.efficiencyAt(player.adminPoints, x + 0.5, y + 0.5, player:tech("adminRange")) or 1
             if not bestEfficiency or efficiency < bestEfficiency then
                 best, bestEfficiency = tile, efficiency
             end

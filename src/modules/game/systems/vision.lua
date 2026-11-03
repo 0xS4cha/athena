@@ -21,7 +21,7 @@ function Vision.radarRange(game, unit)
         local bonus = game.map:terrainType(unit.tile) == "mountain" and Config.radarMountainBonus or 1
         unit.range = Config.units.radar.range * bonus
     end
-    return unit.range
+    return unit.range * (1 + unit.owner:tech("radarRange"))
 end
 
 function Vision.online(unit)
@@ -89,8 +89,9 @@ function Vision.nearWarship(game, player, x, y)
     return false
 end
 
-function Vision.sonar(game, player, x, y)
-    local r2 = Config.sonarRange * Config.sonarRange
+function Vision.sonar(game, player, x, y, reach)
+    local range = Config.sonarRange * (reach or 1)
+    local r2 = range * range
     for _, ship in ipairs(game.ships or {}) do
         if ship.kind == "warship" and not ship.dead and ship.owner:isFriendly(player)
             and sq(ship.x - x) + sq(ship.y - y) <= r2 then
@@ -127,7 +128,7 @@ function Vision.detects(game, player, unit)
     if (unit.revealedUntil or 0) > game.tick and Vision.passive(game, player, unit.x, unit.y) then
         return true
     end
-    return Vision.inRadar(game, player, unit.x, unit.y) or Vision.sonar(game, player, unit.x, unit.y)
+    return Vision.inRadar(game, player, unit.x, unit.y) or Vision.sonar(game, player, unit.x, unit.y, 1 + unit.owner:tech("sonarEvasion"))
 end
 
 function Vision.live(game, player, unit)

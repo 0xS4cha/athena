@@ -37,6 +37,9 @@ local RULES = {
     unitRemoved = function(game, unit)
         if unit.kind == "capital" and unit.owner == game.human and game.human.alive then return "capitalLost" end
     end,
+    researchCompleted = function(game, player)
+        if player == game.human then return "build" end
+    end,
     allianceFormed = function(game, a, b)
         if a == game.human or b == game.human then return "alliance" end
     end,

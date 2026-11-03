@@ -65,7 +65,7 @@ end
 function Supply.multiplierAt(game, player, x, y)
     local d = Supply.distance(game, player, x, y)
     if not d or d <= Config.supplyRange then return 1 end
-    return math.min(Config.supplyMaxPenalty, 1 + (d - Config.supplyRange) / Config.supplyFalloff)
+    return math.min(Config.supplyMaxPenalty, 1 + (d - Config.supplyRange) / Config.supplyFalloff * (1 + player:tech("supply")))
 end
 
 function Supply.multiplier(game, player, tile)

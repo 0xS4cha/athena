@@ -141,7 +141,7 @@ Interaction.sections[#Interaction.sections + 1] = function(game, tile, items)
                 list[#list + 1] = {
                     label = def.label,
                     icon = def.icon,
-                    sublabel = ok and Format.number(def.cost) or reason,
+                    sublabel = ok and Format.number(Nukes.cost(human, kind)) or reason,
                     sublabelColor = not ok and { 0.95, 0.35, 0.3, 1 } or nil,
                     disabled = not ok,
                     preview = { nuke = kind, tile = tile },

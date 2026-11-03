@@ -7,15 +7,16 @@ Rules.fields = {
     { id = "startArmy", label = "Starting army", hint = "Multiplies the first troops and workers", values = { 1, 2, 5, 10 }, labels = { "x1", "x2", "x5", "x10" } },
     { id = "income", label = "Income", hint = "Multiplies the gold earned by workers", values = { 0.5, 1, 2, 4 }, labels = { "x0.5", "x1", "x2", "x4" } },
     { id = "spawnSeconds", label = "Spawn time", hint = "Seconds to choose a starting location", values = { 5, 15, 30, 60 }, labels = { "5s", "15s", "30s", "60s" } },
+    { id = "research", label = "Research", hint = "Speed of the research tree, or Off to remove it", values = { 0, 1, 2 }, labels = { "Off", "Normal", "Fast" } },
     { id = "nukes", label = "Nukes", hint = "Off removes missile silos, SAM launchers and nukes", values = { true, false }, labels = { "On", "Off" } },
     { id = "diplomacy", label = "Diplomacy", hint = "Off removes alliances, pacts and coalitions", values = { true, false }, labels = { "On", "Off" } }
 }
 
-Rules.defaults = { winRatio = 0.8, timeLimit = 0, startGold = 0, startArmy = 1, income = 1, spawnSeconds = 15, nukes = true, diplomacy = true }
+Rules.defaults = { winRatio = 0.8, timeLimit = 0, startGold = 0, startArmy = 1, income = 1, spawnSeconds = 15, research = 1, nukes = true, diplomacy = true }
 
 Rules.modes = {
     { id = "classic", label = "Classic", hint = "The standard rules." },
-    { id = "blitz", label = "Blitz", hint = "A rich, fast war: 60% of the land or the largest empire after 20 minutes.", rules = { winRatio = 0.6, timeLimit = 20, startGold = 1000000, startArmy = 5, income = 2, spawnSeconds = 5 } },
+    { id = "blitz", label = "Blitz", hint = "A rich, fast war: 60% of the land or the largest empire after 20 minutes.", rules = { winRatio = 0.6, timeLimit = 20, startGold = 1000000, startArmy = 5, income = 2, spawnSeconds = 5, research = 2 } },
     { id = "conventional", label = "Conventional", hint = "No nukes: land, sea and gold decide the war.", rules = { nukes = false } },
     { id = "anarchy", label = "Anarchy", hint = "No alliances, pacts or coalitions: everyone for themselves.", rules = { diplomacy = false } },
     { id = "annihilation", label = "Annihilation", hint = "No land victory: only the last nation standing wins.", rules = { winRatio = 1 } },

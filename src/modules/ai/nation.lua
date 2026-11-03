@@ -6,6 +6,7 @@ local Diplomat = require("src.modules.ai.diplomat")
 local Personality = require("src.modules.ai.personality")
 local Negotiator = require("src.modules.ai.negotiator")
 local Coalitionist = require("src.modules.ai.coalitionist")
+local Researcher = require("src.modules.ai.researcher")
 
 local Nation = {}
 
@@ -82,6 +83,7 @@ function Nation.expandOrAttack(game, player, ctx)
 end
 
 function Nation.decide(game, player)
+    Researcher.think(game, player)
     local neighbors, neutral = Attack.neighbors(game, player)
     local isolated = not neutral
     for _, other in ipairs(neighbors) do

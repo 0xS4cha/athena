@@ -8,7 +8,7 @@ return {
   identifier = 'com.athena.game',
   platforms = {'windows', 'macos', 'linux'},
   ignore = {
-    'dist', 'build', 'tests', 'love-build', 'lib',
+    'dist', 'build', 'tests', 'docs', 'love-build', 'lib',
     'Makefile', 'Dockerfile', '.dockerignore', '.env', '.env.example', '.luarc.json',
     'build.lua', 'CODE_OF_CONDUCT.md', 'appimagetool.AppImage', 'athena', 'athena_server'
   }

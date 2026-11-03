@@ -1,12 +1,192 @@
-# Athena
+<div align="center">
 
-A real-time territory conquest game inspired by [OpenFront.io](https://openfront.io), written in Lua with Love2D.
+<img src="docs/images/logo.png" alt="Athena" width="420" />
 
-## Description
+**Conquer the world, one tile at a time.**
 
-Athena is a clone of OpenFront. You spawn on one of the 100+ bundled maps alongside AI nations, bots and other players, then expand, trade, wage war, and launch nukes until one empire controls 80% of the land.
+A real-time territory conquest game in pixel art, written in Lua with LÖVE. Inspired by [OpenFront.io](https://openfront.io).
 
-The game is multiplayer by default: a solo game starts a local server in a background thread and connects to it, like Minecraft. The simulation runs on a fixed 10 ticks-per-second loop with a seeded RNG. Every player action, human or AI, goes through an intent queue that is processed at the start of each tick. Tile data lives in LuaJIT FFI arrays (`uint8` terrain, `uint16` owner, `uint8` fallout), and the territory layer is a single `ImageData` patched pixel by pixel and uploaded once per frame.
+[![CI](https://github.com/0xS4cha/athena/actions/workflows/ci.yml/badge.svg)](https://github.com/0xS4cha/athena/actions/workflows/ci.yml)
+[![Builds](https://github.com/0xS4cha/athena/actions/workflows/build.yml/badge.svg)](https://github.com/0xS4cha/athena/actions/workflows/build.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-white.svg)](LICENSE)
+![LuaJIT](https://img.shields.io/badge/LuaJIT-2.1-000080?logo=lua&logoColor=white)
+![LÖVE](https://img.shields.io/badge/L%C3%96VE-11.3%2B-e74a99)
+![Maps](https://img.shields.io/badge/maps-100-emerald.svg)
+
+[**Quick start**](#quick-start) · [Gameplay guide](docs/GAMEPLAY.md) · [Technical guide](docs/TECHNICAL.md) · [Report a bug](https://github.com/0xS4cha/athena/issues) · [Contribute](https://github.com/0xS4cha/athena/pulls)
+
+![Athena in game](docs/images/hero.png)
+
+</div>
+
+---
+
+## Table of contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Quick start](#quick-start)
+- [Controls](#controls)
+- [Tech stack](#tech-stack)
+- [Architecture](#architecture)
+- [Testing](#testing)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [Acknowledgements](#acknowledgements)
+- [License](#license)
+
+## Overview
+
+You start with a few tiles on one of 100 maps, alongside AI nations, wild tribes and other players. Expand, trade, negotiate, betray and launch nukes until one empire controls 80% of the land.
+
+<div align="center">
+
+![23 minutes of a game on Europe in a few seconds](docs/images/conquest.gif)
+
+*23 minutes of a game on Europe, played by the AI, in a few seconds.*
+
+</div>
+
+Every game is multiplayer under the hood: even a solo game runs a local server in a background thread, like Minecraft. The simulation is fully deterministic, which is what makes reconnections, snapshots and replays possible.
+
+## Features
+
+### War on land, at sea and from the sky
+
+| System | What it gives you |
+| --- | --- |
+| **Fronts** | Attacks advance tile by tile. Terrain, biome, supply lines, troop density, defense posts and fallout all change the cost. |
+| **14 buildings and ships** | Cities, farms, mines, ports, factories with animated rails, barracks, radars, silos, SAMs, bunkers, warships and submarines. |
+| **Navy** | Transport invasions, blockades, captured trade ships, and submarines that stay hidden until sonar or a radar finds them. |
+| **Nukes** | Atom bombs, hydrogen bombs and MIRVs, with a blast preview, flight time, interception, shelter and lasting fallout. |
+| **Fog of war** | Enemy structures are only visible near your land. Silos and SAMs stay hidden until a radar sweeps them, for the AI as well. |
+
+<table>
+<tr>
+<td width="50%"><img src="docs/images/close.png" alt="Pixel art buildings, rails and what each structure brings" /><p align="center"><sub>Every structure shows what it brings, right on the map</sub></p></td>
+<td width="50%"><img src="docs/images/nuke.png" alt="A nuclear blast over a border" /><p align="center"><sub>Nuked land loses its owner and stays covered in fallout</sub></p></td>
+</tr>
+</table>
+
+### Research tree
+
+Press <kbd>E</kbd> to open 24 technologies in four branches. Each branch asks you to choose **one doctrine**, a strong bonus with a real drawback, so that two empires never play alike.
+
+![The research tree](docs/images/research.png)
+
+- **Paid over time**: with little gold, research slows down and takes half of your income, so it never blocks your buildings.
+- **Priced on your income**: a large empire pays more, which limits snowballing.
+- **Shared and stolen**: allies make technologies cheaper, and capturing a capital steals plans from your enemy.
+
+### Diplomacy and AI
+
+| System | What it gives you |
+| --- | --- |
+| **Alliances and pacts** | Shared vision, donations, non-aggression pacts with a notice period. Betrayal marks you as a traitor. |
+| **Loans** | Borrow from any nation with negotiated interest. A default costs you dearly. |
+| **Coalitions** | Blocs of up to six nations that band together against whoever dominates, or for mutual defense. |
+| **AI personalities** | Warlords, Merchants, Guardians, Diplomats and Opportunists attack, build, negotiate and research in their own way. |
+| **Map layers** | Press a key to see your supply range, the threats on your borders or the relations between nations. |
+
+### Your game, your rules
+
+Pick a mode or tune every rule: land to win, time limit, starting gold and army, income, spawn time, research, nukes and diplomacy.
+
+<table>
+<tr>
+<td width="50%"><img src="docs/images/rules.png" alt="Game modes and custom rules" /><p align="center"><sub>Classic, Blitz, Conventional, Anarchy, Annihilation or Custom</sub></p></td>
+<td width="50%"><img src="docs/images/play.png" alt="Map selection" /><p align="center"><sub>100 maps, from Iceland to the whole world</sub></p></td>
+</tr>
+</table>
+
+### Multiplayer
+
+- **Authoritative tick-lockstep**: the server validates every action and clients stay in sync, checked by a state hash.
+- **Reconnection**: a short disconnection replays the missing frames, a long one restores a snapshot.
+- **LAN and dedicated servers**: host from the menu with automatic discovery, or run `love . --server`, also available as a Docker image.
+- **Lobby**: passwords, colors, flags, teams, ready checks, chat and ping.
+- **Team games, surrender and rematch votes**, with a shared victory.
+
+![The multiplayer lobby](docs/images/lobby.png)
+
+### Replays
+
+Every game is saved automatically and weighs almost nothing, since only the commands are stored. Watch it again with the whole map revealed, change the speed and jump anywhere on the timeline.
+
+<table>
+<tr>
+<td width="50%"><img src="docs/images/replay.png" alt="Watching a replay" /><p align="center"><sub>Pause, speed and a timeline you can click</sub></p></td>
+<td width="50%"><img src="docs/images/replays.png" alt="The list of saved replays" /><p align="center"><sub>Your last 20 games, ready to watch</sub></p></td>
+</tr>
+</table>
+
+### And also
+
+<table>
+<tr>
+<td width="50%"><img src="docs/images/tutorial.png" alt="The interactive tutorial" /><p align="center"><sub>An interactive tutorial with arrows on the map</sub></p></td>
+<td width="50%"><img src="docs/images/victory.png" alt="The victory screen" /><p align="center"><sub>End screens that chart your whole game</sub></p></td>
+</tr>
+<tr>
+<td colspan="2"><img src="docs/images/menu.png" alt="The main menu over a live battle" /><p align="center"><sub>AI nations fight a real battle behind the main menu</sub></p></td>
+</tr>
+</table>
+
+- **Procedural sound**: every effect is synthesized at startup, with no audio file.
+- **Rebindable hotkeys** for every building and nuke.
+
+## Quick start
+
+### Prerequisites
+
+- [LÖVE](https://love2d.org/) **11.3 or newer**
+
+### Run
+
+```bash
+git clone https://github.com/0xS4cha/athena.git
+cd athena
+love .
+```
+
+New to the game? Press **Tutorial** in the main menu.
+
+### Commands
+
+| Command | Description |
+| --- | --- |
+| `love .` | Start the game. |
+| `love . --server --port 6789` | Run a dedicated server. |
+| `love . --test` or `make test` | Run the test suite. |
+| `make build` | Package Windows, macOS and Linux builds into `dist/`. |
+
+Every other flag is listed in the [technical guide](docs/TECHNICAL.md#command-line).
+
+## Controls
+
+| Input | Action |
+| --- | --- |
+| <kbd>Left click</kbd> | Spawn, attack or send a boat |
+| <kbd>Right click</kbd> | Context menu: build, nukes, diplomacy |
+| <kbd>Right drag</kbd> / <kbd>Wheel</kbd> | Move the camera / zoom |
+| <kbd>Space</kbd> | Start the game during the spawn phase |
+| <kbd>E</kbd> | Open the research tree |
+| <kbd>P</kbd> / <kbd>+</kbd> <kbd>-</kbd> | Pause / game speed, in solo |
+| <kbd>1</kbd> to <kbd>7</kbd> | Toggle map layers |
+| <kbd>Enter</kbd> | Chat in multiplayer |
+| <kbd>H</kbd> / <kbd>Esc</kbd> | Controls help / pause menu |
+
+## Tech stack
+
+| Layer | Technologies |
+| --- | --- |
+| **Engine** | [LÖVE](https://love2d.org/), LuaJIT and its FFI for the tile arrays |
+| **Simulation** | Fixed 10 ticks per second, seeded RNG, deterministic math, intent queue |
+| **Network** | ENet, a custom binary protocol, zlib compressed snapshots |
+| **Rendering** | One patched `ImageData` for the territories, palette shaders, pixel art drawn on the tile grid |
+| **Tooling** | Headless test suite, GitHub Actions, LuaLS, Docker, love-build |
+
+## Architecture
 
 ```mermaid
 graph TD
@@ -15,345 +195,49 @@ graph TD
     classDef view fill:#FFF9C4,stroke:#FBC02D,stroke-width:2px,color:black;
     classDef ai fill:#E1BEE7,stroke:#6A1B9A,stroke-width:2px,color:black;
 
-    Menu["Main Menu<br/>menu/index.lua"]:::view
-    Session["Session<br/>session/index.lua"]:::core
-    Game["Game loop & intents<br/>game/game.lua"]:::core
-    Map["Typed tile map<br/>map/map.lua"]:::core
-    Systems["Systems<br/>spawn, economy, attack, units,<br/>ships, rails, nukes, diplomacy, victory"]:::sim
-    AI["AI<br/>bot, nation, builder, navy,<br/>strategist, diplomat"]:::ai
-    Renderer["Renderer<br/>map/renderer.lua"]:::view
-    Overlay["Overlay<br/>labels, units, nukes"]:::view
-    Hud["HUD components"]:::view
+    Server["Authoritative server<br/>rooms, validation, frames"]:::core
+    Client["Client lockstep<br/>or replay player"]:::core
+    Game["Game loop and intents"]:::core
+    Systems["Systems<br/>economy, attack, ships, nukes,<br/>diplomacy, research, victory"]:::sim
+    AI["AI nations and tribes<br/>server only"]:::ai
+    View["Renderer, overlay and HUD"]:::view
 
-    Menu -->|Start| Session
-    Session --> Game
+    AI -->|Commands| Server
+    Server -->|Frames| Client
+    Client --> Game
     Game --> Systems
-    Systems --> Map
-    AI -->|Intents| Game
-    Hud -->|Intents| Game
-    Map --> Renderer
-    Game --> Overlay
+    Systems --> View
+    View -->|Intents| Server
 ```
 
-## Setup
+The full project structure is in the [technical guide](docs/TECHNICAL.md#project-structure).
 
-Athena runs on Love2D 11.3 or newer (it relies on `ImageData:getFFIPointer`).
-
-```bash
-love .
-```
-
-## Gameplay
-
-New to the game? Press **Tutorial** in the main menu: it starts a solo game on Iceland against a few easy tribes, with a longer spawn phase and enough gold for a first city and a military port. A panel walks you through 18 steps in four chapters (basics, economy, war and the wider world). Steps that ask for an action complete on their own as soon as you do it and can be skipped; the others wait for **Next** or `Enter`, and **Back** returns to an earlier step. A gold arrow points at the place to click and a gold frame surrounds the panel being explained. The main menu remembers once you have finished it.
-
-- **Spawn phase**: click anywhere on land to choose your starting location, then press `Space` or wait for the countdown.
-- **Population**: your maximum population grows with your territory and your cities. Growth is fastest when you are far from the cap.
-- **Administration**: land far from your capital and your cities is poorly administered. Within 55 tiles of them it earns full gold, then its income falls with the distance down to 35%. The gold panel shows the share of income lost (`GOLD - 23% LOST`) and hovering your land shows its administration, so wide empires need cities spread across their territory. AI nations build their next city in their least administered region.
-- **Housing**: the population brought by cities and farms is limited by your housing capacity (400K plus 250 per tile), so a tiny island packed with cities stops growing. The population panel shows `POP - CROWDED` when you hit it, and the build menu warns that a new city or farm would bring no housing.
-- **Troops / Workers**: the slider splits your population. Troops attack and defend; workers produce gold.
-- **Attacks**: left-click a neighbour (or the wilderness) to send `Attack Ratio` percent of your troops. The front advances tile by tile. Each tile costs troops depending on terrain (plains < highland < mountain), fallout, the defender's troop density, defense posts, and whether the defender is a traitor. Attacks can be retreated from the Empire panel, and opposite attacks cancel each other out.
-- **Biomes**: land is plains, desert, mountain or snow, derived from elevation and latitude. Each biome has a base conquest cost, plus an adaptation penalty that fades as that biome makes up a larger share of your land (full adaptation at 20%). A desert empire struggles to push into snow until it owns some. Your adaptation appears in the Empire panel, and hovering a tile shows your cost multiplier.
-- **Boats**: transport ships leave from your **military ports** (2 boats per port, 6 at most). Left-click a coast you do not border to invade it. Without a military port you cannot leave your continent.
-- **Capital**: your spawn becomes your capital (+population, defense bonus around it). If it falls, you lose 15% of your troops and your growth and income are halved for 60 s, then a new capital is founded.
-- **Supply lines**: attacks get more expensive the farther they are from your capital, cities, military ports and finished rail tracks (up to x3). Toggle the Supply layer with `5` to see your supply range. Hovering a tile shows the multiplier.
-- **Naval blockade**: an enemy warship within 18 tiles of a port blockades it. A blockaded trade port stops trading, a blockaded military port cannot launch invasions or build warships. Right-click > Send Warship Here dispatches your nearest warship to a place.
-- **Threat map**: press `6` to colour your borders by how dangerous each neighbour is, from green to blinking red. The score weighs their troops (estimated if you cannot observe them) against yours, how much they dislike you, whether they are attacking you, have marked you as a target or are traitors, and whether a pact protects you. Arrows show where the strongest threats would come from.
-- **Diplomatic map**: press `7` to recolour every nation by its relation to you: ally, at war, pact, traitor, hostile, friendly, neutral or tribe. It is drawn with a palette shader, so switching it on stays smooth even on the largest maps.
-- **Hidden intel**: structures are drawn as small pixel buildings on the map, readable only when zoomed in. Enemy structures, ships and nukes are visible only within 35 tiles of your or your allies' territory or 55 tiles of your warships. Missile silos and SAM launchers stay hidden unless a radar sweeps them. AI nations play under the same fog: they only aim at the structures they have seen. Each strike picks a target at random, weighted by value (capital, silos, cities, factories, ports...) and mixed with random points of the enemy territory, and avoids the areas they nuked recently or that are already irradiated, so their nukes spread over the whole nation instead of hitting the same spot. The troops of nations you do not observe (not you, an ally, a neighbour of you or your allies, or under one of your radars) are only shown as rough estimates like "~300K".
-- **Buildings** (right-click > Build), paid in gold with escalating costs. When zoomed in, a small indicator above each of your structures shows what it brings right now: population in blue, gold per second in yellow, upkeep in red. Trade ports show an estimate once their first ship has delivered. A small bar in the bottom-left corner, just above the tile information, lists the key of each building: it dims what you cannot afford yet and lights up the one you are placing.
-  - City: raises your maximum population, with diminishing returns for each extra city and within your housing capacity.
-  - Trade Port: sends trade ships to nearby trade ports, so both sides earn gold. It is also a rail station.
-  - Military Port: launches invasions overseas and builds warships.
-  - Factory: lays pixel rail tracks across your own land to its 3 nearest cities and trade ports; trains generate gold. Each train pays less as your rail network grows, so stacking factories next to many cities no longer prints money.
-  - Farm: only on plains. Raises your maximum population and speeds up growth, both diminishing with each extra farm and within your housing capacity, with no upkeep. Your plains feed one farm per 2,500 tiles (the first always works): extra farms do nothing until you own more plains, and the build menu warns `No free plains`.
-  - Mine: only on mountains or deserts. Produces a steady flow of gold, 50% more on mountains, so the biomes that are hardest to conquer finally pay off. Each extra mine pays less, and your mountains and deserts hold one working mine per 2,000 tiles (the first always works): extra mines stay idle until you own more, and the build menu warns `No free ore`.
-  - Barracks: speeds up population growth, trains your armies (each barracks lowers conquest costs, up to -25%) and extends your supply lines. It costs gold upkeep every tick; without the gold to pay, the bonuses stop.
-  - Radar: sweeps a 110-tile radius (165 on a mountain) and leaves fading echoes of every enemy structure, ship and nuke its beam passes over. It is the only way to spot enemy missile silos and SAM launchers. Radars share their picture with your allies, are visible to enemy radars from twice their range, cost gold upkeep and are destroyed when captured.
-  - Defense Post: raises the cost of attacking nearby tiles.
-  - Missile Silo: launches nukes.
-  - SAM Launcher: intercepts nukes aimed inside its range.
-  - Bunker: shelters everything within 40 tiles from nukes. A blast centred in its range kills 70% fewer troops and workers, each of your buildings in its range has a 60% chance to survive with its tile, and the bunker itself only falls to a direct hit (6 tiles). The nuke preview warns you when a known enemy bunker shelters the target. AI nations build bunkers near their cities once an enemy owns a silo.
-  - Nuke warning: you only learn about a nuke aimed at you or your allies once it is detected, either by a radar (yours or an ally's) or when it enters your vision. A radar covering the enemy silo warns you at launch. The warning shows a countdown, the blast zone and the missile's path.
-  - Warship: built at a military port; patrols, sinks transports, captures trade ships, and fights other warships. Its depth charges deal 50% more damage to submarines.
-  - Submarine: built at a military port; stays hidden from enemies unless a radar covers it, an enemy warship comes within 14 tiles (sonar), or it surfaces for 4 s after firing. It torpedoes transports, sinks trade ships instead of capturing them, and attacks warships as a last resort, so it wages a silent war on the enemy economy. Warships only engage the submarines they detect. Your own submarines are drawn half transparent while submerged. Right-click > Send Submarine Here dispatches one. Opportunist and Warlord AI nations build them to hunt the trade routes of their rivals.
-- **Nukes** (right-click > Launch Nuke):
-  - Atom Bomb, Hydrogen Bomb, and MIRV (splits into many warheads over the target nation).
-  - Hovering a bomb in the menu previews its blast zone on the map: expected destroyed tiles, enemy land, friendly fire (your and your allies' tiles blink in white), known buildings hit, flight time from the silo that will fire, and the known enemy SAMs able to intercept it. Picking a bomb enters aiming mode: the preview follows the mouse, left click launches, right click or Escape cancels.
-  - Nuked land loses its owner and gets fallout, which slowly decays and doubles conquest costs.
-- **AI personalities**: every AI nation has a personality, shown when you hover its land and at the top of its context menu. It changes how it attacks, builds, negotiates and nukes:
-  - Warlord: attacks early with big armies, keeps more troops, builds silos and nukes often, keeps few promises.
-  - Merchant: builds cities, ports and factories, lends gold readily, prefers pacts to wars.
-  - Guardian: fortifies its borders with defense posts and SAMs and only attacks when much stronger.
-  - Diplomat: seeks alliances, supports its allies and rarely betrays.
-  - Opportunist: preys on nations that are already under attack and betrays when it pays.
-- **AI diplomacy**: AI nations negotiate with a plan rather than at random:
-  - Pacts: at war, they offer non-aggression pacts to their other strong neighbours to secure their flanks, and accept them for the same reason. A threatened Guardian asks its stronger neighbours for peace. Before attacking a weak or embattled pact partner, they give the 30 s notice and only strike once the pact has ended.
-  - Loans: they lend cheaply to their allies and to whoever fights their enemies, charge more to risky borrowers, and refuse traitors, their enemies, nations that threaten them and borrowers whose income cannot cover the debt. They borrow from their friends to fund a plan (barracks at war, a silo for nuclear powers, the next city for builders) only when their income can repay, save their gold when a deadline gets close, and repay early once they can.
-- **Diplomacy** (right-click on another nation):
-  - Request or accept an alliance; alliances expire after 5 minutes.
-  - Propose a non-aggression pact: neither side can attack the other by land or sea for 10 minutes. Ending a pact gives 30 s of notice and no penalty; nuking a pact partner breaks it and marks you as a traitor.
-  - Break an alliance, which marks you as a traitor and halves your defense for 30 s.
-  - Embargo, donate troops or gold to allies, mark a player as a target for your allies, send emojis.
-  - Request a loan (100K, 500K or 2M gold) from any nation. The lender can lend for free, demand 10% or 25% interest (the borrower then accepts or declines the terms), or refuse. Loans are repaid automatically in installments over 5 minutes, or early from the Empire panel. Whatever is still owed at the deadline is a default: the borrower is marked as a traitor and loses the lender's trust.
-- **Coalitions** (right-click on another nation): blocs of up to 6 nations bound by permanent alliances while the coalition lasts.
-  - Coalition Against: founds a war coalition against a dominant nation, the land leader or anyone holding 12% of the land. Once it has two members, they pay 20% less to conquer its land, and the target gets +10% defense against everyone so a coalition is not an instant death sentence.
-  - Defensive Coalition: founds a coalition for mutual defense and invites that nation. Members get +10% defense against outsiders.
-  - The leader invites new members from the context menu; invitations show up in the events panel. Members are allied and share their vision, and their alliances do not expire.
-  - The Coalition panel lists the members, the objective and the bonus. Leaving in peace costs nothing, but deserting a war coalition while its target stands marks you as a traitor and breaks your alliances with the members.
-  - A war coalition dissolves once its target falls, or drops under 4% of the land without being the leader anymore; a coalition that finds no member dissolves on its own. There is no shared victory: the members become rivals again.
-  - AI nations found coalitions against the leader they fear or hate (Diplomats most of all), invite the nations that border or dislike the target, join the coalitions whose target threatens them, and focus their attacks and nukes on it. Threatened Guardians found defensive coalitions with the other neighbours of their threat. Coalition members show a coloured mark in the leaderboard, coalition targets a skull, and hovering a nation shows its coalition.
-- **Team games**: pick 2, 3 or 4 teams in New Game or in the lobby. In the lobby every player chooses a side or stays on Auto, which fills the smallest team. Nations fill the teams evenly, grouped by position so that each team starts as a bloc, and every territory takes a shade of its team color. Tribes stay out of the teams.
-  - Teammates are allied for the whole game: they share their vision, can donate troops and gold, and can neither attack, nuke nor betray each other.
-  - Sides are fixed: alliances, pacts and coalitions are disabled. Loans, embargoes and targets still work, and a nuke aimed at an enemy can still hurt a teammate next to it.
-  - A team wins when its members hold 80% of the land together, or when it is the last team standing, even if tribes remain. Every member wins, even one already eliminated. The Teams panel shows the land of each team against that goal and how many members are alive.
-- **Victory**: control 80% of the land, or be the last nation standing.
-- **Surrender**: the pause menu has a Surrender button (click it twice to confirm). Your nation leaves the game: its land becomes wilderness, its buildings, ships and attacks disappear, and you can keep watching. Teammates keep fighting.
-- **Rematch**: at the end of a multiplayer game, everyone still in the room can vote for a rematch. A new game starts on the same settings, with a new seed, as soon as all of them agree. Solo games have Play Again.
-- **End of game stats**: the victory and defeat screens chart your share of the land over time against your three strongest rivals, and list your peak and final territory, tiles captured, attacks launched, buildings, nukes launched and nations eliminated. The history is part of the simulation (sampled every 5 seconds), so it survives reconnections and snapshots.
-
-## Research
-
-Press `E` or click the research button next to the gear to open the tree: 24 technologies in four branches (economy, military, navy, strategic), each with four tiers.
-
-- **Queue**: click a technology to queue it with what it requires, up to 5. `Shift` + click researches it first, and a click on a queued one cancels it. Progress is kept.
-- **Doctrines**: the third tier of each branch asks for one choice between two doctrines, marked by a gold edge. Each one has a real drawback and excludes the other for the whole game.
-- **Paying**: a technology is paid little by little while it runs, so it never takes a lump sum. If you hold less than its price, research only takes half of your income and slows down, which always leaves gold for buildings.
-- **Cost**: each tier has a base price and a price in seconds of your income, and you pay the higher one. A large empire therefore pays more, which limits snowballing. The price is locked when the research starts.
-- **Sharing**: a technology known by an ally or a teammate is 20% cheaper, and 15% cheaper once half of the nations know it, so those who fall behind catch up.
-- **Capitals**: losing your capital pauses your research. Capturing a capital steals plans: one technology the victim knows is immediately half researched, and you only pay for the rest.
-- **AI**: on medium and hard, nations research from the 4th minute according to their personality. Tribes and easy nations do not research.
-
-| Tier | Base price | Income share | Time |
-| --- | --- | --- | --- |
-| 1 | 100K | 30 s | 1 min |
-| 2 | 250K | 45 s | 1 min 30 |
-| 3 | 500K | 60 s | 2 min |
-| 4 | 1M | 90 s | 3 min |
-
-Bonuses stay small next to barracks (-25%) or coalitions (20%): at most +11% income, -11% conquest cost and +14% defense along one path. Researching the whole tree takes over half an hour, so a game forces choices. `research_test` enforces these caps and the payback of economic technologies.
-
-## Game Modes and Rules
-
-The **Rules** button in New Game and in the lobby opens the mode and the custom rules. In a lobby only the host can change them; guests can read them. Picking a mode fills in the rules, and changing a rule switches to Custom (or to the mode it now matches).
-
-| Mode | Rules |
-| --- | --- |
-| Classic | The standard rules |
-| Blitz | 60% of the land to win, 20 minute limit, 1M gold, army x5, income x2, 5 s spawn, fast research |
-| Conventional | No nukes, missile silos or SAM launchers |
-| Anarchy | No alliances, pacts or coalitions |
-| Annihilation | 100% of the land: only the last nation standing wins |
-
-| Rule | Values | Effect |
-| --- | --- | --- |
-| Land to win | 50% to 100% | Share of the land that wins the game, for a player or a team |
-| Time limit | None, 10, 20, 30, 60 min | The largest empire or team wins when it runs out; the clock counts down |
-| Starting gold | 0 to 5M | Gold of every player and nation |
-| Starting army | x1, x2, x5, x10 | Multiplies the first troops and workers |
-| Income | x0.5 to x4 | Multiplies the gold earned by workers |
-| Spawn time | 5 to 60 s | Length of the spawn phase |
-| Research | Off, Normal, Fast | Removes the research tree, or doubles its speed |
-| Nukes | On, Off | Removes silos, SAM launchers and nukes, for the AI too |
-| Diplomacy | On, Off | Removes alliances, pacts and coalitions, for the AI too |
-
-The server sanitizes the rules against this list and the simulation enforces them, so every client agrees. The tutorial always uses the classic rules.
-
-## Replays
-
-Every game lasting at least 30 seconds is saved when it ends or when you leave it, in `replays/` in the save directory; the last 20 are kept. The tutorial is not recorded, and neither is a game the client restored from a snapshot, since part of it is missing.
-
-A replay stores the seed, the settings and the frames that carry commands or a state hash, zlib compressed. Since the simulation is deterministic, watching one simply runs the game again from these commands and compares the recorded hashes; a mismatch shows a warning instead of silently diverging. A replay recorded with another network version cannot be opened.
-
-Press **Replays** in the main menu, or **Watch Replay** on the end screen. The whole map is visible, the clock controls pause and speed, and the bar at the bottom jumps 30 seconds or to any point of the timeline. Going back rebuilds the game from the start, so it takes a moment on long games.
-
-## Sound
-
-Every sound is synthesized when the game starts, with no audio file: square, triangle, saw, sine and noise layers shaped by an envelope (`src/modules/audio/synth.lua`), described as recipes in `src/modules/audio/sounds.lua`. The simulation only reports events to an observer, which `src/modules/audio/cues.lua` turns into sounds for the local player, so audio can never affect determinism and the fog stays intact: an enemy nuke is only heard when it explodes within your vision. Set the volume in the Settings screen or from the pause menu.
-
-## Networking
-
-Athena mixes an authoritative tick-lockstep with snapshots. The server owns the game: it runs the full simulation, the AI of every bot and nation, and validates every action.
-
-- **Tick frames**: every tick the server sends `frame { t, c, h }` to every client, even when nobody acted. `c` holds the validated commands of that tick (human intents and the AI decisions taken by the server), `h` a 32-bit state hash every 10 ticks. A client only advances its local simulation when it has the frame for its next tick.
-- **Intents**: clients send intents at any time with a sequence number. The server sanitizes them (types, ranges, ownership) and checks the game rules (enough gold, shared border, ready silo, free spawn tile...). A refused intent is answered with `reject { seq, reason }`, an accepted one comes back inside a frame.
-- **Optimistic UI**: the grid and the troop counters are never predicted. While an intent is in flight the client draws a ghost layer instead: dashed attack, boat and nuke lines, a blinking building on its future tile, and the troop slider at its new value. The ghost disappears when the command is applied from its frame.
-- **Determinism**: AI decisions only run on the server with their own RNG, so clients never need to agree on them. The simulation avoids libm transcendental functions (`src/core/dmath.lua`), breaks ties by tile or id, and never lets iteration order change the result (attack fronts use a hashed jitter instead of the RNG). The state hash combines an incremental XOR hash of the ownership grid with the integer resources of every player. A client whose hash differs asks for a resync.
-- **Catch-up**: the server keeps the last 256 frames. After a short disconnection the client rejoins with the last tick it has and replays the missing frames in a burst, several ticks per rendered frame. If it is too far behind (more than 100 ticks), desynchronized or restarted, the server sends a snapshot instead: the ownership and fallout grids in run-length encoding plus the full game state graph, zlib compressed (about 100 to 200 KB), followed by the frames since that snapshot. Snapshots are cached and rebuilt at most every 200 ticks.
-- **Solo controls**: pause and game speed are server commands, only accepted in games with a single human.
-- **Ping**: the server broadcasts the round-trip time of every room member every 2 seconds. In game, a signal meter next to the clock shows your own ping (hidden in pure solo games), the leaderboard shows a colored dot next to each human player, and the lobby lists everyone's ping.
-
-### LAN games
-
-Turn on **Open to LAN** in New Game and press **Host LAN game**: the local server then listens on your network (UDP 6789) and announces the room every second with a UDP broadcast on port 6788. You land in the lobby, pick the map and start once your friends are in. On the other computers, the **Multiplayer** screen lists the LAN games it hears about; click one to join it directly.
-
-### Lobby
-
-- Pick your color and flag (a country code such as `fr` or `jp`) on the Multiplayer screen; they are used in the lobby and in game. Colors are unique within a room, and clicking your own player chip in the lobby cycles to the next free color.
-- Rooms can be protected by a password typed before creating or joining them; locked rooms show a padlock.
-- Every guest marks themselves ready; the host can only start once everyone is ready, and can kick a player by clicking their chip.
-
-### Chat
-
-- The lobby has a chat box next to the map preview: click it, type and press `Enter`.
-- In game, press `Enter` to open the chat, `Tab` to switch between everyone and your allies, `Enter` to send and `Escape` to cancel. New messages show in the bottom left corner for a few seconds. The chat only appears when the game has more than one human player.
-- The server trims messages to 160 characters, refuses more than 5 messages in 5 seconds, and only delivers ally messages to the sender's allies. It keeps the last 40 public messages of a room, so players who join the lobby or reconnect to a game get the history.
-
-### Dedicated server
-
-```bash
-love . --server --port 6789
-```
-
-The Docker image (`Dockerfile`) and `make standalone-server` package the same server with the simulation and the maps. Players connect from **Multiplayer** in the main menu.
-
-## Pixel Art
-
-Everything on the map is drawn on the tile grid: buildings, rails, ships with their wake, troops marching to the front, combat flashes, nukes with smoke trails, fireballs, mushroom clouds and scorched craters. The interface uses the [Jersey 10](https://fonts.google.com/specimen/Jersey+10) pixel font (SIL Open Font License, see `assets/fonts/OFL.txt`).
-
-## Controls
-
-| Input | Action |
-| --- | --- |
-| Left click | Spawn / attack / send boat |
-| Right click | Context menu |
-| Right drag | Move the camera |
-| Mouse wheel | Zoom |
-| `Space` | Start the game during the spawn phase |
-| `E` | Open the research tree |
-| `P` | Pause |
-| `+` / `-` | Change game speed (x1, x2, x4, x8) |
-| `1` `2` `3` `4` `5` | Toggle terrain, territories, units, names, supply |
-| `Enter` | Open the chat in multiplayer (`Tab` switches between all and allies) |
-| `H` | Controls help |
-| `Escape` | Settings |
-
-Drag a panel by its header to move it. Positions are saved in `hud_config.txt`, and menu choices in `menu_config.txt`, both in the Love2D save directory.
-
-## Command Line
-
-| Flag | Description |
-| --- | --- |
-| `--map assets/maps/europe/` | Map to use with `--autostart` or `--ci` |
-| `--bots 100` | Number of bots (wild tribes) |
-| `--nations on\|off` | Spawn the AI nations listed in the map manifest |
-| `--teams 2` | Number of teams: 2, 3 or 4, or 0 for a free for all |
-| `--difficulty easy\|medium\|hard` | Nation AI difficulty |
-| `--seed 42` | RNG seed |
-| `--autostart` | Skip the menu and start a solo game on the local server |
-| `--mode blitz` | Game mode to use with `--autostart`, `--ci` or `--connect` |
-| `--replay <file>` | Watch a file of the `replays/` save directory |
-| `--server` | Run a headless dedicated server instead of the game |
-| `--port 6789` | Port of the dedicated server |
-| `--connect host:port` | Connect to a server, create a room (or join `--room <id>`, `--room rejoin`) and start it once `--players` players are in |
-| `--autoplay` | The nation AI also plays for you |
-| `--ci` | Headless run: simulate `--ticks` ticks, render one frame, quit (exit code 1 on error) |
-| `--ticks 600` | Number of ticks simulated by `--ci` |
-| `--screenshot shot.png` | Save the `--ci` frame in the Love2D save directory |
-| `--zoom 4` | Zoom on your empire before the `--ci` screenshot |
-| `--frames 600` | Quit after N real frames, printing any error |
-| `--menu` | Render the main menu to a screenshot and quit |
-
-Example soak test:
-
-```bash
-love . --ci --autoplay --ticks 6000 --seed 42 --screenshot shot.png
-```
-
-## Project Structure
-
-```
-├─ main.lua                     # Love2D callbacks, CLI flags, CI mode, --server switch
-├─ conf.lua
-├─ server/                      # Entry point used to package the dedicated server
-├─ assets/
-│  ├─ maps/<name>/              # manifest.json, map.bin, map4x.bin, map16x.bin
-│  ├─ flags/                    # Nation flags
-│  └─ Icons/                    # UI and unit icons
-└─ src/
-   ├─ config/game.lua           # Every balance constant
-   ├─ core/                     # Class, camera, logger, args, env, format, xorshift RNG, hash, dmath
-   ├─ net/                      # Shared protocol: binary codec, intents validation, snapshots
-   ├─ server/                   # Authoritative server: rooms, host, dedicated runner, local thread
-   └─ modules/
-      ├─ index.lua              # Module loader and callback dispatch
-      ├─ session/               # Starts and stops games, camera, world input
-      ├─ menu/                  # Main menu; screens/multiplayer/ holds the connect, browse and lobby phases
-      ├─ map/
-      │  ├─ map.lua             # FFI tile arrays and spatial helpers
-      │  ├─ renderer.lua        # Terrain and territory images
-      │  └─ pathfinding.lua     # Water A* with coarse grid and connectivity components
-      ├─ player/                # Player state and color palette
-      ├─ game/
-      │  ├─ game.lua            # Tick loop, intents, events, ownership changes
-      │  ├─ interaction.lua     # Left click and context menu actions
-      │  ├─ rules.lua           # Game modes and custom rules
-      │  ├─ overlay.lua         # Draws the map overlay from overlay/
-      │  ├─ overlay/            # labels, buildings, radar, nukes, orders, threats, units, battle
-      │  └─ systems/            # spawn, economy, attack, units, ships, rails,
-      │                         # nukes, diplomacy, teams, ai, victory
-      ├─ replay/                # Replay files, recorder and player
-      ├─ audio/                 # Sound synthesizer, recipes and event cues
-      ├─ ai/                    # bot, nation, builder, navy, strategist, diplomat (server only)
-      ├─ multiplayer/           # Connection, local server thread, client tick-lockstep
-      └─ hud/                   # Style, context menu, panels
-```
-
-## Builds
-
-```bash
-make build            # Windows, macOS and Linux
-make build-windows    # or build-macos / build-linux for a single platform
-```
-
-The Makefile downloads [love-build](https://github.com/ellraiser/love-build) for the machine you run it on (macOS or Linux) and writes `Athena-windows.zip` (`Athena.exe`), `Athena-macos.zip` (`Athena.app`, unsigned), `Athena-linux.zip` and `Athena.love` to `dist/<version>/`. Development files (tests, Docker and build tooling) are left out of the packages through the `ignore` list of `build.lua`.
-
-Every packaged game is also a dedicated server: run it with `--server --port 6789` (for example `Athena.exe --server`).
-
-The **Builds** workflow packages every push to `main` and uploads the three archives as workflow artifacts. Pushing a `v*` tag also attaches them to a GitHub release.
-
-## Tests
+## Testing
 
 ```bash
 love . --test                     # or: make test
-love . --test --filter network    # only the cases whose name contains "network"
+love . --test --filter network    # only the matching cases
 ```
 
-The suite runs headless and exits with code 1 when a case fails, so the CI runs it on every push:
+The suite runs headless, and the CI runs it on every push along with a simulated game and a networked one. It covers the binary protocol, determinism between server, clients and snapshots, real ENet clients, balance, the AI, and every system from teams to research. See the [technical guide](docs/TECHNICAL.md#tests).
 
-- `codec_test`, `hash_test`: the binary protocol round-trips values bit for bit, and the incremental ownership hash is order independent.
-- `intents_test`: the server sanitizes intents (sender slot, stripped fields, quantized ratios) and enforces the game rules.
-- `determinism_test`: a server with the AI, a client and two clients restored from snapshots keep the same state hash for 700 ticks; the AI only runs on the authority.
-- `network_test`: real ENet clients against an in-process server follow the frames without desync, get refused intents answered, catch up after a short disconnection and resynchronize or rejoin from a snapshot.
-- `balance_test`: diminishing cities and the housing cap, the factory link limit, the diminishing train income, the administration falloff, the diminishing, land-limited farms and mines, and the indicators of what each structure brings.
-- `ai_test`: AI personalities are the same on the server and every client; AI lenders, pact negotiations, pact notices before an attack, and borrowing and early repayment.
-- `military_test`: bunker shelter and direct hits, submarine stealth, sonar detection, depth charges and torpedoes.
-- `audio_test`: every sound renders audible, bounded and identical each time, events only sound for the local player, and observing the simulation does not change it.
-- `team_test`: team assignment and balance, permanent alliances, refused betrayals, pacts, coalitions and nukes between teammates, shared victory, determinism and snapshots, and picking a side in the lobby.
-- `coalition_test`: coalition founding, invitations, attack and defense bonuses, permanent alliances, desertion, dissolution, server validation and snapshots.
-- `hud_test`: the build bar shows the bound keys, what you can afford and the building being placed; the tutorial steps, navigation and markers.
-- `surrender_test`: land, buildings, ships and attacks of a surrendering player, server validation, last player and team victories, determinism and snapshots.
-- `rematch_test`: votes and cancellations, a fresh synchronized game, a voter left alone, and refusal during a game.
-- `rules_test`: sanitizing and presets, starting resources, income, disabled nukes and diplomacy (AI included), win ratio, time limit, and rules in a real room.
-- `replay_test`: a replay rebuilds the exact game through its file, with rules, teams and a surrender; controls and seeking; games that are not saved, pruning, damaged, foreign and tampered files, and hash mismatches.
-- `research_test`: the catalog and its balance caps, costs, queue, doctrines, payment and slowdown, sharing, stolen plans, effects on every system, the AI, the rule, layout, determinism and snapshots.
-- `lobby_test`: room passwords, unique colors, flags, kicks, the ready check, and the chat (history, sanitizing, rate limit, ally messages).
+## Documentation
 
-## Map Format
+| Guide | Content |
+| --- | --- |
+| [**Gameplay guide**](docs/GAMEPLAY.md) | Every mechanic in detail: economy, war, buildings, diplomacy, research, rules, replays. |
+| [**Technical guide**](docs/TECHNICAL.md) | Networking, command line, project structure, builds, tests and the map format. |
 
-Each byte of `map.bin` is one tile:
+## Contributing
 
-- **Bit 7**: land
-- **Bit 6**: shoreline
-- **Bit 5**: ocean
-- **Bits 0-4**: magnitude (elevation or depth). On land, below 10 is plains, below 20 is highland, and the rest is mountain.
+Issues and pull requests are welcome. Please read the [code of conduct](CODE_OF_CONDUCT.md) first, and run `make test` before opening a pull request.
 
-## Resources
+## Acknowledgements
 
 - [OpenFront.io](https://openfront.io), the original game and the source of the map assets
-- [Love2D](https://love2d.org/)
-- [LuaJIT FFI](https://luajit.org/ext_ffi.html)
+- [LÖVE](https://love2d.org/) and [LuaJIT](https://luajit.org/ext_ffi.html)
+- [Jersey 10](https://fonts.google.com/specimen/Jersey+10), the pixel font of the interface
 
-## Feedback
+## License
 
-If you have feedback or feature requests, open an issue or contact the project author.
+Released under the [MIT License](LICENSE).

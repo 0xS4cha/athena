@@ -30,7 +30,7 @@ function Panel.draw(hud, x, y, w)
     local human = game.human
     local standings = Teams.standings(game)
     local barW = w - PAD * 2
-    local goal = math.floor(barW * Config.winRatio)
+    local goal = math.floor(barW * game.rules.winRatio)
     for k, standing in ipairs(standings) do
         local top = y + Style.headerHeight + 8 + (k - 1) * ROW
         local color = Teams.color(standing.team)

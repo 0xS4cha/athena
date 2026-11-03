@@ -2,6 +2,7 @@ local Style = require("src.modules.hud.style")
 local Format = require("src.core.format")
 local Config = require("src.config.game")
 local Pixel = require("src.modules.hud.pixel")
+local Victory = require("src.modules.game.systems.victory")
 
 local Clock = { id = "clock" }
 
@@ -40,7 +41,9 @@ function Clock.draw(hud, x, y)
     local u = Pixel.unit
     Style.box(x, y, W, H, { corners = true })
     local blink = game.paused and love.timer.getTime() % 1 < 0.5
-    Pixel.text(Format.time(game.tick, Config.tickRate), x + u * 5, y + 7, 15, blink and Style.colors.gold or Style.colors.text, blink and 1 or nil)
+    local left = Victory.timeLeft(game)
+    local urgent = left and left < 60 * Config.tickRate
+    Pixel.text(Format.time(left or game.tick, Config.tickRate), x + u * 5, y + 7, 15, (blink or urgent) and Style.colors.gold or Style.colors.text, blink and 1 or nil)
     local second = (game.tick % Config.tickRate + game.accumulator * Config.tickRate) / Config.tickRate
     Pixel.color(Pixel.colors.ink, 0.8)
     love.graphics.rectangle("fill", x + u * 5, y + H - u * 4, 62, u)

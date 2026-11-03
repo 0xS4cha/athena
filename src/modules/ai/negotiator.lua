@@ -76,7 +76,7 @@ function Negotiator.considerPacts(game, player)
 end
 
 function Negotiator.seekPact(game, player, ctx)
-    if game.teamCount > 0 then return false end
+    if game:sidesFixed() then return false end
     local traits = Personality.of(player)
     local enemies = Negotiator.enemies(game, player)
     local atWar = count(enemies) > 0
@@ -163,7 +163,7 @@ function Negotiator.goal(game, player, ctx)
     if atWar and player:unitCount("barracks") < 2 then
         return "barracks", Units.cost(game, player, "barracks")
     end
-    if game.tick > 3000 and player:unitCount("silo") == 0 and traits.nuclear > 1 then
+    if game.rules.nukes and game.tick > 3000 and player:unitCount("silo") == 0 and traits.nuclear > 1 then
         return "silo", Units.cost(game, player, "silo") * 1.5
     end
     if not player.crowded and traits.greed >= 1 then

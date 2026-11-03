@@ -21,7 +21,7 @@ function BuildBar.entries(game)
     local aim = game.buildAim
     for _, action in ipairs(Keybinds.actions) do
         local key = action.group == "build" and Keybinds.get(action.id)
-        if key then
+        if key and Units.allowed(game, action.kind) then
             list[#list + 1] = {
                 kind = action.kind,
                 icon = action.icon,

@@ -148,7 +148,7 @@ function GM.Multiplayer:setupAutoJoin(flags)
         elseif flags.room and flags.room ~= "new" then
             self:JoinRoom(tonumber(flags.room))
         else
-            self:CreateRoom({ map = flags.map, bots = flags.bots, nations = flags.nations ~= "off", difficulty = flags.difficulty, teams = tonumber(flags.teams) })
+            self:CreateRoom({ map = flags.map, bots = flags.bots, nations = flags.nations ~= "off", difficulty = flags.difficulty, teams = tonumber(flags.teams), rules = { mode = flags.mode } })
         end
     end)
     self:On("room", function(data)
@@ -236,6 +236,7 @@ function GM.Multiplayer:PlaySolo(settings, name)
         autoplay = settings.autoplay,
         tutorial = settings.tutorial,
         teams = settings.teams,
+        rules = settings.rules,
         name = settings.tutorial and "Tutorial" or "Solo",
         autostart = true
     }
@@ -255,6 +256,7 @@ function GM.Multiplayer:HostLan(settings, name)
         nations = settings.nations,
         difficulty = settings.difficulty,
         teams = settings.teams,
+        rules = settings.rules,
         name = (name or "Player") .. "'s LAN game"
     }
     self.error = nil
@@ -510,6 +512,7 @@ function GM.Multiplayer:startGame(data)
             autoplay = settings.autoplay,
             tutorial = settings.tutorial,
             teams = settings.teams,
+            rules = settings.rules,
             seed = data.seed,
             humans = data.players,
             localSlot = data.slot,

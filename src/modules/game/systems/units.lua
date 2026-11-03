@@ -78,9 +78,14 @@ function Units.nearestPort(game, player, tile, kind)
     return best
 end
 
+function Units.allowed(game, kind)
+    return game.rules.nukes or not (kind == "silo" or kind == "sam")
+end
+
 function Units.check(game, player, kind, tile)
     local def = Config.units[kind]
     if not def or def.buildable == false then return false, "Unknown unit" end
+    if not Units.allowed(game, kind) then return false, "Nukes are disabled" end
     if game.phase ~= "playing" or not player.alive then return false, "Not now" end
     local map = game.map
     if def.naval then

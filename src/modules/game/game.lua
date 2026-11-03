@@ -6,6 +6,7 @@ local Player = require("src.modules.player.player")
 local Palette = require("src.modules.player.palette")
 local Random = require("src.core.random")
 local Hash = require("src.core.hash")
+local Rules = require("src.modules.game.rules")
 
 local SystemPaths = {
     "src.modules.game.systems.spawn",
@@ -44,6 +45,7 @@ Game.SystemPaths = SystemPaths
 
 function Game:init(options)
     self.options = options or {}
+    self.rules = Rules.sanitize(not self.options.tutorial and self.options.rules or nil)
     self.seed = self.options.seed or os.time()
     self.rng = Random.new(self.seed)
     self.aiRng = Random.new(self.seed + 7919)
@@ -323,6 +325,12 @@ function Game:checksum()
     h = Hash.combine(h, #(self.units or {}))
     h = Hash.combine(h, #(self.attacks or {}))
     return h
+end
+
+function Game:sidesFixed()
+    if self.teamCount > 0 then return "Teams are fixed" end
+    if not self.rules.diplomacy then return "Diplomacy is disabled" end
+    return nil
 end
 
 function Game:difficulty()

@@ -4,6 +4,7 @@ local Palette = require("src.modules.player.palette")
 local Fx = require("src.modules.hud.fx")
 local UI = require("src.modules.hud.pixel")
 local Teams = require("src.modules.game.systems.teams")
+local Rules = require("src.modules.game.rules")
 
 local Play = { id = "play" }
 
@@ -101,14 +102,15 @@ function Play.build(menu)
             right = function() menu.settings.nations = true end
         },
         {
-            id = "bots", x = cx, y = cy + 108, w = cw, h = 24,
+            id = "bots", x = cx, y = cy + 108, w = half, h = 24,
             drag = function(_, mx)
-                local pct = Fx.clamp((mx - cx) / cw, 0, 1)
+                local pct = Fx.clamp((mx - cx) / half, 0, 1)
                 menu.settings.bots = math.floor(pct * MAX_BOTS / 5 + 0.5) * 5
             end,
             left = function() menu.settings.bots = math.max(0, menu.settings.bots - 10) end,
             right = function() menu.settings.bots = math.min(MAX_BOTS, menu.settings.bots + 10) end
         },
+        { id = "rules", x = cx + half + 24, y = cy + 88, w = cw - half - 24, h = 46, press = function() menu:openRules("play") end },
         {
             id = "difficulty", x = cx, y = cy + 166, w = column, h = 40,
             press = function(_, mx)
@@ -374,6 +376,9 @@ function Play.draw(menu, elements, p)
     local font = Style.font(13)
     UI.text(botsText, bots.x + bots.w - font:getWidth(botsText), bots.y - 30, 13, UI.colors.troops)
     UI.meter("bots", bots.x, bots.y, bots.w, bots.h, s.bots / MAX_BOTS, UI.colors.troops, { knob = true, hot = menu.focus == "bots" or menu.dragging == "bots" })
+
+    local rules = find(elements, "rules")
+    UI.button("rules", rules.x, rules.y, rules.w, rules.h, "RULES", { hot = menu.focus == "rules", icon = "Book.png", size = 14, align = "left", sublabel = Rules.label(menu.rules) })
 
     local difficulty = find(elements, "difficulty")
     UI.text("DIFFICULTY", difficulty.x, difficulty.y - 22, 11, UI.colors.muted)

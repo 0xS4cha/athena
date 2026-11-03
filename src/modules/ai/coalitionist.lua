@@ -91,7 +91,7 @@ function Coalitionist.lead(game, player)
 end
 
 function Coalitionist.found(game, player)
-    if game.teamCount > 0 then return false end
+    if game:sidesFixed() then return false end
     if player.coalition then return false end
     local traits = Personality.of(player)
     if game.aiRng:random() > 0.04 * traits.diplomacy then return false end

@@ -1,5 +1,6 @@
 local Config = require("src.config.game")
 local Personality = require("src.modules.ai.personality")
+local Rules = require("src.modules.game.rules")
 
 local Spawn = {}
 
@@ -69,8 +70,11 @@ function Spawn.place(game, player, tile)
     game:claimDisk(player, x, y, Config.spawnRadius)
     player.spawnTile = tile
     player.spawned = true
-    player.troops = Config.startTroops
-    player.workers = Config.startWorkers
+    player.troops = Config.startTroops * game.rules.startArmy
+    player.workers = Config.startWorkers * game.rules.startArmy
+    if not player:isBot() then
+        player.gold = game.rules.startGold
+    end
     if game.options.tutorial and player:isHuman() then
         player.gold = Config.tutorialGold
     end
@@ -79,7 +83,7 @@ end
 
 function Spawn.setup(game)
     game.phase = "spawn"
-    game.spawnTicksTotal = (game.options.tutorial and Config.tutorialSpawnSeconds or Config.spawnSeconds) * Config.tickRate
+    game.spawnTicksTotal = (game.options.tutorial and Config.tutorialSpawnSeconds or game.rules.spawnSeconds) * Config.tickRate
     game.spawnTicksLeft = game.spawnTicksTotal
     local map = game.map
 
@@ -121,6 +125,10 @@ function Spawn.finish(game)
     end
     game.phase = "playing"
     game:addEvent("The game has started. Expand your territory!", { color = { 0.3, 0.85, 0.45, 1 } })
+    local summary = Rules.summary(game.rules)
+    if summary then
+        game:addEvent(summary, { color = { 1, 0.82, 0.25, 1 }, duration = 300 })
+    end
     game:emit("started")
 end
 

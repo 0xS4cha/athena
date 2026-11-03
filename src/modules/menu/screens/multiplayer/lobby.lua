@@ -6,6 +6,7 @@ local Play = require("src.modules.menu.screens.play")
 local Palette = require("src.modules.player.palette")
 local ChatLog = require("src.modules.hud.chatlog")
 local Teams = require("src.modules.game.systems.teams")
+local Rules = require("src.modules.game.rules")
 
 local net, find, mapByPath = Common.net, Common.find, Common.mapByPath
 local ROW = Common.ROW
@@ -26,7 +27,7 @@ local function difficultyIndex(difficulty)
 end
 
 local function settingsKey(s)
-    return string.format("%s|%d|%s|%s|%d", tostring(s.map), s.bots or 0, tostring(s.nations), tostring(s.difficulty), s.teams or 0)
+    return string.format("%s|%d|%s|%s|%d|%s", tostring(s.map), s.bots or 0, tostring(s.nations), tostring(s.difficulty), s.teams or 0, Rules.encode(Rules.sanitize(s.rules)))
 end
 
 local function roomSettings(menu)
@@ -173,6 +174,8 @@ function Lobby.update(menu)
         menu.settings.nations = s.nations
         menu.settings.difficulty = s.difficulty
         menu.settings.teams = s.teams or 0
+        menu.rules = Rules.sanitize(s.rules)
+        menu.settings.rules = Rules.encode(menu.rules)
         menu.syncedKey = settingsKey(s)
     end
     local settings = Common.hostSettings(menu)
@@ -265,9 +268,10 @@ function Lobby.build(menu, l, add)
         press = function() menu.editing = "chat" end,
         text = function(_, text) menu.chatText = ChatLog.edit(menu.chatText or "", text) end
     })
-    local third = math.floor((cw - 24) / 3)
+    local third = math.floor((cw - 48) / 3)
     add({ id = "leave", x = cx, y = cy + 222, w = third, h = 58, press = function() net():LeaveRoom() end })
-    add({ id = "start", x = cx + third + 24, y = cy + 222, w = cw - third - 24, h = 58, press = function()
+    add({ id = "rules", x = cx + third + 24, y = cy + 222, w = third, h = 58, press = function() menu:openRules("multiplayer") end })
+    add({ id = "start", x = cx + (third + 24) * 2, y = cy + 222, w = cw - (third + 24) * 2, h = 58, press = function()
         if net():IsHost() then net():StartGame() else toggleReady() end
     end })
 end
@@ -395,6 +399,8 @@ function Lobby.draw(menu, elements, l, e)
 
     local leave = find(elements, "leave")
     UI.button("leave", leave.x, leave.y, leave.w, leave.h, "LEAVE", { hot = menu.focus == "leave", icon = "Exit.png", size = 16, color = UI.colors.bad })
+    local rules = find(elements, "rules")
+    UI.button("rules", rules.x, rules.y, rules.w, rules.h, "RULES", { hot = menu.focus == "rules", icon = "Book.png", size = 16, align = "left", sublabel = Rules.label(s.rules) })
     local start = find(elements, "start")
     if host then
         local all, ready, count = mp:AllReady()

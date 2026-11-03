@@ -131,10 +131,10 @@ local RULES = {
         if not ok then return reason end
     end,
     allianceRequest = function(game)
-        if game.teamCount > 0 then return "Teams are fixed" end
+        return game:sidesFixed()
     end,
     pactRequest = function(game)
-        if game.teamCount > 0 then return "Teams are fixed" end
+        return game:sidesFixed()
     end,
     allianceBreak = function(game, player, intent)
         if player:isTeammate(game.players[intent.target]) then return "Teammate" end

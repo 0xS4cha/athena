@@ -66,6 +66,7 @@ end
 
 function Coalitions.canFound(game, founder, kind, other)
     if game.teamCount > 0 then return false, "Team game" end
+    if not game.rules.diplomacy then return false, "Diplomacy is disabled" end
     if game.phase ~= "playing" or not founder.alive then return false, "Not now" end
     if founder.coalition then return false, "Already in a coalition" end
     if not other or other == founder or not other.alive or other:isBot() then return false, "Unavailable" end
@@ -79,6 +80,7 @@ end
 
 function Coalitions.canJoin(game, coalition, player)
     if game.teamCount > 0 then return false, "Team game" end
+    if not game.rules.diplomacy then return false, "Diplomacy is disabled" end
     if not player.alive or player:isBot() then return false, "Unavailable" end
     if player.coalition then return false, "Already in a coalition" end
     if #coalition.members >= Config.coalitionMaxMembers then return false, "Coalition full" end

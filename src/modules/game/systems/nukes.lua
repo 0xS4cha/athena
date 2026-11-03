@@ -43,6 +43,7 @@ end
 function Nukes.check(game, player, kind, tile)
     local def = Config.nukes[kind]
     if not def then return false, "Unknown" end
+    if not game.rules.nukes then return false, "Nukes are disabled" end
     if game.phase ~= "playing" or not player.alive then return false, "Not now" end
     if player:unitCount("silo") == 0 then return false, "Needs silo" end
     if not Nukes.readySilo(game, player, tile) then return false, "Reloading" end

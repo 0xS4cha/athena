@@ -28,7 +28,7 @@ end
 function Common.hostSettings(menu)
     local map = menu:current()
     local s = menu.settings
-    return { map = map and map.path, bots = s.bots, nations = s.nations, difficulty = s.difficulty, teams = s.teams }
+    return { map = map and map.path, bots = s.bots, nations = s.nations, difficulty = s.difficulty, teams = s.teams, rules = menu.rules }
 end
 
 function Common.find(elements, id)

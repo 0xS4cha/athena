@@ -32,7 +32,7 @@ function Economy.housingCapacity(player)
 end
 
 function Economy.goldRate(game, player)
-    local rate = math.sqrt(math.max(0, player.workers) * player.tiles) / Config.goldDivisor * (player.administration or 1)
+    local rate = math.sqrt(math.max(0, player.workers) * player.tiles) / Config.goldDivisor * (player.administration or 1) * game.rules.income
     if player:isBot() then
         rate = rate * Config.botGoldFactor
     elseif player:isNation() then

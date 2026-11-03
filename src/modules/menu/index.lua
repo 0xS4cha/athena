@@ -6,13 +6,14 @@ local Config = require("src.config.game")
 local Fx = require("src.modules.hud.fx")
 local UI = require("src.modules.hud.pixel")
 local Background = require("src.modules.menu.background")
+local Rules = require("src.modules.game.rules")
 
 GM.Menu = {}
 
 GM.Modules:Register("Menu", 90)
 
 local CONFIG_FILE = "menu_config.txt"
-local SETTING_KEYS = { "map", "bots", "nations", "difficulty", "lan", "name", "color", "flag", "server", "fullscreen", "vsync", "background", "battleSpeed", "particles", "advancedEvents", "soundVolume", "teams" }
+local SETTING_KEYS = { "map", "bots", "nations", "difficulty", "lan", "name", "color", "flag", "server", "fullscreen", "vsync", "background", "battleSpeed", "particles", "advancedEvents", "soundVolume", "teams", "rules" }
 local SWITCH_IN = 0.6
 local SWITCH_OUT = 0.22
 local WIPE_SECONDS = 0.65
@@ -24,7 +25,8 @@ local Screens = {
     multiplayer = require("src.modules.menu.screens.multiplayer"),
     settings = require("src.modules.menu.screens.settings"),
     keybinds = require("src.modules.menu.screens.keybinds"),
-    howto = require("src.modules.menu.screens.howto")
+    howto = require("src.modules.menu.screens.howto"),
+    rules = require("src.modules.menu.screens.rules")
 }
 
 function GM.Menu:Initialize()
@@ -52,9 +54,11 @@ function GM.Menu:Initialize()
         particles = true,
         advancedEvents = false,
         soundVolume = 4,
-        teams = 0
+        teams = 0,
+        rules = ""
     }
     self:loadSettings()
+    self.rules = Rules.decode(self.settings.rules)
     self.background = Background()
     self.embers = Fx.embers(EMBERS)
     self.screen = "root"
@@ -125,6 +129,17 @@ function GM.Menu:saveSettings()
         lines[#lines + 1] = key .. "=" .. tostring(self.settings[key])
     end
     love.filesystem.write(CONFIG_FILE, table.concat(lines, "\n") .. "\n")
+end
+
+function GM.Menu:setRules(rules)
+    self.rules = rules
+    self.settings.rules = Rules.encode(rules)
+    self:saveSettings()
+end
+
+function GM.Menu:openRules(back)
+    self.rulesBack = back
+    self:switch("rules", 1)
 end
 
 function GM.Menu:applyDisplay()
@@ -288,7 +303,7 @@ function GM.Menu:start()
     self:saveSettings()
     self.launchError = nil
     local s = self.settings
-    local settings = { map = s.map, bots = s.bots, nations = s.nations, difficulty = s.difficulty, teams = s.teams }
+    local settings = { map = s.map, bots = s.bots, nations = s.nations, difficulty = s.difficulty, teams = s.teams, rules = self.rules }
     local name = s.name ~= "" and s.name or "Player"
     if s.lan then
         GM.Multiplayer:HostLan(settings, name)

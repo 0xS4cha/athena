@@ -57,7 +57,7 @@ function Diplomacy.betray(game, traitor, victim)
 end
 
 function Diplomacy.request(game, from, to)
-    if game.teamCount > 0 or from == to or not to.alive or from:isAlliedWith(to) or to:isBot() then return end
+    if game:sidesFixed() or from == to or not to.alive or from:isAlliedWith(to) or to:isBot() then return end
     if from.allianceRequests[to.id] then
         Diplomacy.reply(game, from, to, true)
         return
@@ -121,7 +121,7 @@ function Diplomacy.dissolvePact(game, a, b)
 end
 
 function Diplomacy.requestPact(game, from, to)
-    if game.teamCount > 0 or from == to or not to.alive or to:isBot() or from:isAlliedWith(to) or from:hasPact(to) then return end
+    if game:sidesFixed() or from == to or not to.alive or to:isBot() or from:isAlliedWith(to) or from:hasPact(to) then return end
     if from.pactRequests[to.id] then
         Diplomacy.replyPact(game, from, to, true)
         return

@@ -71,7 +71,9 @@ end
 function Interaction.buildItems(game, tile)
     local items = {}
     for _, kind in ipairs(Config.buildMenu) do
-        items[#items + 1] = Interaction.unitItem(game, kind, tile)
+        if Units.allowed(game, kind) then
+            items[#items + 1] = Interaction.unitItem(game, kind, tile)
+        end
     end
     return items
 end
@@ -200,7 +202,7 @@ Interaction.sections[#Interaction.sections + 1] = function(game, tile, items)
                 action = function() game:submit({ type = "allianceBreak", player = human.id, target = target.id }) end
             }
         end
-    elseif not target:isBot() and game.teamCount == 0 then
+    elseif not target:isBot() and not game:sidesFixed() then
         Interaction.pactItem(game, target, items)
         local pending = target.allianceRequests[human.id] ~= nil
         local incoming = human.allianceRequests[target.id] ~= nil
@@ -221,7 +223,7 @@ Interaction.sections[#Interaction.sections + 1] = function(game, tile, items)
     end
     if not target:isBot() then
         Interaction.loanItems(game, target, items)
-        if game.teamCount == 0 then
+        if not game:sidesFixed() then
             Interaction.coalitionItems(game, target, items)
         end
     end

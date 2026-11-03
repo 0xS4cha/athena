@@ -25,7 +25,7 @@ local function considerRequests(game, player)
 end
 
 local function seekAlliance(game, player, ctx)
-    if game.teamCount > 0 or Diplomacy.allianceCount(player) >= Config.maxAllies or game.aiRng:random() > 0.12 * Personality.of(player).diplomacy then return false end
+    if game:sidesFixed() or Diplomacy.allianceCount(player) >= Config.maxAllies or game.aiRng:random() > 0.12 * Personality.of(player).diplomacy then return false end
     for _, other in ipairs(ctx.neighbors) do
         if not other:isBot() and not player:isAlliedWith(other) and not other.allianceRequests[player.id]
             and player:relation(other) >= 0 and (player:relation(other) > 20 or other.troops > player.troops * 0.8)

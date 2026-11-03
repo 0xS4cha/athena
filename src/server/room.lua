@@ -7,6 +7,7 @@ local Intents = require("src.net.intents")
 local Snapshot = require("src.net.snapshot")
 local Game = require("src.modules.game.game")
 local Text = require("src.core.text")
+local Rules = require("src.modules.game.rules")
 
 local Room = Class()
 
@@ -35,7 +36,8 @@ local function sanitize(settings)
         difficulty = DIFFICULTIES[settings.difficulty] and settings.difficulty or "medium",
         autoplay = settings.autoplay == true,
         tutorial = settings.tutorial == true,
-        teams = settings.tutorial == true and 0 or Teams.validCount(settings.teams)
+        teams = settings.tutorial == true and 0 or Teams.validCount(settings.teams),
+        rules = Rules.sanitize(settings.tutorial ~= true and settings.rules or nil)
     }
 end
 
@@ -381,6 +383,7 @@ function Room:launch()
         autoplay = self.settings.autoplay,
         tutorial = self.settings.tutorial,
         teams = self.settings.teams,
+        rules = self.settings.rules,
         seed = self.seed,
         humans = self:players(),
         headless = true,

@@ -19,6 +19,13 @@ function Victory.started(game)
         if standing.alive > 0 then teams = teams + 1 end
     end
     game.startingTeams = teams
+    game.startedTick = game.tick
+end
+
+function Victory.timeLeft(game)
+    local limit = game.rules.timeLimit
+    if limit <= 0 or not game.startedTick then return nil end
+    return math.max(0, game.startedTick + limit * 60 * Config.tickRate - game.tick)
 end
 
 function Victory.won(game, player)
@@ -57,7 +64,7 @@ local function stepTeams(game, land)
         if standing.alive > 0 then
             remaining = remaining + 1
             last = standing.team
-            if standing.tiles / land >= Config.winRatio then
+            if standing.tiles / land >= game.rules.winRatio then
                 declareTeam(game, standing.team)
                 return true
             end
@@ -70,9 +77,36 @@ local function stepTeams(game, land)
     return remaining > 0
 end
 
+local function declareLeader(game)
+    if Teams.enabled(game) then
+        local best
+        for _, standing in ipairs(Teams.standings(game)) do
+            if standing.alive > 0 and (not best or standing.tiles > best.tiles) then
+                best = standing
+            end
+        end
+        if best then
+            declareTeam(game, best.team)
+            return true
+        end
+    end
+    local leader
+    for _, player in ipairs(game.players) do
+        if player.alive and player.spawned and (not leader or player.tiles > leader.tiles) then
+            leader = player
+        end
+    end
+    if leader then
+        Victory.declare(game, leader)
+        return true
+    end
+    return false
+end
+
 function Victory.step(game)
     if game.phase ~= "playing" or game.tick % Config.victoryCheckTicks ~= 0 then return end
     local land = game.map.landCount
+    if Victory.timeLeft(game) == 0 and declareLeader(game) then return end
     local alive = 0
     local last
     local human = game.human
@@ -84,7 +118,7 @@ function Victory.step(game)
         if player.alive and player.spawned then
             alive = alive + 1
             last = player
-            if player.tiles / land >= Config.winRatio then
+            if player.tiles / land >= game.rules.winRatio then
                 Victory.declare(game, player)
                 return
             end

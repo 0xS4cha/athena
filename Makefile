@@ -45,12 +45,10 @@ $(APPIMAGETOOL):
 
 standalone: fclean build $(APPIMAGETOOL)
 	@rm -rf $(BUILD_DIR)/$(PROJECT_NAME).AppDir
-	@mkdir -p $(BUILD_DIR)
-	@unzip -q -o $(DIST_DIR)/$(VERSION)/$(APP_NAME)-linux.zip -d $(BUILD_DIR)/$(PROJECT_NAME).AppDir
-	@chmod -R u+rwX $(BUILD_DIR)/$(PROJECT_NAME).AppDir
-	
 	@mkdir -p $(BUILD_DIR)/$(PROJECT_NAME).AppDir/lib
-	@chmod +x $(BUILD_DIR)/$(PROJECT_NAME).AppDir/AppRun $(BUILD_DIR)/$(PROJECT_NAME).AppDir/bin/*
+	@unzip -q -o $(DIST_DIR)/$(VERSION)/$(APP_NAME)-linux.zip -d $(BUILD_DIR)/$(PROJECT_NAME).AppDir
+	@chmod -R u+rwX,go+rX,go-w $(BUILD_DIR)/$(PROJECT_NAME).AppDir
+	@chmod a+rx $(BUILD_DIR)/$(PROJECT_NAME).AppDir/AppRun $(BUILD_DIR)/$(PROJECT_NAME).AppDir/bin/*
 	@ARCH=x86_64 ./$(APPIMAGETOOL) $(BUILD_DIR)/$(PROJECT_NAME).AppDir ./$(PROJECT_NAME)
 	@chmod +x ./$(PROJECT_NAME)
 	@$(MAKE) --no-print-directory standalone-server
@@ -70,7 +68,8 @@ standalone-server: $(APPIMAGETOOL)
 	@cat $(BUILD_DIR)/$(SERVER_NAME).love >> $(BUILD_DIR)/$(SERVER_NAME).AppDir/bin/$(SERVER_NAME)
 	@sed -i 's|bin/$(APP_NAME)"|bin/$(SERVER_NAME)"|' $(BUILD_DIR)/$(SERVER_NAME).AppDir/AppRun
 	@sed -i -e 's|^Name=.*|Name=$(SERVER_NAME)|' -e 's|^Exec=.*|Exec=$(SERVER_NAME) %f|' -e 's|^Terminal=.*|Terminal=true|' $(BUILD_DIR)/$(SERVER_NAME).AppDir/love.desktop
-	@chmod +x $(BUILD_DIR)/$(SERVER_NAME).AppDir/AppRun $(BUILD_DIR)/$(SERVER_NAME).AppDir/bin/*
+	@chmod -R u+rwX,go+rX,go-w $(BUILD_DIR)/$(SERVER_NAME).AppDir
+	@chmod a+rx $(BUILD_DIR)/$(SERVER_NAME).AppDir/AppRun $(BUILD_DIR)/$(SERVER_NAME).AppDir/bin/*
 	@ARCH=x86_64 ./$(APPIMAGETOOL) $(BUILD_DIR)/$(SERVER_NAME).AppDir ./$(SERVER_NAME)
 	@chmod +x ./$(SERVER_NAME)
 

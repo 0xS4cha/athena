@@ -45,7 +45,7 @@ love .
 
 ## Gameplay
 
-New to the game? Press **Tutorial** in the main menu: it starts a solo game on Iceland against a few easy tribes, with a longer spawn phase and enough gold for a first city and a military port. A panel walks you through 17 steps in four chapters (basics, economy, war and the wider world). Steps that ask for an action complete on their own as soon as you do it and can be skipped; the others wait for **Next** or `Enter`, and **Back** returns to an earlier step. A gold arrow points at the place to click and a gold frame surrounds the panel being explained. The main menu remembers once you have finished it.
+New to the game? Press **Tutorial** in the main menu: it starts a solo game on Iceland against a few easy tribes, with a longer spawn phase and enough gold for a first city and a military port. A panel walks you through 18 steps in four chapters (basics, economy, war and the wider world). Steps that ask for an action complete on their own as soon as you do it and can be skipped; the others wait for **Next** or `Enter`, and **Back** returns to an earlier step. A gold arrow points at the place to click and a gold frame surrounds the panel being explained. The main menu remembers once you have finished it.
 
 - **Spawn phase**: click anywhere on land to choose your starting location, then press `Space` or wait for the countdown.
 - **Population**: your maximum population grows with your territory and your cities. Growth is fastest when you are far from the cap.
@@ -112,6 +112,27 @@ New to the game? Press **Tutorial** in the main menu: it starts a solo game on I
 - **Rematch**: at the end of a multiplayer game, everyone still in the room can vote for a rematch. A new game starts on the same settings, with a new seed, as soon as all of them agree. Solo games have Play Again.
 - **End of game stats**: the victory and defeat screens chart your share of the land over time against your three strongest rivals, and list your peak and final territory, tiles captured, attacks launched, buildings, nukes launched and nations eliminated. The history is part of the simulation (sampled every 5 seconds), so it survives reconnections and snapshots.
 
+## Research
+
+Press `E` or click the research button next to the gear to open the tree: 24 technologies in four branches (economy, military, navy, strategic), each with four tiers.
+
+- **Queue**: click a technology to queue it with what it requires, up to 5. `Shift` + click researches it first, and a click on a queued one cancels it. Progress is kept.
+- **Doctrines**: the third tier of each branch asks for one choice between two doctrines, marked by a gold edge. Each one has a real drawback and excludes the other for the whole game.
+- **Paying**: a technology is paid little by little while it runs, so it never takes a lump sum. If you hold less than its price, research only takes half of your income and slows down, which always leaves gold for buildings.
+- **Cost**: each tier has a base price and a price in seconds of your income, and you pay the higher one. A large empire therefore pays more, which limits snowballing. The price is locked when the research starts.
+- **Sharing**: a technology known by an ally or a teammate is 20% cheaper, and 15% cheaper once half of the nations know it, so those who fall behind catch up.
+- **Capitals**: losing your capital pauses your research. Capturing a capital steals plans: one technology the victim knows is immediately half researched, and you only pay for the rest.
+- **AI**: on medium and hard, nations research from the 4th minute according to their personality. Tribes and easy nations do not research.
+
+| Tier | Base price | Income share | Time |
+| --- | --- | --- | --- |
+| 1 | 100K | 30 s | 1 min |
+| 2 | 250K | 45 s | 1 min 30 |
+| 3 | 500K | 60 s | 2 min |
+| 4 | 1M | 90 s | 3 min |
+
+Bonuses stay small next to barracks (-25%) or coalitions (20%): at most +11% income, -11% conquest cost and +14% defense along one path. Researching the whole tree takes over half an hour, so a game forces choices. `research_test` enforces these caps and the payback of economic technologies.
+
 ## Game Modes and Rules
 
 The **Rules** button in New Game and in the lobby opens the mode and the custom rules. In a lobby only the host can change them; guests can read them. Picking a mode fills in the rules, and changing a rule switches to Custom (or to the mode it now matches).
@@ -119,7 +140,7 @@ The **Rules** button in New Game and in the lobby opens the mode and the custom 
 | Mode | Rules |
 | --- | --- |
 | Classic | The standard rules |
-| Blitz | 60% of the land to win, 20 minute limit, 1M gold, army x5, income x2, 5 s spawn |
+| Blitz | 60% of the land to win, 20 minute limit, 1M gold, army x5, income x2, 5 s spawn, fast research |
 | Conventional | No nukes, missile silos or SAM launchers |
 | Anarchy | No alliances, pacts or coalitions |
 | Annihilation | 100% of the land: only the last nation standing wins |
@@ -132,6 +153,7 @@ The **Rules** button in New Game and in the lobby opens the mode and the custom 
 | Starting army | x1, x2, x5, x10 | Multiplies the first troops and workers |
 | Income | x0.5 to x4 | Multiplies the gold earned by workers |
 | Spawn time | 5 to 60 s | Length of the spawn phase |
+| Research | Off, Normal, Fast | Removes the research tree, or doubles its speed |
 | Nukes | On, Off | Removes silos, SAM launchers and nukes, for the AI too |
 | Diplomacy | On, Off | Removes alliances, pacts and coalitions, for the AI too |
 
@@ -198,6 +220,7 @@ Everything on the map is drawn on the tile grid: buildings, rails, ships with th
 | Right drag | Move the camera |
 | Mouse wheel | Zoom |
 | `Space` | Start the game during the spawn phase |
+| `E` | Open the research tree |
 | `P` | Pause |
 | `+` / `-` | Change game speed (x1, x2, x4, x8) |
 | `1` `2` `3` `4` `5` | Toggle terrain, territories, units, names, supply |
@@ -313,6 +336,7 @@ The suite runs headless and exits with code 1 when a case fails, so the CI runs 
 - `rematch_test`: votes and cancellations, a fresh synchronized game, a voter left alone, and refusal during a game.
 - `rules_test`: sanitizing and presets, starting resources, income, disabled nukes and diplomacy (AI included), win ratio, time limit, and rules in a real room.
 - `replay_test`: a replay rebuilds the exact game through its file, with rules, teams and a surrender; controls and seeking; games that are not saved, pruning, damaged, foreign and tampered files, and hash mismatches.
+- `research_test`: the catalog and its balance caps, costs, queue, doctrines, payment and slowdown, sharing, stolen plans, effects on every system, the AI, the rule, layout, determinism and snapshots.
 - `lobby_test`: room passwords, unique colors, flags, kicks, the ready check, and the chat (history, sanitizing, rate limit, ally messages).
 
 ## Map Format

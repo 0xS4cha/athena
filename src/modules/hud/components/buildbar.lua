@@ -39,6 +39,17 @@ function BuildBar.visible(hud)
     return game.phase == "playing" and game.human.alive and not game.options.spectator and not hud.spectating
 end
 
+function BuildBar.bounds(game)
+    local font = Style.font(KEY_FONT)
+    local h = ICON + font:getHeight() + 6
+    local _, H = love.graphics.getDimensions()
+    local w = 0
+    for _, entry in ipairs(BuildBar.entries(game)) do
+        w = w + math.max(CELL, font:getWidth(entry.key) + 6) + GAP
+    end
+    return LEFT, H - h - BOTTOM, math.max(0, w - GAP), h
+end
+
 function BuildBar.draw(hud)
     local game = hud:game()
     local font = Style.font(KEY_FONT)

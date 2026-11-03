@@ -31,7 +31,7 @@ function Root.build(menu)
     local list = {
         { id = "play", label = "PLAY", sublabel = summary, icon = "Play.png", primary = true, h = 74, press = function() menu:switch("play", 1) end },
         { id = "multiplayer", label = "MULTIPLAYER", icon = "Team.png", h = 46, press = function() menu:switch("multiplayer", 1) end },
-        { id = "tutorial", label = "TUTORIAL", icon = "Lightbulb.png", h = 46, press = function() menu:startTutorial() end },
+        { id = "tutorial", label = "TUTORIAL", sublabel = s.tutorialDone and "Completed" or nil, icon = "Lightbulb.png", h = 46, press = function() menu:startTutorial() end },
         { id = "replays", label = "REPLAYS", icon = "Eye.png", h = 46, press = function() menu:switch("replays", 1) end },
         { id = "howto", label = "HOW TO PLAY", icon = "Book.png", h = 46, press = function() menu:switch("howto", 1) end },
         { id = "settings", label = "SETTINGS", icon = "Gear.png", h = 46, press = function() menu:switch("settings", 1) end },

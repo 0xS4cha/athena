@@ -179,6 +179,15 @@ function Host:bind()
         end
     end)
 
+    server:On("rematch", function(client, data)
+        local room = client.room
+        if not room then return end
+        local ok, err = room:Rematch(client, type(data) ~= "table" or data.vote)
+        if not ok then
+            client:Send("error", { message = err })
+        end
+    end)
+
     server:On("intent", function(client, data)
         if client.room then
             client.room:Queue(client, data)

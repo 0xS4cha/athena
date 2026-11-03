@@ -257,6 +257,10 @@ function Room:Remove(client)
         end
     end
     client.slot = nil
+    client.rematch = nil
+    if self.state == "ended" and #self.members > 0 then
+        self:checkRematch()
+    end
 end
 
 function Room:Expired(now)
@@ -360,6 +364,10 @@ function Room:Start(client)
             return false, "Waiting for every player to be ready"
         end
     end
+    return self:launch()
+end
+
+function Room:launch()
     self.seed = math.random(1, 2147483646)
     for slot, member in ipairs(self.members) do
         member.slot = slot
@@ -392,6 +400,58 @@ function Room:Start(client)
         self:sendStart(member, false)
     end
     Logger:info("room", string.format("Room %s started with %d players (seed %d)", self.id, #self.slots, self.seed))
+    return true
+end
+
+function Room:reset()
+    self.state = "lobby"
+    self.seed = nil
+    self.game = nil
+    self.slots = {}
+    self.pending = {}
+    self.commands = {}
+    self.frames = {}
+    self.snapshot = nil
+    self.paused = false
+    self.speedIndex = 1
+    self.accumulator = 0
+    for _, member in ipairs(self.members) do
+        member.slot = nil
+        member.synced = false
+        member.ready = false
+        member.rematch = nil
+        member.tickIntents = 0
+    end
+end
+
+function Room:RematchVotes()
+    local votes = 0
+    for _, member in ipairs(self.members) do
+        if member.rematch then votes = votes + 1 end
+    end
+    return votes, #self.members
+end
+
+function Room:checkRematch()
+    local votes, total = self:RematchVotes()
+    if votes == 0 or votes < total then
+        self:Broadcast("rematch", { votes = votes, total = total })
+        return
+    end
+    self:reset()
+    local ok, err = self:launch()
+    if not ok then
+        self:Broadcast("error", { message = err })
+        self:Broadcast("room", self:Info())
+    end
+end
+
+function Room:Rematch(client, vote)
+    if self.state ~= "ended" or not client.slot then
+        return false, "The game is not over"
+    end
+    client.rematch = vote ~= false
+    self:checkRematch()
     return true
 end
 

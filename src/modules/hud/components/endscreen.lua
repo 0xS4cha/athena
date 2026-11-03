@@ -63,6 +63,16 @@ local function buttons(hud)
             end
         }
     end
+    if game.lockstep and not game.lockstep:canControl() and GM.Multiplayer:CanRematch() then
+        local rematch = GM.Multiplayer.rematch
+        local progress = rematch.total > 0 and string.format("  %d/%d", rematch.votes, rematch.total) or ""
+        list[#list + 1] = {
+            label = (rematch.voted and "Cancel Rematch" or "Rematch") .. progress,
+            icon = "Restart.png",
+            primary = not rematch.voted,
+            action = function() GM.Multiplayer:ToggleRematch() end
+        }
+    end
     if GM.Menu then
         list[#list + 1] = {
             label = "Main Menu",

@@ -50,6 +50,7 @@ function GM.Multiplayer:Initialize()
     self.slotPings = {}
     self.password = nil
     self.chat = {}
+    self.rematch = { votes = 0, total = 0, voted = false }
 
     self:On("welcome", function(data)
         self.id = data.id
@@ -127,6 +128,10 @@ function GM.Multiplayer:Initialize()
     end)
     self:On("ended", function(data)
         if self.lockstep then self.lockstep:serverEnded(data) end
+    end)
+    self:On("rematch", function(data)
+        self.rematch.votes = tonumber(data.votes) or 0
+        self.rematch.total = tonumber(data.total) or 0
     end)
     self:On("control", function(data)
         if self.lockstep then self.lockstep:applyControls(data) end
@@ -446,6 +451,16 @@ function GM.Multiplayer:LeaveGame(lockstep)
     end
 end
 
+function GM.Multiplayer:CanRematch()
+    return self.state == "online" and self.lockstep ~= nil and self.lockstep.finished
+end
+
+function GM.Multiplayer:ToggleRematch()
+    local rematch = self.rematch
+    rematch.voted = not rematch.voted
+    return self:Send("rematch", { vote = rematch.voted })
+end
+
 function GM.Multiplayer:StartGame()
     return self:Send("start")
 end
@@ -478,6 +493,7 @@ function GM.Multiplayer:startGame(data)
     self.reconnects = 0
     self.room = nil
     self.solo = nil
+    self.rematch = { votes = 0, total = 0, voted = false }
 
     local lockstep = Lockstep(self, { room = data.room, slot = data.slot, hashTicks = data.hashTicks, controls = data.controls })
     self.lockstep = lockstep

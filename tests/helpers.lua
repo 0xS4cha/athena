@@ -107,6 +107,8 @@ function Client:handle(kind, data)
         self.chats[#self.chats + 1] = data
     elseif kind == "chatlog" then
         self.chatlog = data.messages
+    elseif kind == "rematch" then
+        self.rematch = data
     elseif kind == "kicked" then
         self.kicked = true
         self.roomInfo = nil

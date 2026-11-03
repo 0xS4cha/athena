@@ -15,7 +15,8 @@ local SUITES = {
     "tests.coalition_test",
     "tests.team_test",
     "tests.military_test",
-    "tests.surrender_test"
+    "tests.surrender_test",
+    "tests.rematch_test"
 }
 
 local function run(filter)

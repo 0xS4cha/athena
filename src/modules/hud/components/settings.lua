@@ -11,6 +11,7 @@ local WIDTH = 320
 local BUTTON_H = 44
 local GAP = 12
 local TOP = 64
+local CONFIRM_SECONDS = 4
 
 local function buttons(hud)
     local list = {
@@ -31,6 +32,25 @@ local function buttons(hud)
             label = "Advanced Events: " .. (advanced and "On" or "Off"),
             icon = "Book.png",
             action = function() GM.Menu:setOption("advancedEvents", not advanced) end
+        }
+    end
+    local game = hud:game()
+    local human = game.human
+    if human and human.alive and game.phase == "playing" and not game.options.spectator then
+        local armed = hud.surrenderAt and love.timer.getTime() - hud.surrenderAt < CONFIRM_SECONDS
+        list[#list + 1] = {
+            label = armed and "Confirm Surrender?" or "Surrender",
+            icon = "Skull.png",
+            danger = true,
+            action = function()
+                if armed then
+                    hud.surrenderAt = nil
+                    hud.settingsOpen = false
+                    game:submit({ type = "surrender", player = human.id })
+                else
+                    hud.surrenderAt = love.timer.getTime()
+                end
+            end
         }
     end
     if GM.Menu then

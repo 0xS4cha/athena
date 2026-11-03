@@ -101,4 +101,23 @@ function Victory.eliminated(game, player)
     end
 end
 
+function Victory.surrender(game, player)
+    if game.phase ~= "playing" or not player or not player.alive then return end
+    player.surrendered = true
+    game:eliminate(player)
+    local map = game.map
+    local owner = map.owner
+    for i = 0, map.size - 1 do
+        if owner[i] == player.id then
+            game:setOwner(i, 0)
+        end
+    end
+end
+
+Victory.intents = {
+    surrender = function(game, intent)
+        Victory.surrender(game, game.players[intent.player])
+    end
+}
+
 return Victory

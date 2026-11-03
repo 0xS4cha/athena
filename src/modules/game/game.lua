@@ -198,9 +198,10 @@ function Game:eliminate(player, by)
     player.workers = 0
     self:emit("eliminated", player, by)
     if player == self.human then
-        self:addEvent("You have been eliminated!", { color = { 0.95, 0.35, 0.3, 1 }, duration = 600 })
+        self:addEvent(player.surrendered and "You surrendered." or "You have been eliminated!", { color = { 0.95, 0.35, 0.3, 1 }, duration = 600 })
     elseif not player:isBot() then
-        local text = by and string.format("%s was conquered by %s", player.name, by.name) or (player.name .. " has collapsed")
+        local text = player.surrendered and (player.name .. " surrendered")
+            or by and string.format("%s was conquered by %s", player.name, by.name) or (player.name .. " has collapsed")
         self:addEvent(text, { color = { 0.95, 0.6, 0.3, 1 } })
     end
 end

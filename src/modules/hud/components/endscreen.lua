@@ -220,7 +220,7 @@ function EndScreen.draw(hud, x, y, w, h)
     if s == "victory" then
         title, palette, subtitle, accent = "VICTORY", "gold", game.winningTeam and (Teams.label(game.winningTeam) .. " conquered the world.") or "You conquered the world.", Style.colors.gold
     elseif s == "defeat" then
-        title, palette, subtitle, accent = "DEFEAT", "red", "Your nation has fallen.", Style.colors.bad
+        title, palette, subtitle, accent = "DEFEAT", "red", game.human.surrendered and "You surrendered." or "Your nation has fallen.", Style.colors.bad
     else
         title, palette, subtitle, accent = "GAME OVER", "steel", (game.winningTeam and Teams.label(game.winningTeam) or game.winner and game.winner.name or "Someone") .. " has won the game.", Style.colors.muted
     end

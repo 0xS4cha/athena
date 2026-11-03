@@ -81,7 +81,8 @@ local SCHEMAS = {
     coalitionFound = { kind = "coalitionKind", target = "target" },
     coalitionInvite = { target = "target" },
     coalitionReply = { coalition = "coalition", accept = "accept" },
-    coalitionLeave = {}
+    coalitionLeave = {},
+    surrender = {}
 }
 
 local function otherPlayer(game, player, id)
@@ -155,6 +156,9 @@ local RULES = {
     end,
     coalitionLeave = function(game, player)
         if not player.coalition then return "No coalition" end
+    end,
+    surrender = function(game, player)
+        if game.phase ~= "playing" or not player.alive then return "Not now" end
     end
 }
 

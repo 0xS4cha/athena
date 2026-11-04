@@ -8,13 +8,15 @@ local json = require("libs.json")
 Logger = {}
 Logger.Enabled = env:Get("DEV", 1) == 1 and true or false
 
-Logger.LogLevel = env:Get("LOG_LEVELS", Logger.Enabled and 3 or 0)
+Logger.LogLevel = env:Get("LOG_LEVELS", Logger.Enabled and 5 or 0)
 
 local LOG_LEVELS = {
     ERROR = 0,
-    WARN = 1,
-    INFO = 2,
-    TRACE = 3
+    TEST_SUCCESS = 1, 
+    TEST_FAIL = 2,
+    WARN = 3,
+    INFO = 4,
+    TRACE = 5
 }
 
 local ANSI = {
@@ -70,6 +72,25 @@ function Logger:info(module, ...)
 
     print(ANSI.GREEN .. "[INFO] " .. ANSI.CYAN .. "[" .. string.upper(module) .. "] > " .. ANSI.RESET .. table.concat(parseArguments(...), " ") .. ANSI.RESET)
 end
+
+--- @param module string
+--- @param ... any
+function Logger:test_passed(...)
+    if not self.Enabled then return end
+    if self.LogLevel < LOG_LEVELS.TEST_SUCCESS then return end
+
+    print(ANSI.CYAN .. "[TEST] " .. ANSI.GREEN .. "[PASS] > " .. ANSI.RESET .. table.concat(parseArguments(...), " ") .. ANSI.RESET)
+end
+
+--- @param module string
+--- @param ... any
+function Logger:test_fail(...)
+    if not self.Enabled then return end
+    if self.LogLevel < LOG_LEVELS.TEST_FAIL then return end
+
+    print(ANSI.CYAN .. "[TEST] " .. ANSI.RED .. "[FAIL] > " .. ANSI.RESET .. table.concat(parseArguments(...), " ") .. ANSI.RESET)
+end
+
 
 --- @param module string
 --- @param ... any

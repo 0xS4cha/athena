@@ -23,7 +23,7 @@ local SUITES = {
 }
 
 local function run(filter)
-    Logger.LogLevel = 0
+    Logger.LogLevel = 2
     local passed, failed = 0, {}
     local started = love.timer.getTime()
     for _, path in ipairs(SUITES) do
@@ -36,10 +36,10 @@ local function run(filter)
                 local elapsed = love.timer.getTime() - caseStarted
                 if ok then
                     passed = passed + 1
-                    print(string.format("  PASS  %s (%.2fs)", name, elapsed))
+                    Logger:test_passed(string.format("%s (%.2fs)", name, elapsed))
                 else
                     failed[#failed + 1] = { name = name, err = err }
-                    print(string.format("  FAIL  %s (%.2fs)\n%s", name, elapsed, err))
+                    Logger:test_fail(string.format("%s (%.2fs)", name, elapsed))
                 end
             end
         end
